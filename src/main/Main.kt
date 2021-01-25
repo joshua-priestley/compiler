@@ -1,11 +1,5 @@
 package main
 
-import kotlin.math.pow
-
-open class Main() {
-    open val sod : Int = 0
-}
-
-fun main(args: Array<String>) {
+fun main() {
     println("Hello, world!")
 }
