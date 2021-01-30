@@ -75,3 +75,8 @@ D_QUOTE: '"';
 CHARACTER: 'a'..'z' | 'A'..'Z';
 CHAR: QUOTE CHARACTER QUOTE;
 STRING: D_QUOTE CHARACTER* D_QUOTE;
+
+//whitespace
+SPACE: ' ';
+WS: [ \n\t]+;
+COMMENT: '#'~[\n]* -> skip;
