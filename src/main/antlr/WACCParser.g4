@@ -40,15 +40,13 @@ arg_list: expr (COMMA expr)*;
 
 pair_elem: FST expr | SND expr;
 
-type: base_type | array_type | pair_type;
+type: base_type | type OPEN_SQUARE CLOSE_SQUARE | pair_type;
 
 base_type: INT | BOOL | CHAR | STRING;
 
-array_type: type OPEN_SQUARE CLOSE_SQUARE;
-
 pair_type: PAIR OPEN_PARENTHESES pair_elem_type COMMA pair_elem_type CLOSE_PARENTHESES;
 
-pair_elem_type: base_type | array_type | PAIR;
+pair_elem_type: base_type | type OPEN_SQUARE CLOSE_SQUARE | PAIR;
 
 expr: INT_LITER
   | BOOL_LITER
