@@ -4,7 +4,7 @@ options {
   tokenVocab=WACCLexer;
 }
 
-program: BEGIN (func)* stat END;
+program: BEGIN (func)* stat END EOF;
 
 func: type ident OPEN_PARENTHESES (param_list)? CLOSE_PARENTHESES IS stat END;
 
@@ -71,6 +71,3 @@ ident: ID;
 array_elem: ident (OPEN_SQUARE expr CLOSE_SQUARE)+;
 
 array_liter: OPEN_SQUARE (expr (COMMA expr)*)? CLOSE_SQUARE;
-
-// EOF indicates that the program must consume to the end of the input.
-prog: (expr)*  EOF ;
