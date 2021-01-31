@@ -15,7 +15,7 @@ param: type ident;
 stat: SKP
   | type ident EQ assign_rhs
   | assign_lhs EQ assign_rhs
-  | READ assign_rhs
+  | READ assign_lhs
   | FREE expr
   | RETURN expr
   | EXIT expr
