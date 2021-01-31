@@ -9,7 +9,7 @@ plugins {
 }
 
 application {
-    mainClassName = "Main"
+    mainClassName = "MainKt"
 }
 
 dependencies {
