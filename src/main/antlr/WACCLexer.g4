@@ -92,7 +92,6 @@ NEWPAIR: 'newpair';
 FST: 'fst';
 SND: 'snd';
 CALL: 'call';
-PAIR_LITER: 'null';
 
 //types
 INT: 'int';

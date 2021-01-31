@@ -12,7 +12,7 @@ param_list: param (COMMA param)*;
 
 param: type ident;
 
-stat: SKIP
+stat: SKP
   | type ident EQ assign_rhs
   | assign_lhs EQ assign_rhs
   | READ assign_rhs
@@ -24,7 +24,7 @@ stat: SKIP
   | IF expr THEN stat ELSE stat FI
   | WHILE expr DO stat DONE
   | BEGIN stat END
-  | stat SEMI_COLON stat;
+  | stat SEMICOLON stat;
 
 assign_lhs: ident
   | array_elem
@@ -54,12 +54,14 @@ expr: INT_LITER
   | BOOL_LITER
   | CHAR_LITER
   | STR_LITER
-  | PAIR_LITER
+  | pair_liter
   | ident
   | array_elem
   | unaryOper expr
   | expr binaryOper expr
   | OPEN_PARENTHESES expr CLOSE_PARENTHESES;
+
+pair_liter: NULL;
 
 unaryOper: NOT | MINUS | LEN | ORD | CHR;
 
