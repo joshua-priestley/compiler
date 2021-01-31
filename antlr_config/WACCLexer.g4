@@ -38,7 +38,7 @@ CLOSE_CURLY: '}';
 fragment DIGIT: '0'..'9' ;
 fragment SIGN: PLUS | MINUS;
 
-INT-LITER: SIGN? DIGIT+ ;
+INT_LITER: SIGN? DIGIT+ ;
 
 //skips
 SKP: 'skip';
@@ -51,6 +51,13 @@ SEMICOLON: ';';
 COLON: ':';
 COMMA: ',';
 ASSIGN: '=';
+
+//statements
+READ: 'read' ;
+FREE: 'free' ;
+RETURN: 'return' ;
+PRINT: 'print' ;
+PRINTLN: 'println' ;
 
 //conditional
 IF: 'if';
@@ -69,7 +76,7 @@ FOR: 'for'; //rest follows from WHILE
 NULL: 'null';
 
 //bools
-BOOL-LITER: 'true' | 'false';
+BOOL_LITER: 'true' | 'false';
 
 //escaped characters
 fragment ESCAPED_CHAR:
@@ -98,15 +105,13 @@ PAIR: 'pair';
 //characters
 fragment QUOTE: '\'';
 fragment D_QUOTE: '"';
-fragment CHARACTER: 
-~('\\' 
- | QUOTE 
- | D_QUOTE 
- | '\\' ESCAPED_CHAR);
-CHAR-LITER: QUOTE CHARACTER QUOTE;
-STR-LITER: D_QUOTE CHARACTER* D_QUOTE;
+fragment CHARACTER: ~[\\'"] | '\\' ESCAPED_CHAR;
+CHAR_LITER: QUOTE CHARACTER QUOTE;
+STR_LITER: D_QUOTE CHARACTER* D_QUOTE;
 
 //whitespace
 SPACE: ' ';
 WS: [ \n\t]+;
-COMMENT: '#' ~(\n)* \n -> skip;
+COMMENT: '#' ~[\n]* '\n' -> skip;
+
+ID: ('_' | [a-zA-Z]) ('_' | [a-zA-Z0-9])* ;
