@@ -1,5 +1,5 @@
 all:
-	./gradlew generateGrammarSource && ./gradlew shadowJar
+	./gradlew build
 
 clean:
 	./gradlew clean
