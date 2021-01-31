@@ -63,10 +63,21 @@ pair_liter: NULL;
 
 unaryOper: NOT | MINUS | LEN | ORD | CHR;
 
-binaryOper: PLUS | MINUS | MUL | DIV | MOD | GT | GTE |
-            LT | LTE | EQ | NEQ | AND | OR;
+binaryOper: pre1 | pre2 | pre3 | pre4 | pre5 | pre6 ;
 
-ident: ID;
+pre1: MUL | DIV | MOD ;
+
+pre2: PLUS | MINUS ;
+
+pre3: GT | GTE | LT | LTE ;
+
+pre4: EQ | NEQ ;
+
+pre5: AND ;
+
+pre6: OR ;
+
+ident: ID ;
 
 array_elem: ident (OPEN_SQUARE expr CLOSE_SQUARE)+;
 
