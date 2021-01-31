@@ -14,11 +14,17 @@ EQ: '==';
 NEQ: '!=';
 AND: '&&';
 OR: '||';
-XOR: '^';
-POW: '**';
 
 //unary operators
 NOT: '!';
+LEN: 'len';
+ORD: 'ord';
+CHR: 'chr';
+
+//program
+BEGIN: 'begin';
+END: 'end';
+IS: 'is';
 
 //brackets
 OPEN_PARENTHESES: '(' ;
@@ -32,8 +38,7 @@ CLOSE_CURLY: '}';
 fragment DIGIT: '0'..'9' ;
 fragment SIGN: PLUS | MINUS;
 
-INTEGER: DIGIT+ ;
-FLOAT: DIGIT+ '.' DIGIT+;
+INT-LITER: SIGN? DIGIT+ ;
 
 //skips
 SKP: 'skip';
@@ -60,23 +65,48 @@ DONE: 'done';
 
 //for
 FOR: 'for'; //rest follows from WHILE
-
 //null
 NULL: 'null';
 
 //bools
-BOOL: TRUE | FALSE;
-TRUE: 'true';
-FALSE: 'false';
+BOOL-LITER: 'true' | 'false';
+
+//escaped characters
+fragment ESCAPED_CHAR:
+ ('0'
+ |'b'
+ |'t'
+ |'n'
+ |'f'
+ |'r'
+ |'"'
+ |'\''
+ |'\\');
+
+NEWPAIR: 'newpair';
+FST: 'fst';
+SND: 'snd';
+CALL: 'call';
+
+//types
+INT: 'int';
+BOOL: 'bool';
+CHAR: 'char';
+STRING: 'string';
+PAIR: 'pair';
 
 //characters
-QUOTE: '\'';
-D_QUOTE: '"';
-CHARACTER: 'a'..'z' | 'A'..'Z';
-CHAR: QUOTE CHARACTER QUOTE;
-STRING: D_QUOTE CHARACTER* D_QUOTE;
+fragment QUOTE: '\'';
+fragment D_QUOTE: '"';
+fragment CHARACTER: 
+~('\\' 
+ | QUOTE 
+ | D_QUOTE 
+ | '\\' ESCAPED_CHAR);
+CHAR-LITER: QUOTE CHARACTER QUOTE;
+STR-LITER: D_QUOTE CHARACTER* D_QUOTE;
 
 //whitespace
 SPACE: ' ';
 WS: [ \n\t]+;
-COMMENT: '#'~[\n]* -> skip;
+COMMENT: '#' ~(\n)* \n -> skip;
