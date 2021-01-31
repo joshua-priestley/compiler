@@ -13,6 +13,12 @@ compile:
 
 test:
   stage: test
+  dependencies:
+    - compile
+  artifacts:
+    paths:
+      - build/generated-src/
+      - build/libs/*.jar
   script:
     - ./gradlew test
 
