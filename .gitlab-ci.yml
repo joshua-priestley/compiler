@@ -7,7 +7,7 @@ stages:
 compile:
   stage: compile
   script:
-    - ./gradlew build
+    - ./gradlew assemble
 
 test:
   stage: test
