@@ -39,4 +39,8 @@ tasks {
     test {
         useJUnitPlatform()
     }
+
+    compileKotlin {
+        dependsOn(generateGrammarSource);
+    }
 }
