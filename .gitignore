@@ -4,9 +4,14 @@ src/antlr
 
 #ignore Java class files
 *.class
+build
+gen
 
 #ignore other junk files
 *~
+.idea
+.gradle
+*.tokens
 
 #ignore out folder
 out
