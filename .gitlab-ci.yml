@@ -3,7 +3,6 @@ image: gradle:4.7.0-jdk8-alpine
 stages:
   - compile
   - test
-  - deploy
 
 compile:
   stage: compile
@@ -14,8 +13,3 @@ test:
   stage: test
   script:
     - ./gradlew test
-
-deploy:
-  stage: deploy
-  script:
-    - echo "Finished running compile scripts & tests"
