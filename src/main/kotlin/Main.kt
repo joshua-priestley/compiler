@@ -1,3 +1,5 @@
+package compiler
+
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.tree.*
 import antlr.*
@@ -5,16 +7,34 @@ import antlr.*
 import kotlin.system.exitProcess
 import java.io.File
 
+//TODO: do proper visibilities
 
 fun main(args: Array<String>) {
-
-    var exitCode = 0
     //TODO: args/file validation?
-    val file = File(args[0])
-    val input = CharStreams.fromPath(file.toPath())
-    val lexer = WACCLexer(input)
-    val tokens = CommonTokenStream(lexer)
-    val parser = WACCParser(tokens)
+    val compiler = Compiler(args[0])
+    val result = compiler.compile()
+    exitProcess(result)
+}
 
-    exitProcess(exitCode)
+class Compiler(val inputFile: String) {
+    //TODO: rethink return types to handle syntax vs semantic fail, error messages etc...
+    fun check(): Boolean {
+        val file = File(inputFile)
+        val input = CharStreams.fromPath(file.toPath())
+        val lexer = WACCLexer(input)
+        val tokens = CommonTokenStream(lexer)
+        val parser = WACCParser(tokens)
+        println(input)
+
+        return true
+    }
+
+    fun compile(): Int {
+        val result = check()
+        if (result) {
+            return 0
+        } else {
+            return 100;
+        }
+    }
 }

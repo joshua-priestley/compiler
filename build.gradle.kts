@@ -9,7 +9,7 @@ plugins {
 }
 
 application {
-    mainClassName = "MainKt"
+    mainClassName = "compiler.MainKt"
 }
 
 dependencies {
