@@ -108,8 +108,7 @@ CHAR_LITER: QUOTE CHARACTER QUOTE;
 STR_LITER: D_QUOTE CHARACTER* D_QUOTE;
 
 //whitespace
-SPACE: ' ';
-WS: [ \n\t]+;
+WS: [ \t\n\r]+ -> skip;
 COMMENT: '#' ~[\n]* '\n' -> skip;
 
 ID: ('_' | [a-zA-Z]) ('_' | [a-zA-Z0-9])* ;

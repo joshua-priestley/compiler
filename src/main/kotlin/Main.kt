@@ -24,7 +24,8 @@ class Compiler(val inputFile: String) {
         val lexer = WACCLexer(input)
         val tokens = CommonTokenStream(lexer)
         val parser = WACCParser(tokens)
-        println(input)
+        val tree = parser.program()
+        println(tree.toStringTree(parser))
 
         return true
     }
