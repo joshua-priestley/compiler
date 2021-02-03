@@ -6,6 +6,7 @@ src/antlr
 *.class
 build
 gen
+*.java
 
 #ignore other junk files
 *~
@@ -15,3 +16,6 @@ gen
 
 #ignore out folder
 out
+
+#ignore .DS_STORE files
+.DS_STORE
