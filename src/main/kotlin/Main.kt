@@ -1,5 +1,6 @@
 package compiler
 
+import Visitor
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.tree.*
 import antlr.*
@@ -24,8 +25,12 @@ class Compiler(val inputFile: String) {
         val lexer = WACCLexer(input)
         val tokens = CommonTokenStream(lexer)
         val parser = WACCParser(tokens)
-        val tree = parser.program()
-        println(tree.toStringTree(parser))
+        //val tree = parser.program()
+        //println(tree.toStringTree(parser))
+
+        println("--------")
+        val visitor = Visitor();
+        visitor.visit(parser.program());
 
         return true
     }
