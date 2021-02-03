@@ -33,7 +33,7 @@ sourceSets["main"].java.srcDir(antlrOutputDirectory)
 
 tasks {
     generateGrammarSource {
-        arguments = arguments + listOf("-package", "antlr")
+        arguments = arguments + listOf("-package", "antlr", "-no-listener", "-visitor", "-Werror")
         this.outputDirectory = file(antlrOutputDirectory + "antlr")
     }
     test {
