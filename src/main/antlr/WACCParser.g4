@@ -13,8 +13,8 @@ param_list: param (COMMA param)*;
 param: type ident;
 
 stat: SKP
-  | type ident EQ assign_rhs
-  | assign_lhs EQ assign_rhs
+  | type ident ASSIGN assign_rhs
+  | assign_lhs ASSIGN assign_rhs
   | READ assign_lhs
   | FREE expr
   | RETURN expr
@@ -24,7 +24,7 @@ stat: SKP
   | IF expr THEN stat ELSE stat FI
   | WHILE expr DO stat DONE
   | BEGIN stat END
-  | stat SEMICOLON stat;
+  | <assoc=right> stat SEMICOLON stat;
 
 assign_lhs: ident
   | array_elem
@@ -34,7 +34,7 @@ assign_rhs: expr
   | array_liter
   | NEWPAIR OPEN_PARENTHESES expr COMMA expr CLOSE_PARENTHESES
   | pair_elem
-  | CALL ident OPEN_PARENTHESES arg_list CLOSE_PARENTHESES;
+  | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES;
 
 arg_list: expr (COMMA expr)*;
 
