@@ -12,19 +12,20 @@ param_list: param (COMMA param)*;
 
 param: type ident;
 
-stat: SKP
-  | type ident ASSIGN assign_rhs
-  | assign_lhs ASSIGN assign_rhs
-  | READ assign_lhs
-  | FREE expr
-  | RETURN expr
-  | EXIT expr
-  | PRINT expr
-  | PRINTLN expr
-  | IF expr THEN stat ELSE stat FI
-  | WHILE expr DO stat DONE
-  | BEGIN stat END
-  | <assoc=right> stat SEMICOLON stat;
+stat: SKP                                           # skip
+  | type ident ASSIGN assign_rhs                    # varDeclaration
+  | assign_lhs ASSIGN assign_rhs                    # varAssign
+  | READ assign_lhs                                 # read
+  | FREE expr                                       # free
+  | RETURN expr                                     # return
+  | EXIT expr                                       # exit
+  | PRINT expr                                      # print
+  | PRINTLN expr                                    # println
+  | IF expr THEN stat ELSE stat FI                  # if
+  | WHILE expr DO stat DONE                         # while
+  | BEGIN stat END                                  # begin
+  | <assoc=right> stat SEMICOLON stat               # sequence
+  ;
 
 assign_lhs: ident
   | array_elem
@@ -48,16 +49,17 @@ pair_type: PAIR OPEN_PARENTHESES pair_elem_type COMMA pair_elem_type CLOSE_PAREN
 
 pair_elem_type: base_type | type OPEN_SQUARE CLOSE_SQUARE | PAIR;
 
-expr: INT_LITER
-  | BOOL_LITER
-  | CHAR_LITER
-  | STR_LITER
-  | pair_liter
-  | ident
-  | array_elem
-  | unaryOper expr
-  | expr binaryOper expr
-  | OPEN_PARENTHESES expr CLOSE_PARENTHESES;
+expr: INT_LITER                                 # intLiter
+  | BOOL_LITER                                  # boolLiter
+  | CHAR_LITER                                  # charLiter
+  | STR_LITER                                   # strLiter
+  | pair_liter                                  # pairLiter
+  | ident                                       # id
+  | array_elem                                  # arrayElem
+  | unaryOper expr                              # unaryOp
+  | expr binaryOper expr                        # binaryOp
+  | OPEN_PARENTHESES expr CLOSE_PARENTHESES     # parentheses
+  ;
 
 pair_liter: NULL;
 
