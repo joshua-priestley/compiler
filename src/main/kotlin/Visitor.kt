@@ -16,8 +16,33 @@ class Visitor : WACCParserBaseVisitor<Node>() {
         return ExitNode(visit(ctx.expr()) as ExprNode)
     }
 
-    override fun visitIntLiter(ctx: IntLiterContext): Node {
-        println("At int liter")
-        return IntLiterNode(ctx.text)
+//    override fun visitIntLiter(ctx: IntLiterContext): Node {
+//        println("At int liter")
+//        return IntLiterNode(ctx.text)
+//    }
+
+    override fun visitStrLiter(ctx: StrLiterContext): Node {
+        println("At str liter")
+        return StrLiterNode(ctx.text)
+    }
+
+    override fun visitPrintln(ctx: PrintlnContext): Node {
+        println("at println node")
+        return PrintlnNode(visit(ctx.expr()) as ExprNode)
+    }
+
+    override fun visitSkip(ctx: SkipContext): Node {
+        println("at a skip")
+        return SkipNode()
+    }
+
+    override fun visitPrint(ctx: PrintContext): Node {
+        println("at a print")
+        return PrintNode(visit(ctx.expr()) as ExprNode)
+    }
+
+    override fun visitSequence(ctx: SequenceContext): Node {
+        println("sequence tiem")
+        return SequenceNode(visit(ctx.stat(0)) as StatementNode, visit(ctx.stat(1)) as StatementNode)
     }
 }

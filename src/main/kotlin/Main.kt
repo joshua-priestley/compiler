@@ -30,7 +30,7 @@ class Compiler(val inputFile: String) {
 
         println("--------")
         val visitor = Visitor();
-        visitor.visit(parser.program());
+        println(visitor.visit(parser.program()).toString())
 
         return true
     }
