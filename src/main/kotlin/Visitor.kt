@@ -45,4 +45,9 @@ class Visitor : WACCParserBaseVisitor<Node>() {
         println("sequence tiem")
         return SequenceNode(visit(ctx.stat(0)) as StatementNode, visit(ctx.stat(1)) as StatementNode)
     }
+
+    override fun visitVarDeclaration(ctx: VarDeclarationContext): Node {
+        println("at a variable declaration")
+        return DeclarationNode(visit(ctx.type()) as TypeNode, Ident(ctx.ident().text), visit(ctx.assign_rhs()) as AssignRHSNode)
+    }
 }
