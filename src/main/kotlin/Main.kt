@@ -1,6 +1,7 @@
 package compiler
 
 import Visitor
+import WACCErrorListener
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.tree.*
 import antlr.*
@@ -25,6 +26,8 @@ class Compiler(val inputFile: String) {
         val lexer = WACCLexer(input)
         val tokens = CommonTokenStream(lexer)
         val parser = WACCParser(tokens)
+        // parser.removeErrorListeners() // uncomment to get rid of antlr error messages
+        parser.addErrorListener(WACCErrorListener())
         //val tree = parser.program()
         //println(tree.toStringTree(parser))
 

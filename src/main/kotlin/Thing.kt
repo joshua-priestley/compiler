@@ -1,3 +1,3 @@
-class Thing {
-    var x:Int = 3
-}
+//class Thing {
+//    var x:Int = 3
+//}

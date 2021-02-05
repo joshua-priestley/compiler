@@ -16,6 +16,15 @@ class Visitor : WACCParserBaseVisitor<Node>() {
         return ExitNode(visit(ctx.expr()) as ExprNode)
     }
 
+    override fun visitFree(ctx: FreeContext): Node {
+        println("at free node")
+        return FreeNode(visit(ctx.expr()) as ExprNode)
+    }
+
+    override fun visitReturn(ctx: ReturnContext): Node {
+        return ReturnNode(visit(ctx.expr()) as ExprNode)
+    }
+
 //    override fun visitIntLiter(ctx: IntLiterContext): Node {
 //        println("At int liter")
 //        return IntLiterNode(ctx.text)
@@ -43,7 +52,7 @@ class Visitor : WACCParserBaseVisitor<Node>() {
 
     override fun visitSequence(ctx: SequenceContext): Node {
         println("sequence tiem")
-        return SequenceNode(visit(ctx.stat(0)) as StatementNode, visit(ctx.stat(1)) as StatementNode)
+        return SequenceNode(visit(ctx.stat(0)) as StatementNode,visit(ctx.stat(1)) as StatementNode)
     }
 
     override fun visitVarDeclaration(ctx: VarDeclarationContext): Node {
