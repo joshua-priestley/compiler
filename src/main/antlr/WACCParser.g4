@@ -27,23 +27,33 @@ stat: SKP                                           # skip
   | <assoc=right> stat SEMICOLON stat               # sequence
   ;
 
-assign_lhs: ident
-  | array_elem
-  | pair_elem;
+assign_lhs: ident                                   # assignLhsId
+  | array_elem                                      # assignLhsArray
+  | pair_elem                                       # assignLhsPair
+  ;
 
-assign_rhs: expr
-  | array_liter
-  | NEWPAIR OPEN_PARENTHESES expr COMMA expr CLOSE_PARENTHESES
-  | pair_elem
-  | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES;
+assign_rhs: expr                                                  # assignRhsExpr
+  | array_liter                                                   # assignRhsArray
+  | NEWPAIR OPEN_PARENTHESES expr COMMA expr CLOSE_PARENTHESES    # assignRhsNewpair
+  | pair_elem                                                     # assignRhsPairElem
+  | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES     # assignRhsCall
+  ;
 
 arg_list: expr (COMMA expr)*;
 
-pair_elem: FST expr | SND expr;
+pair_elem: FST expr                             # pairFst
+  | SND expr                                    # pairSnd
+  ;
 
-type: base_type | type OPEN_SQUARE CLOSE_SQUARE | pair_type;
+type: base_type
+  | type OPEN_SQUARE CLOSE_SQUARE
+  | pair_type;
 
-base_type: INT | BOOL | CHAR | STRING;
+base_type: INT                                  # int
+  | BOOL                                        # bool
+  | CHAR                                        # char
+  | STRING                                      # string
+  ;
 
 pair_type: PAIR OPEN_PARENTHESES pair_elem_type COMMA pair_elem_type CLOSE_PARENTHESES;
 
