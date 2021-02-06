@@ -86,12 +86,6 @@ STATEMENTS
 
 /*
 ================================================================
-ASSIGNMENTS
- */
-
-
-/*
-================================================================
 EXPRESSIONS
  */
 
@@ -105,4 +99,64 @@ EXPRESSIONS
         println("At str liter")
         return StrLiterNode(ctx.text)
     }
+
+    override fun visitCharLiter(ctx: CharLiterContext): Node {
+        println("At char liter")
+        return CharLiterNode(ctx.text)
+    }
+
+    override fun visitBoolLiter(ctx: BoolLiterContext): Node {
+        println("At bool liter")
+        return BoolLiterNode(ctx.text)
+    }
+
+    override fun visitPairLiter(ctx: PairLiterContext): Node {
+        println("At pair liter")
+        return PairLiterNode()
+    }
+
+    //TODO can we change the parser to avoid having to do this
+    override fun visitId(ctx: IdContext): Node {
+        return visit(ctx.ident())
+    }
+
+    override fun visitIdent(ctx: IdentContext): Node {
+        println("At ident")
+        return Ident(ctx.text)
+    }
+
+    //TODO can we change the parser to avoid having to do this
+    override fun visitArrayElem(ctx: ArrayElemContext): Node {
+        return visit(ctx.array_elem())
+    }
+
+    override fun visitArray_elem(ctx: Array_elemContext): Node {
+        println("At array elem")
+        return ArrayElem(visit(ctx.ident()) as Ident,
+                         ctx.expr().map {visit(it) as ExprNode})
+    }
+
+    override fun visitUnaryOp(ctx: UnaryOpContext): Node {
+        println("At unary op")
+        //TODO handle semantic errors here? or handle later using NOT_SUPPORTED flag
+        //TODO is there a ore elegant way to do this?
+        val op =  when {
+            ctx.unaryOper().NOT() != null -> UnOp.NOT
+            ctx.unaryOper().MINUS() != null -> UnOp.MINUS
+            ctx.unaryOper().LEN() != null -> UnOp.LEN
+            ctx.unaryOper().ORD() != null -> UnOp.ORD
+            ctx.unaryOper().CHR() != null -> UnOp.CHR
+            else -> UnOp.NOT_SUPPORTED
+        }
+        return UnaryOpNode(op, visit(ctx.expr()) as ExprNode)
+    }
+/*
+    override fun visitBinaryOp(ctx: BinaryOpContext): Node {
+        println("At binary op")
+    }
+
+    override fun visitBinaryOper(ctx: BinaryOperContext): Node {
+        return visit(ctx.)
+    }
+*/
 }

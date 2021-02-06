@@ -49,7 +49,7 @@ data class CharLiterNode(val value: String) : ExprNode
 data class BoolLiterNode(val value: String) : ExprNode
 class PairLiterNode() : ExprNode
 data class Ident(val name: String) : ExprNode
-data class ArrayElem(val ident: Ident, val exprList: List<ExprNode>) : ExprNode
+data class ArrayElem(val ident: Ident, val expr: List<ExprNode>) : ExprNode
 data class UnaryOpNode(val operator: UnOp, val expr: ExprNode) : ExprNode
 data class BinaryOpNode(val operator: BinOp, val expr1: ExprNode, val expr2: ExprNode) : ExprNode
 
@@ -61,11 +61,13 @@ data class ArgList(val args: List<ExprNode>) : ExprNode
  * Operators
  */
 enum class UnOp {
-    NOT, MINUS, LEN, ORD, CHR
+    NOT, MINUS, LEN, ORD, CHR, NOT_SUPPORTED
 }
 
-enum class BinOp {
-    MUL, DIV, MOD, PLUS, MINUS, GT, GTE, LT, LTE, EQ, NEQ, AND, OR
+//TODO does making this a node mean its no longer an AST?
+//think about how to do binary operater precedence more
+enum class BinOp : Node {
+    MUL, DIV, MOD, PLUS, MINUS, GT, GTE, LT, LTE, EQ, NEQ, AND, OR, NOT_SUPPORTED
 }
 
 /*
