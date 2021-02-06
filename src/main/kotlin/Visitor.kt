@@ -1,16 +1,36 @@
 import antlr.WACCParser.*;
 import antlr.WACCLexer;
 import antlr.WACCParserBaseVisitor
+import org.antlr.runtime.tree.ParseTree
 
 import org.antlr.v4.*;
 
 class Visitor : WACCParserBaseVisitor<Node>() {
-    override fun visitProgram(ctx : ProgramContext): Node {
+    override fun visitProgram(ctx: ProgramContext): Node {
         println("At a program")
+        val functionNodes = mutableListOf<FunctionNode>()
+        ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
         val stat = visit(ctx.stat()) as StatementNode
-        return ProgramNode(ArrayList(), stat)
+        return ProgramNode(functionNodes, stat)
     }
 
+    override fun visitFunc(ctx: FuncContext): Node {
+        println("At a function")
+        val type = visit(ctx.type()) as TypeNode
+
+        val ident = visit(ctx.ident()) as Ident
+
+        val parameterNodes = mutableListOf<Param>()
+        if (ctx.param_list() != null) {
+            for (i in 0..ctx.param_list().childCount step 2) {
+                parameterNodes.add(visit(ctx.param_list().getChild(i)) as Param)
+            }
+        }
+
+        val stat = visit(ctx.stat()) as StatementNode
+
+        return FunctionNode(type, ident, parameterNodes.toList(), stat)
+    }
 /*
 ================================================================
 STATEMENTS
@@ -19,7 +39,7 @@ STATEMENTS
     override fun visitVarAssign(ctx: VarAssignContext): Node {
         println("At variable assignment")
         return AssignNode(visit(ctx.assign_lhs()) as AssignLHSNode,
-                          visit(ctx.assign_rhs()) as AssignRHSNode)
+                visit(ctx.assign_rhs()) as AssignRHSNode)
     }
 
     override fun visitRead(ctx: ReadContext): Node {
@@ -59,14 +79,14 @@ STATEMENTS
     override fun visitIf(ctx: IfContext): Node {
         println("at an if")
         return IfElseNode(visit(ctx.expr()) as ExprNode,
-                          visit(ctx.stat(0)) as StatementNode,
-                          visit(ctx.stat((1))) as StatementNode)
+                visit(ctx.stat(0)) as StatementNode,
+                visit(ctx.stat((1))) as StatementNode)
     }
 
     override fun visitWhile(ctx: WhileContext): Node {
         println("at a while")
         return WhileNode(visit(ctx.expr()) as ExprNode,
-                         visit(ctx.stat()) as StatementNode)
+                visit(ctx.stat()) as StatementNode)
     }
 
     override fun visitBegin(ctx: BeginContext): Node {
@@ -76,7 +96,7 @@ STATEMENTS
 
     override fun visitSequence(ctx: SequenceContext): Node {
         println("sequence item")
-        return SequenceNode(visit(ctx.stat(0)) as StatementNode,visit(ctx.stat(1)) as StatementNode)
+        return SequenceNode(visit(ctx.stat(0)) as StatementNode, visit(ctx.stat(1)) as StatementNode)
     }
 
     override fun visitVarDeclaration(ctx: VarDeclarationContext): Node {
@@ -133,14 +153,14 @@ EXPRESSIONS
     override fun visitArray_elem(ctx: Array_elemContext): Node {
         println("At array elem")
         return ArrayElem(visit(ctx.ident()) as Ident,
-                         ctx.expr().map {visit(it) as ExprNode})
+                ctx.expr().map { visit(it) as ExprNode })
     }
 
     override fun visitUnaryOp(ctx: UnaryOpContext): Node {
         println("At unary op")
         //TODO handle semantic errors here? or handle later using NOT_SUPPORTED flag
         //TODO is there a ore elegant way to do this?
-        val op =  when {
+        val op = when {
             ctx.unaryOper().NOT() != null -> UnOp.NOT
             ctx.unaryOper().MINUS() != null -> UnOp.MINUS
             ctx.unaryOper().LEN() != null -> UnOp.LEN

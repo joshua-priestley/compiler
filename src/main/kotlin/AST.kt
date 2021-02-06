@@ -11,7 +11,7 @@ data class ProgramNode(val funcs: List<FunctionNode>, val stat: StatementNode) :
 /*
  * Functions
  */
-data class FunctionNode(val type: Int, val ident: String, val params: List<Param>, val stat: StatementNode) : Node
+data class FunctionNode(val type: TypeNode, val ident: Ident, val params: List<Param>, val stat: StatementNode) : Node
 /*
  * Statements
  */
