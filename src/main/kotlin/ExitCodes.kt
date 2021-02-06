@@ -1,0 +1,3 @@
+const val OK_RETURN = 0
+const val SYNTAX_ERROR_RETURN = 100
+const val SEMANTIC_ERROR_RETURN = 200
