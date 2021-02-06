@@ -1,9 +1,5 @@
 import antlr.WACCParser.*;
-import antlr.WACCLexer;
 import antlr.WACCParserBaseVisitor
-import org.antlr.runtime.tree.ParseTree
-
-import org.antlr.v4.*;
 
 class Visitor : WACCParserBaseVisitor<Node>() {
     override fun visitProgram(ctx: ProgramContext): Node {
@@ -188,24 +184,50 @@ EXPRESSIONS
 
     override fun visitBinaryOp(ctx: BinaryOpContext): Node {
         println("At binary op")
+        return BinaryOpNode(visit(ctx.binaryOper()) as BinOp, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
+    }
 
-        val op = when {
-            ctx.binaryOper().pre1().MUL() != null -> BinOp.MUL
-            ctx.binaryOper().pre1().DIV() != null -> BinOp.DIV
-            ctx.binaryOper().pre1().MOD() != null -> BinOp.MOD
-            ctx.binaryOper().pre2().PLUS() != null -> BinOp.PLUS
-            ctx.binaryOper().pre2().MINUS() != null -> BinOp.MINUS
-            ctx.binaryOper().pre3().GT() != null -> BinOp.GT
-            ctx.binaryOper().pre3().GTE() != null -> BinOp.GTE
-            ctx.binaryOper().pre3().LT() != null -> BinOp.LT
-            ctx.binaryOper().pre3().LTE() != null -> BinOp.LTE
-            ctx.binaryOper().pre4().EQ() != null -> BinOp.EQ
-            ctx.binaryOper().pre4().NEQ() != null -> BinOp.NEQ
-            ctx.binaryOper().pre5().AND() != null -> BinOp.AND
-            ctx.binaryOper().pre6().OR() != null -> BinOp.OR
+    override fun visitPre1(ctx: Pre1Context): Node {
+        return when {
+            ctx.MUL() != null -> BinOp.MUL
+            ctx.DIV() != null -> BinOp.DIV
+            ctx.MOD() != null -> BinOp.MOD
             else -> BinOp.NOT_SUPPORTED
         }
-
-        return BinaryOpNode(op, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
     }
+
+    override fun visitPre2(ctx: Pre2Context): Node {
+        return when {
+            ctx.PLUS() != null -> BinOp.PLUS
+            ctx.MINUS() != null -> BinOp.MINUS
+            else -> BinOp.NOT_SUPPORTED
+        }
+    }
+
+    override fun visitPre3(ctx: Pre3Context): Node {
+        return when {
+            ctx.GT() != null -> BinOp.GT
+            ctx.GTE() != null -> BinOp.GTE
+            ctx.LT() != null -> BinOp.LT
+            ctx.LTE() != null -> BinOp.LTE
+            else -> BinOp.NOT_SUPPORTED
+        }
+    }
+
+    override fun visitPre4(ctx: Pre4Context): Node {
+        return when {
+            ctx.EQ() != null -> BinOp.EQ
+            ctx.NEQ() != null -> BinOp.NEQ
+            else -> BinOp.NOT_SUPPORTED
+        }
+    }
+
+    override fun visitPre5(ctx: Pre5Context): Node {
+        return BinOp.AND
+    }
+
+    override fun visitPre6(ctx: Pre6Context): Node {
+        return BinOp.OR
+    }
+
 }
