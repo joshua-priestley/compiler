@@ -23,11 +23,7 @@ class SymbolTable(val parentT: SymbolTable?) {
             return variables[ident]
         }
 
-        if (parentT == null) {
-            return null
-        }
-
-        return parentT.getType(ident)
+        return parentT?.getType(ident)
     }
 
     fun getExpr(ident: Ident): AssignRHSNode? {
@@ -35,11 +31,7 @@ class SymbolTable(val parentT: SymbolTable?) {
             return table[ident]
         }
 
-        if (parentT == null) {
-            return null
-        }
-
-        return parentT.getExpr(ident)
+        return parentT?.getExpr(ident)
     }
 
 }
