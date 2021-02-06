@@ -12,7 +12,6 @@ data class ProgramNode(val funcs: List<FunctionNode>, val stat: StatementNode) :
  * Functions
  */
 data class FunctionNode(val type: Int, val ident: String, val params: List<Param>, val stat: StatementNode) : Node
-
 /*
  * Statements
  */
@@ -46,6 +45,28 @@ data class LHSPairElemNode(val pairElem: PairElemNode)
 interface ExprNode : Node
 data class IntLiterNode(val value: String) : ExprNode
 data class StrLiterNode(val value: String) : ExprNode
+data class CharLiterNode(val value: String) : ExprNode
+data class BoolLiterNode(val value: String) : ExprNode
+class PairLiterNode() : ExprNode
+data class Ident(val name: String) : ExprNode
+data class ArrayElem(val ident: Ident, val exprList: List<ExprNode>) : ExprNode
+data class UnaryOpNode(val operator: UnOp, val expr: ExprNode) : ExprNode
+data class BinaryOpNode(val operator: BinOp, val expr1: ExprNode, val expr2: ExprNode) : ExprNode
+
+// Expression nodes for functions
+data class Param(val type: TypeNode, val ident: Ident) : ExprNode
+data class ParamList(val params: List<Param>) : ExprNode
+data class ArgList(val args: List<ExprNode>) : ExprNode
+/*
+ * Operators
+ */
+enum class UnOp {
+    NOT, MINUS, LEN, ORD, CHR
+}
+
+enum class BinOp {
+    MUL, DIV, MOD, PLUS, MINUS, GT, GTE, LT, LTE, EQ, NEQ, AND, OR
+}
 
 /*
  * RHS Assignment
@@ -80,7 +101,7 @@ class Int() : BaseType
 interface ArrayType : TypeNode
 data class ArrayNode(val type: TypeNode) : ArrayType
 
+//Pair Types
+data class PairTypeNode(val type1: PairElemTypeNode, val type2: PairElemTypeNode) : TypeNode
+data class PairElemTypeNode(val type: TypeNode) : TypeNode
 
-data class Ident(val value: String)
-data class Param(val type: String, val ident: Ident)
-data class ArrayElem(val ident: Ident, val exprList: List<ExprNode>)
