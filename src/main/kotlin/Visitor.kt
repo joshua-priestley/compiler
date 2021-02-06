@@ -31,6 +31,21 @@ class Visitor : WACCParserBaseVisitor<Node>() {
 
         return FunctionNode(type, ident, parameterNodes.toList(), stat)
     }
+
+/*
+================================================================
+PARAMETERS
+ */
+
+    override fun visitParam(ctx: ParamContext): Node {
+        val type = visit(ctx.type()) as TypeNode
+        val ident = visit(ctx.ident()) as Ident
+        return Param(type, ident)
+    }
+
+    override fun visitParam_list(ctx: Param_listContext?): Node {
+        return visitChildren(ctx)
+    }
 /*
 ================================================================
 STATEMENTS
