@@ -150,13 +150,27 @@ EXPRESSIONS
         }
         return UnaryOpNode(op, visit(ctx.expr()) as ExprNode)
     }
-/*
+
     override fun visitBinaryOp(ctx: BinaryOpContext): Node {
         println("At binary op")
-    }
 
-    override fun visitBinaryOper(ctx: BinaryOperContext): Node {
-        return visit(ctx.)
+        val op = when {
+            ctx.binaryOper().pre1().MUL() != null -> BinOp.MUL
+            ctx.binaryOper().pre1().DIV() != null -> BinOp.DIV
+            ctx.binaryOper().pre1().MOD() != null -> BinOp.MOD
+            ctx.binaryOper().pre2().PLUS() != null -> BinOp.PLUS
+            ctx.binaryOper().pre2().MINUS() != null -> BinOp.MINUS
+            ctx.binaryOper().pre3().GT() != null -> BinOp.GT
+            ctx.binaryOper().pre3().GTE() != null -> BinOp.GTE
+            ctx.binaryOper().pre3().LT() != null -> BinOp.LT
+            ctx.binaryOper().pre3().LTE() != null -> BinOp.LTE
+            ctx.binaryOper().pre4().EQ() != null -> BinOp.EQ
+            ctx.binaryOper().pre4().NEQ() != null -> BinOp.NEQ
+            ctx.binaryOper().pre5().AND() != null -> BinOp.AND
+            ctx.binaryOper().pre6().OR() != null -> BinOp.OR
+            else -> BinOp.NOT_SUPPORTED
+        }
+
+        return BinaryOpNode(op, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
     }
-*/
 }
