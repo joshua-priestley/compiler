@@ -289,7 +289,10 @@ EXPRESSIONS
 
     override fun visitAssignRhsCall(ctx: AssignRhsCallContext): Node {
         return RHSCallNode(visit(ctx.ident()) as Ident,
-                           ctx.arg_list().expr().map {visit(it) as ExprNode})
+                           when {
+                               ctx.arg_list() != null -> ctx.arg_list().expr().map {visit(it) as ExprNode}
+                               else -> null
+                           })
     }
 
     override fun visitPairFst(ctx: PairFstContext): Node {
