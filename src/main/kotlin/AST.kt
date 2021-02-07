@@ -37,7 +37,7 @@ data class SequenceNode(val stat1: StatementNode, val stat2: StatementNode) : St
 interface AssignLHSNode : Node
 data class AssignLHSIdentNode(val ident: Ident) : AssignLHSNode
 data class LHSArrayElemNode(val arrayElem: ArrayElem) : AssignLHSNode
-data class LHSPairElemNode(val pairElem: PairElemNode)
+data class LHSPairElemNode(val pairElem: PairElemNode) : AssignLHSNode
 
 /*
  * Expressions
@@ -55,6 +55,7 @@ data class BinaryOpNode(val operator: BinOp, val expr1: ExprNode, val expr2: Exp
 
 // Expression nodes for functions
 data class Param(val type: TypeNode, val ident: Ident) : ExprNode
+//TODO remove these? or replace lists in call/function nodes with these
 data class ParamList(val params: List<Param>) : ExprNode
 data class ArgList(val args: List<ExprNode>) : ExprNode
 /*
@@ -78,7 +79,7 @@ data class RHSExprNode(val expr: ExprNode) : AssignRHSNode
 data class RHSArrayLitNode(val exprs: List<ExprNode>) : AssignRHSNode
 data class RHSNewPairNode(val expr1: ExprNode, val expr2: ExprNode) : AssignRHSNode
 data class RHSPairElemNode(val pairElem: PairElemNode) : AssignRHSNode
-data class RHSCallNode(val ident: Ident, val argList: List<ExprNode>)
+data class RHSCallNode(val ident: Ident, val argList: List<ExprNode>) : AssignRHSNode
 
 /*
  * Pair Elem

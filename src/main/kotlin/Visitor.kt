@@ -229,4 +229,53 @@ EXPRESSIONS
     override fun visitPre6(ctx: Pre6Context): Node {
         return BinOp.OR
     }
+
+/*
+================================================================
+EXPRESSIONS
+ */
+
+
+    override fun visitAssignLhsId(ctx: AssignLhsIdContext): Node {
+        return AssignLHSIdentNode(visit(ctx.ident()) as Ident)
+    }
+
+    override fun visitAssignLhsArray(ctx: AssignLhsArrayContext): Node {
+        return LHSArrayElemNode(visit(ctx.array_elem()) as ArrayElem)
+    }
+
+    override fun visitAssignLhsPair(ctx: AssignLhsPairContext): Node {
+        return LHSPairElemNode(visit(ctx.pair_elem()) as PairElemNode)
+    }
+
+
+    override fun visitAssignRhsExpr(ctx: AssignRhsExprContext): Node {
+        return RHSExprNode(visit(ctx.expr()) as ExprNode)
+    }
+
+    override fun visitAssignRhsArray(ctx: AssignRhsArrayContext): Node {
+        return RHSArrayLitNode(ctx.array_liter().expr().map {visit(it) as ExprNode})
+    }
+
+    override fun visitAssignRhsNewpair(ctx: AssignRhsNewpairContext): Node {
+        return RHSNewPairNode(visit(ctx.expr(0)) as ExprNode,
+                              visit(ctx.expr(1)) as ExprNode)
+    }
+
+    override fun visitAssignRhsPairElem(ctx: AssignRhsPairElemContext): Node {
+        return RHSPairElemNode(visit(ctx.pair_elem()) as PairElemNode)
+    }
+
+    override fun visitAssignRhsCall(ctx: AssignRhsCallContext): Node {
+        return RHSCallNode(visit(ctx.ident()) as Ident,
+                           ctx.arg_list().expr().map {visit(it) as ExprNode})
+    }
+
+    override fun visitPairFst(ctx: PairFstContext): Node {
+        return FstExpr(visit(ctx.expr()) as ExprNode)
+    }
+
+    override fun visitPairSnd(ctx: PairSndContext): Node {
+        return SndExpr(visit(ctx.expr()) as ExprNode)
+    }
 }
