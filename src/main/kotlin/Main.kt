@@ -26,24 +26,24 @@ class Compiler(val inputFile: String) {
         val lexer = WACCLexer(input)
         val tokens = CommonTokenStream(lexer)
         val parser = WACCParser(tokens)
-        // parser.removeErrorListeners() // uncomment to get rid of antlr error messages
+        parser.removeErrorListeners() // uncomment to get rid of antlr error messages
         parser.addErrorListener(WACCErrorListener())
-        //val tree = parser.program()
-        //println(tree.toStringTree(parser))
+        val tree = parser.program()
+        println(tree.toStringTree(parser))
 
         println("--------")
         val visitor = Visitor();
-        println(visitor.visit(parser.program()).toString())
+        println(visitor.visit(tree).toString())
 
         return true
     }
 
     fun compile(): Int {
         val result = check()
-        if (result) {
-            return 0
+        return if (result) {
+            0
         } else {
-            return 100;
+            100;
         }
     }
 }
