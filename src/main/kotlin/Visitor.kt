@@ -117,6 +117,27 @@ STATEMENTS
 
 /*
 ================================================================
+TYPES
+ */
+
+    override fun visitInt(ctx: IntContext): Node {
+        return Int()
+    }
+
+    override fun visitBool(ctx: BoolContext): Node {
+        return Bool()
+    }
+
+    override fun visitChar(ctx: CharContext): Node {
+        return Chr()
+    }
+
+    override fun visitString(ctx: StringContext): Node {
+        return Str()
+    }
+
+/*
+================================================================
 EXPRESSIONS
  */
 
