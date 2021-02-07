@@ -137,8 +137,7 @@ TYPES
 
     override fun visitInt(ctx: IntContext): Node {
         println("At int")
-        val a = Int()
-        return a
+        return Int()
     }
 
     override fun visitBool(ctx: BoolContext): Node {
@@ -157,14 +156,14 @@ TYPES
     }
 
     override fun visitArray_type(ctx: Array_typeContext): Node {
-        println("At array tyoe")
+        println("At array type")
         return ArrayNode(visit(ctx.type()) as TypeNode)
     }
 
     override fun visitPair_type(ctx: Pair_typeContext): Node {
         println("At pair type")
         return PairTypeNode(visit(ctx.pair_elem_type(0)) as PairElemTypeNode,
-                            visit(ctx.pair_elem_type(1)) as PairElemTypeNode)
+                visit(ctx.pair_elem_type(1)) as PairElemTypeNode)
     }
 
     override fun visitPair_elem_type(ctx: Pair_elem_typeContext): Node {
@@ -181,7 +180,6 @@ TYPES
 ================================================================
 EXPRESSIONS
  */
-
 
     override fun visitIntLiter(ctx: IntLiterContext): Node {
         println("At int liter")
@@ -316,12 +314,12 @@ EXPRESSIONS
     }
 
     override fun visitAssignRhsArray(ctx: AssignRhsArrayContext): Node {
-        return RHSArrayLitNode(ctx.array_liter().expr().map {visit(it) as ExprNode})
+        return RHSArrayLitNode(ctx.array_liter().expr().map { visit(it) as ExprNode })
     }
 
     override fun visitAssignRhsNewpair(ctx: AssignRhsNewpairContext): Node {
         return RHSNewPairNode(visit(ctx.expr(0)) as ExprNode,
-                              visit(ctx.expr(1)) as ExprNode)
+                visit(ctx.expr(1)) as ExprNode)
     }
 
     override fun visitAssignRhsPairElem(ctx: AssignRhsPairElemContext): Node {
@@ -330,10 +328,10 @@ EXPRESSIONS
 
     override fun visitAssignRhsCall(ctx: AssignRhsCallContext): Node {
         return RHSCallNode(visit(ctx.ident()) as Ident,
-                           when {
-                               ctx.arg_list() != null -> ctx.arg_list().expr().map {visit(it) as ExprNode}
-                               else -> null
-                           })
+                when {
+                    ctx.arg_list() != null -> ctx.arg_list().expr().map { visit(it) as ExprNode }
+                    else -> null
+                })
     }
 
     override fun visitPairFst(ctx: PairFstContext): Node {
