@@ -1,4 +1,4 @@
-import antlr.WACCParser.*;
+import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
 
 class Visitor : WACCParserBaseVisitor<Node>() {
@@ -120,6 +120,21 @@ STATEMENTS
 TYPES
  */
 
+    override fun visitType(ctx: TypeContext): Node {
+        when {
+            ctx.base_type() != null -> {
+                visit(ctx.base_type())
+            }
+            ctx.OPEN_SQUARE() != null -> {
+                return ArrayNode(visit(ctx.type()) as TypeNode)
+            }
+            ctx.pair_type() != null -> {
+                return visit(ctx.pair_type())
+            }
+        }
+        return visitChildren(ctx)
+    }
+
     override fun visitInt(ctx: IntContext): Node {
         println("At int")
         val a = Int()
@@ -154,7 +169,7 @@ TYPES
 
     override fun visitPair_elem_type(ctx: Pair_elem_typeContext): Node {
         println("At pair elem type")
-        val type = when {
+        val type: Any = when {
             ctx.PAIR() != null -> Pair()
             ctx.array_type() != null -> visit(ctx.array_type())
             ctx.base_type() != null -> visit(ctx.base_type())
