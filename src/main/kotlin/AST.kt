@@ -99,6 +99,8 @@ class Str() : BaseType
 class Bool() : BaseType
 class Chr() : BaseType
 class Int() : BaseType
+// Nested pair type
+class Pair() : BaseType
 
 // Array Types
 interface ArrayType : TypeNode
