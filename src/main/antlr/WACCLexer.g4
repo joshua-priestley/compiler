@@ -41,7 +41,7 @@ INT_LITER: SIGN? DIGIT+ ;
 //skips
 SKP: 'skip';
 BREAK: 'break';
-CONTINUE: 'continue';
+CONTINUE: 'continues';
 EXIT: 'exit';
 
 //
