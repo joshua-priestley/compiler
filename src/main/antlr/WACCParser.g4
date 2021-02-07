@@ -55,9 +55,12 @@ base_type: INT                                  # int
   | STRING                                      # string
   ;
 
+array_type: type OPEN_SQUARE CLOSE_SQUARE;
+
 pair_type: PAIR OPEN_PARENTHESES pair_elem_type COMMA pair_elem_type CLOSE_PARENTHESES;
 
-pair_elem_type: base_type | type OPEN_SQUARE CLOSE_SQUARE | PAIR;
+pair_elem_type: base_type | array_type| PAIR;
+
 
 expr: INT_LITER                                 # intLiter
   | BOOL_LITER                                  # boolLiter
