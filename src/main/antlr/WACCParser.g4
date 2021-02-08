@@ -69,28 +69,17 @@ expr: INT_LITER                                 # intLiter
   | pair_liter                                  # pairLiter
   | ident                                       # id
   | array_elem                                  # arrayElem
-  | unaryOper expr                              # unaryOp
-  | expr binaryOper expr                        # binaryOp
+  | (NOT | MINUS | LEN | ORD | CHR) expr        # unaryOp
+  | expr (MUL | DIV | MOD) expr                 # pre1
+  | expr (PLUS | MINUS) expr                    # pre2
+  | expr (GT | GTE | LT | LTE) expr             # pre3
+  | expr (EQ | NEQ) expr                        # pre4
+  | expr (AND) expr                             # pre5
+  | expr (OR) expr                              # pre6
   | OPEN_PARENTHESES expr CLOSE_PARENTHESES     # parentheses
   ;
 
 pair_liter: NULL;
-
-unaryOper: NOT | MINUS | LEN | ORD | CHR;
-
-binaryOper: pre1 | pre2 | pre3 | pre4 | pre5 | pre6 ;
-
-pre1: MUL | DIV | MOD ;
-
-pre2: PLUS | MINUS ;
-
-pre3: GT | GTE | LT | LTE ;
-
-pre4: EQ | NEQ ;
-
-pre5: AND ;
-
-pre6: OR ;
 
 ident: ID ;
 

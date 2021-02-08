@@ -233,62 +233,62 @@ EXPRESSIONS
         //TODO handle semantic errors here? or handle later using NOT_SUPPORTED flag
         //TODO is there a ore elegant way to do this?
         val op = when {
-            ctx.unaryOper().NOT() != null -> UnOp.NOT
-            ctx.unaryOper().MINUS() != null -> UnOp.MINUS
-            ctx.unaryOper().LEN() != null -> UnOp.LEN
-            ctx.unaryOper().ORD() != null -> UnOp.ORD
-            ctx.unaryOper().CHR() != null -> UnOp.CHR
+            ctx.NOT() != null -> UnOp.NOT
+            ctx.MINUS() != null -> UnOp.MINUS
+            ctx.LEN() != null -> UnOp.LEN
+            ctx.ORD() != null -> UnOp.ORD
+            ctx.CHR() != null -> UnOp.CHR
             else -> UnOp.NOT_SUPPORTED
         }
         return UnaryOpNode(op, visit(ctx.expr()) as ExprNode)
     }
 
-    override fun visitBinaryOp(ctx: BinaryOpContext): Node {
-        println("At binary op")
-        return BinaryOpNode(visit(ctx.binaryOper()) as BinOp, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
-    }
-
     override fun visitPre1(ctx: Pre1Context): Node {
-        return when {
+        val op = when {
             ctx.MUL() != null -> BinOp.MUL
             ctx.DIV() != null -> BinOp.DIV
             ctx.MOD() != null -> BinOp.MOD
             else -> BinOp.NOT_SUPPORTED
         }
+        return BinaryOpNode(op, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
     }
 
     override fun visitPre2(ctx: Pre2Context): Node {
-        return when {
+        val op = when {
             ctx.PLUS() != null -> BinOp.PLUS
             ctx.MINUS() != null -> BinOp.MINUS
             else -> BinOp.NOT_SUPPORTED
         }
+        return BinaryOpNode(op, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
     }
 
     override fun visitPre3(ctx: Pre3Context): Node {
-        return when {
+        val op = when {
             ctx.GT() != null -> BinOp.GT
             ctx.GTE() != null -> BinOp.GTE
             ctx.LT() != null -> BinOp.LT
             ctx.LTE() != null -> BinOp.LTE
             else -> BinOp.NOT_SUPPORTED
         }
+        return BinaryOpNode(op, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
     }
 
     override fun visitPre4(ctx: Pre4Context): Node {
-        return when {
+        val op = when {
             ctx.EQ() != null -> BinOp.EQ
             ctx.NEQ() != null -> BinOp.NEQ
             else -> BinOp.NOT_SUPPORTED
         }
+        return BinaryOpNode(op, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
     }
 
     override fun visitPre5(ctx: Pre5Context): Node {
-        return BinOp.AND
+        return BinaryOpNode(BinOp.AND, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
     }
 
     override fun visitPre6(ctx: Pre6Context): Node {
-        return BinOp.OR
+        return BinaryOpNode(BinOp.OR, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
+
     }
 
     override fun visitParentheses(ctx: ParenthesesContext): Node {
