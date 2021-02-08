@@ -27,8 +27,20 @@ class Compiler(val inputFile: String) {
         val tokens = CommonTokenStream(lexer)
         val parser = WACCParser(tokens)
         parser.removeErrorListeners() // uncomment to get rid of antlr error messages
-        parser.addErrorListener(WACCErrorListener())
+        val listener = WACCErrorListener()
+        parser.addErrorListener(listener)
         val tree = parser.program()
+        if(!listener.errorList.isEmpty()) {
+
+            System.out.println("----- Syntactic Errors Detected -----")
+
+            listener.errorList.forEach {
+                println(it)
+            }
+
+            println("${listener.errorList.size} parser errors detected. No further compilation attempted.")
+            return true;
+        }
         println(tree.toStringTree(parser))
 
         println("--------")
