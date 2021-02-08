@@ -198,6 +198,7 @@ EXPRESSIONS
 
     override fun visitBoolLiter(ctx: BoolLiterContext): Node {
         println("At bool liter")
+        println(ctx.text)
         return BoolLiterNode(ctx.text)
     }
 
@@ -288,6 +289,10 @@ EXPRESSIONS
 
     override fun visitPre6(ctx: Pre6Context): Node {
         return BinOp.OR
+    }
+
+    override fun visitParentheses(ctx: ParenthesesContext): Node {
+        return visit(ctx.expr()) as ExprNode
     }
 
 /*
