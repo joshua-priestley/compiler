@@ -1,5 +1,6 @@
 package compiler
 
+import SymbolTable
 import Visitor
 import WACCErrorListener
 import org.antlr.v4.runtime.*

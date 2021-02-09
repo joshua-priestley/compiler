@@ -2,16 +2,39 @@ import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
 
 class Visitor : WACCParserBaseVisitor<Node>() {
+
+    private fun addStatToSymbolTable(symbolTable: SymbolTable, stat: StatementNode) {
+        when (stat) {
+            is DeclarationNode -> symbolTable.addNode(stat.ident.name, stat)
+            is SequenceNode -> {
+                addStatToSymbolTable(symbolTable, stat.stat1)
+                addStatToSymbolTable(symbolTable, stat.stat2)
+            }
+        }
+    }
+
     override fun visitProgram(ctx: ProgramContext): Node {
         println("At a program")
+        /* AST */
         val functionNodes = mutableListOf<FunctionNode>()
         ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
         val stat = visit(ctx.stat()) as StatementNode
-        return ProgramNode(functionNodes, stat)
+
+        /* Symbol Table */
+        val globalSymbolTable = SymbolTable(null)
+        for (fNode in functionNodes) {
+            fNode.functionSymbolTable.setParentTable(globalSymbolTable)
+            globalSymbolTable.addChildTable(fNode.functionSymbolTable)
+            globalSymbolTable.addNode(fNode.ident.name, fNode)
+        }
+        addStatToSymbolTable(globalSymbolTable, stat)
+
+        return ProgramNode(functionNodes, stat, globalSymbolTable)
     }
 
     override fun visitFunc(ctx: FuncContext): Node {
         println("At a function")
+        /* AST */
         val type = visit(ctx.type()) as TypeNode
 
         val ident = visit(ctx.ident()) as Ident
@@ -25,7 +48,14 @@ class Visitor : WACCParserBaseVisitor<Node>() {
 
         val stat = visit(ctx.stat()) as StatementNode
 
-        return FunctionNode(type, ident, parameterNodes.toList(), stat)
+        /* Symbol Table */
+        val functionSymbolTable = SymbolTable(null)
+        for (pNode in parameterNodes) {
+            functionSymbolTable.addNode(pNode.ident.name, pNode)
+        }
+        addStatToSymbolTable(functionSymbolTable, stat)
+
+        return FunctionNode(type, ident, parameterNodes.toList(), stat, functionSymbolTable)
     }
 
 /*
