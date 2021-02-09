@@ -1,5 +1,4 @@
-import antlr.WACCParser.*
-import javax.swing.plaf.nimbus.State
+import kotlin.Int
 
 interface Node
 
@@ -64,14 +63,14 @@ data class ArgList(val args: List<ExprNode>) : ExprNode
 /*
  * Operators
  */
-enum class UnOp {
-    NOT, MINUS, LEN, ORD, CHR, NOT_SUPPORTED
+enum class UnOp(val value: Int) {
+    NOT(14), MINUS(2), LEN(15), ORD(16), CHR(17), NOT_SUPPORTED(-1)
 }
 
 //TODO does making this a node mean its no longer an AST?
 //think about how to do binary operater precedence more
-enum class BinOp : Node {
-    MUL, DIV, MOD, PLUS, MINUS, GT, GTE, LT, LTE, EQ, NEQ, AND, OR, NOT_SUPPORTED
+enum class BinOp(val value: Int) : Node {
+    MUL(3), DIV(4), MOD(5), PLUS(1), MINUS(2), GT(6), GTE(7), LT(8), LTE(9), EQ(10), NEQ(11), AND(12), OR(13), NOT_SUPPORTED(-1)
 }
 
 /*

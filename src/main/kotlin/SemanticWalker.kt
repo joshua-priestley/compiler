@@ -18,23 +18,60 @@ class SemanticWalker(programNode: ProgramNode) {
         return (t1::class == t2::class)
     }
 
+    private fun getTypeOfBinOp(operator: BinOp): TypeNode? {
+        if (1 <= operator.value || operator.value <= 5) {
+            return Int()
+        } else if (5 <= operator.value || operator.value <= 13) {
+            return Bool()
+        }
+        return null
+    }
+
+    private fun getTypeOfUnOp(operator: UnOp): TypeNode? {
+        if (operator.value in arrayOf(2, 15, 16)) {
+            return Int()
+        } else if (operator.value == 14) {
+            return Bool()
+        } else if (operator.value == 17) {
+            return Chr()
+        }
+        return null
+    }
+
     private fun getTypeOfExpr(exprNode: ExprNode): TypeNode? {
         return when (exprNode) {
             is IntLiterNode -> Int()
             is CharLiterNode -> Chr()
             is BoolLiterNode -> Bool()
             is StrLiterNode -> Str()
+            is ArrayElem -> getTypeOfExpr(exprNode.expr[0])?.let { ArrayNode(it) }
+            is Ident -> null
+            is PairLiterNode -> null
+            is UnaryOpNode -> getTypeOfUnOp(exprNode.operator)
+            is BinaryOpNode -> getTypeOfBinOp(exprNode.operator)
             else -> null
         }
     }
 
+    private fun getRHSType(rhsNode: AssignRHSNode): TypeNode? {
+        return null
+    }
+
+    private fun getLHSType(lhsNode: AssignLHSNode): TypeNode? {
+        return null
+    }
+
     private fun checkExprInSymbolTable(exprNode: ExprNode, symbolTable: SymbolTable): Boolean {
-        when(exprNode) {
+        when (exprNode) {
             is Ident -> {
-                if (symbolTable.getNode(exprNode.name) != null) {return true }
+                if (symbolTable.getNode(exprNode.name) != null) {
+                    return true
+                }
             }
             is ArrayElem -> {
-                if (symbolTable.getNode(exprNode.ident.name) != null) {return true}
+                if (symbolTable.getNode(exprNode.ident.name) != null) {
+                    return true
+                }
             }
         }
         return false
@@ -103,10 +140,27 @@ class SemanticWalker(programNode: ProgramNode) {
                 }
             }
             is ReadNode -> {
-                // LHS must be array or variable of type integer or char
+                val lhsTypeNode = getLHSType(statementNode.lhs)
+                if (lhsTypeNode == null || (!equalTypes(lhsTypeNode, Int())) || (!equalTypes(lhsTypeNode, Chr()))) {
+                    println("SEMANTIC ERROR --- LHS must be of type int or chr variable or array for READ")
+                    semanticErrorDetected()
+                }
             }
-            is DeclarationNode -> {}
-            is AssignNode -> {}
+            is DeclarationNode -> {
+                val rhsTypeNode = getRHSType(statementNode.value)
+                if (rhsTypeNode == null || !equalTypes(statementNode.type, rhsTypeNode)) {
+                    println("SEMANTIC ERROR --- LHS type != RHS Type")
+                    semanticErrorDetected()
+                }
+            }
+            is AssignNode -> {
+                val lhsTypeNode = getLHSType(statementNode.lhs)
+                val rhsTypeNode = getRHSType(statementNode.rhs)
+                if (lhsTypeNode == null || rhsTypeNode == null || !equalTypes(lhsTypeNode, rhsTypeNode)) {
+                    println("SEMANTIC ERROR --- LHS type != RHS Type")
+                    semanticErrorDetected()
+                }
+            }
 
         }
     }
