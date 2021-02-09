@@ -6,12 +6,13 @@ interface Node
 /*
  * Programs
  */
-data class ProgramNode(val funcs: List<FunctionNode>, val stat: StatementNode) : Node
+data class ProgramNode(val funcs: List<FunctionNode>, val stat: StatementNode, val globalSymbolTable: SymbolTable) : Node
 
 /*
  * Functions
  */
-data class FunctionNode(val type: TypeNode, val ident: Ident, val params: List<Param>, val stat: StatementNode) : Node
+data class FunctionNode(val type: TypeNode, val ident: Ident, val params: List<Param>, val stat: StatementNode, val functionSymbolTable: SymbolTable) : Node
+
 /*
  * Statements
  */
@@ -55,9 +56,11 @@ data class BinaryOpNode(val operator: BinOp, val expr1: ExprNode, val expr2: Exp
 
 // Expression nodes for functions
 data class Param(val type: TypeNode, val ident: Ident) : ExprNode
+
 //TODO remove these? or replace lists in call/function nodes with these
 data class ParamList(val params: List<Param>) : ExprNode
 data class ArgList(val args: List<ExprNode>) : ExprNode
+
 /*
  * Operators
  */
@@ -99,6 +102,7 @@ class Str() : BaseType
 class Bool() : BaseType
 class Chr() : BaseType
 class Int() : BaseType
+
 // Nested pair type
 class Pair() : BaseType
 

@@ -45,7 +45,7 @@ class Compiler(val inputFile: String) {
         println(tree.toStringTree(parser))
 
         println("--------")
-        val visitor = Visitor(SymbolTable(null));
+        val visitor = Visitor();
         println(visitor.visit(tree).toString())
 
         return true

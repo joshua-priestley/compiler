@@ -1,6 +1,6 @@
-class SymbolTable(val parentT: SymbolTable?) {
-    val table: LinkedHashMap<String, Node> = linkedMapOf()
-    val childrenTables: MutableList<SymbolTable> = mutableListOf()
+class SymbolTable(var parentT: SymbolTable?) {
+    private val table: LinkedHashMap<String, Node> = linkedMapOf()
+    private val childrenTables: MutableList<SymbolTable> = mutableListOf()
 
     init {
         parentT?.addChildTable(this)
@@ -8,6 +8,10 @@ class SymbolTable(val parentT: SymbolTable?) {
 
     fun addChildTable(child: SymbolTable) {
         childrenTables.add(child)
+    }
+
+    fun setParentTable(parentT: SymbolTable?) {
+        this.parentT = parentT
     }
 
     fun addNode(name: String, node: Node) {

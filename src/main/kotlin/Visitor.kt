@@ -1,16 +1,35 @@
 import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
 
-class Visitor(symbolTable: SymbolTable) : WACCParserBaseVisitor<Node>() {
+class Visitor : WACCParserBaseVisitor<Node>() {
 
-    val symbolTable: SymbolTable = symbolTable
+    private fun addStatToSymbolTable(symbolTable: SymbolTable, stat: StatementNode) {
+        when (stat) {
+            is DeclarationNode -> symbolTable.addNode(stat.ident.name, stat)
+            is SequenceNode -> {
+                addStatToSymbolTable(symbolTable, stat.stat1)
+                addStatToSymbolTable(symbolTable, stat.stat2)
+            }
+        }
+    }
 
     override fun visitProgram(ctx: ProgramContext): Node {
         println("At a program")
+        /* AST */
         val functionNodes = mutableListOf<FunctionNode>()
         ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
         val stat = visit(ctx.stat()) as StatementNode
-        return ProgramNode(functionNodes, stat)
+
+        /* Symbol Table */
+        val globalSymbolTable = SymbolTable(null)
+        for (fNode in functionNodes) {
+            fNode.functionSymbolTable.setParentTable(globalSymbolTable)
+            globalSymbolTable.addChildTable(fNode.functionSymbolTable)
+            globalSymbolTable.addNode(fNode.ident.name, fNode)
+        }
+        addStatToSymbolTable(globalSymbolTable, stat)
+
+        return ProgramNode(functionNodes, stat, globalSymbolTable)
     }
 
     override fun visitFunc(ctx: FuncContext): Node {
@@ -28,17 +47,15 @@ class Visitor(symbolTable: SymbolTable) : WACCParserBaseVisitor<Node>() {
         }
 
         val stat = visit(ctx.stat()) as StatementNode
-        val funcNode = FunctionNode(type, ident, parameterNodes.toList(), stat)
 
-        /* SYMBOL TABLE */
-        val name = ctx.ident().text
-        val localTable = SymbolTable(symbolTable)
-
+        /* Symbol Table */
+        val functionSymbolTable = SymbolTable(null)
         for (pNode in parameterNodes) {
-            localTable.addNode(pNode.ident.name, pNode)
+            functionSymbolTable.addNode(pNode.ident.name, pNode)
         }
+        addStatToSymbolTable(functionSymbolTable, stat)
 
-        return funcNode
+        return FunctionNode(type, ident, parameterNodes.toList(), stat, functionSymbolTable)
     }
 
 /*
