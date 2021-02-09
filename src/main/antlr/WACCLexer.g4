@@ -1,8 +1,8 @@
 lexer grammar WACCLexer;
 
 //binary operators
-PLUS: '+' ;
-MINUS: '-' ;
+PLUS: '+';
+MINUS: '-';
 MUL: '*';
 DIV: '/';
 MOD: '%';
@@ -34,9 +34,8 @@ CLOSE_SQUARE: ']';
 
 //numbers
 fragment DIGIT: '0'..'9' ;
-fragment SIGN: PLUS | MINUS;
 
-INT_LITER: SIGN? DIGIT+ ;
+INT_LITER: DIGIT+ ;
 
 //skips
 SKP: 'skip';
