@@ -21,7 +21,7 @@ class SymbolTable(var parentT: SymbolTable?) {
     fun getNode(name: String): Node? {
         var currTable: SymbolTable? = this
         while (currTable != null) {
-            val node = table[name]
+            val node = currTable.table[name]
             if (node != null) {
                 return node
             }
@@ -30,6 +30,17 @@ class SymbolTable(var parentT: SymbolTable?) {
         }
 
         return null
+    }
+
+    fun removeNode(name: String) {
+        var currTable: SymbolTable? = this
+        while (currTable!= null) {
+            if (currTable.table.containsKey(name)) {
+                currTable.table.remove(name)
+                return
+            }
+            currTable = currTable.parentT
+        }
     }
 
     fun getGlobalTable(): SymbolTable {
