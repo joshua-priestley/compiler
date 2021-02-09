@@ -26,13 +26,13 @@ class WACCErrorListener : BaseErrorListener() {
     fun hasSyntaxErrors() = syntaxErrorList.isNotEmpty()
 
     fun printSyntaxErrors() {
-        println("----- Syntactic Errors Detected -----")
+        println("================================================================")
+        println("==================== SYNTACTIC ERRORS FOUND ====================")
+        println("================================================================")
 
-        syntaxErrorList.forEach {
-            println(it)
-        }
+        syntaxErrorList.forEach { println(it) }
 
-        println("${syntaxErrorList.size} parser errors detected. No further compilation attempted.")
+        println("\n\n ${syntaxErrorList.size} syntactic errors detected. No further compilation attempted.")
     }
 }
 

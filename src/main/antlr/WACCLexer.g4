@@ -1,8 +1,8 @@
 lexer grammar WACCLexer;
 
 //binary operators
-PLUS: '+' ;
-MINUS: '-' ;
+PLUS: '+';
+MINUS: '-';
 MUL: '*';
 DIV: '/';
 MOD: '%';
