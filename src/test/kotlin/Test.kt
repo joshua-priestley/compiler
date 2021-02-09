@@ -10,6 +10,22 @@ import java.io.File
 
 class Test {
 
+    /*
+        We can get the compiler output as follows:
+
+            val gson { Gson() }
+
+    val f = File("./wacc_examples/valid/basic/skip/skip.wacc")
+    val a = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
+            .add(FileDataPart(f, "testfile", f.name, "application/octet-stream"))
+            .responseObject<CompilerReply>(gson).third
+            .component1()
+
+    println("aa ")
+    if (a != null) {
+        println(a.compiler_out)
+    }
+     */
     val testDirsPath = "./src/test/kotlin/testDirs"
     val examplesPath = "./wacc_examples/"
 
@@ -18,10 +34,10 @@ class Test {
 
     //all files in directories in allTestDirs (recursive)
     val testFiles = allTestDirs
-        .map { dir ->
-            File(examplesPath + dir).walk()
-                .filter { ".wacc" in it.path }.toSortedSet()
-        }.flatten()
+            .map { dir ->
+                File(examplesPath + dir).walk()
+                        .filter { ".wacc" in it.path }.toSortedSet()
+            }.flatten()
 
     fun runTest(inputFile: File) {
         println(inputFile.canonicalPath)

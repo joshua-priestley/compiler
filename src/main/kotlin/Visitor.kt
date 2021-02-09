@@ -1,4 +1,4 @@
-import antlr.WACCParser.*;
+import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
 
 class Visitor : WACCParserBaseVisitor<Node>() {
@@ -117,9 +117,69 @@ STATEMENTS
 
 /*
 ================================================================
-EXPRESSIONS
+TYPES
  */
 
+    override fun visitType(ctx: TypeContext): Node {
+        when {
+            ctx.base_type() != null -> {
+                visit(ctx.base_type())
+            }
+            ctx.OPEN_SQUARE() != null -> {
+                return ArrayNode(visit(ctx.type()) as TypeNode)
+            }
+            ctx.pair_type() != null -> {
+                return visit(ctx.pair_type())
+            }
+        }
+        return visitChildren(ctx)
+    }
+
+    override fun visitInt(ctx: IntContext): Node {
+        println("At int")
+        return Int()
+    }
+
+    override fun visitBool(ctx: BoolContext): Node {
+        println("At bool")
+        return Bool()
+    }
+
+    override fun visitChar(ctx: CharContext): Node {
+        println("At char")
+        return Chr()
+    }
+
+    override fun visitString(ctx: StringContext): Node {
+        println("At string")
+        return Str()
+    }
+
+    override fun visitArray_type(ctx: Array_typeContext): Node {
+        println("At array type")
+        return ArrayNode(visit(ctx.type()) as TypeNode)
+    }
+
+    override fun visitPair_type(ctx: Pair_typeContext): Node {
+        println("At pair type")
+        return PairTypeNode(visit(ctx.pair_elem_type(0)) as PairElemTypeNode,
+                visit(ctx.pair_elem_type(1)) as PairElemTypeNode)
+    }
+
+    override fun visitPair_elem_type(ctx: Pair_elem_typeContext): Node {
+        println("At pair elem type")
+        val type: Any = when {
+            ctx.PAIR() != null -> Pair()
+            ctx.array_type() != null -> visit(ctx.array_type())
+            ctx.base_type() != null -> visit(ctx.base_type())
+            else -> println("Shouldn't get here...")
+        }
+        return PairElemTypeNode(type as TypeNode)
+    }
+/*
+================================================================
+EXPRESSIONS
+ */
 
     override fun visitIntLiter(ctx: IntLiterContext): Node {
         println("At int liter")
@@ -138,6 +198,7 @@ EXPRESSIONS
 
     override fun visitBoolLiter(ctx: BoolLiterContext): Node {
         println("At bool liter")
+        println(ctx.text)
         return BoolLiterNode(ctx.text)
     }
 
@@ -172,61 +233,117 @@ EXPRESSIONS
         //TODO handle semantic errors here? or handle later using NOT_SUPPORTED flag
         //TODO is there a ore elegant way to do this?
         val op = when {
-            ctx.unaryOper().NOT() != null -> UnOp.NOT
-            ctx.unaryOper().MINUS() != null -> UnOp.MINUS
-            ctx.unaryOper().LEN() != null -> UnOp.LEN
-            ctx.unaryOper().ORD() != null -> UnOp.ORD
-            ctx.unaryOper().CHR() != null -> UnOp.CHR
+            ctx.NOT() != null -> UnOp.NOT
+            ctx.MINUS() != null -> UnOp.MINUS
+            ctx.LEN() != null -> UnOp.LEN
+            ctx.ORD() != null -> UnOp.ORD
+            ctx.CHR() != null -> UnOp.CHR
             else -> UnOp.NOT_SUPPORTED
         }
         return UnaryOpNode(op, visit(ctx.expr()) as ExprNode)
     }
 
-    override fun visitBinaryOp(ctx: BinaryOpContext): Node {
-        println("At binary op")
-        return BinaryOpNode(visit(ctx.binaryOper()) as BinOp, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
-    }
-
     override fun visitPre1(ctx: Pre1Context): Node {
-        return when {
+        val op = when {
             ctx.MUL() != null -> BinOp.MUL
             ctx.DIV() != null -> BinOp.DIV
             ctx.MOD() != null -> BinOp.MOD
             else -> BinOp.NOT_SUPPORTED
         }
+        return BinaryOpNode(op, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
     }
 
     override fun visitPre2(ctx: Pre2Context): Node {
-        return when {
+        val op = when {
             ctx.PLUS() != null -> BinOp.PLUS
             ctx.MINUS() != null -> BinOp.MINUS
             else -> BinOp.NOT_SUPPORTED
         }
+        return BinaryOpNode(op, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
     }
 
     override fun visitPre3(ctx: Pre3Context): Node {
-        return when {
+        val op = when {
             ctx.GT() != null -> BinOp.GT
             ctx.GTE() != null -> BinOp.GTE
             ctx.LT() != null -> BinOp.LT
             ctx.LTE() != null -> BinOp.LTE
             else -> BinOp.NOT_SUPPORTED
         }
+        return BinaryOpNode(op, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
     }
 
     override fun visitPre4(ctx: Pre4Context): Node {
-        return when {
+        val op = when {
             ctx.EQ() != null -> BinOp.EQ
             ctx.NEQ() != null -> BinOp.NEQ
             else -> BinOp.NOT_SUPPORTED
         }
+        return BinaryOpNode(op, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
     }
 
     override fun visitPre5(ctx: Pre5Context): Node {
-        return BinOp.AND
+        return BinaryOpNode(BinOp.AND, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
     }
 
     override fun visitPre6(ctx: Pre6Context): Node {
-        return BinOp.OR
+        return BinaryOpNode(BinOp.OR, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
+
+    }
+
+    override fun visitParentheses(ctx: ParenthesesContext): Node {
+        return visit(ctx.expr()) as ExprNode
+    }
+
+/*
+================================================================
+EXPRESSIONS
+ */
+
+
+    override fun visitAssignLhsId(ctx: AssignLhsIdContext): Node {
+        return AssignLHSIdentNode(visit(ctx.ident()) as Ident)
+    }
+
+    override fun visitAssignLhsArray(ctx: AssignLhsArrayContext): Node {
+        return LHSArrayElemNode(visit(ctx.array_elem()) as ArrayElem)
+    }
+
+    override fun visitAssignLhsPair(ctx: AssignLhsPairContext): Node {
+        return LHSPairElemNode(visit(ctx.pair_elem()) as PairElemNode)
+    }
+
+
+    override fun visitAssignRhsExpr(ctx: AssignRhsExprContext): Node {
+        return RHSExprNode(visit(ctx.expr()) as ExprNode)
+    }
+
+    override fun visitAssignRhsArray(ctx: AssignRhsArrayContext): Node {
+        return RHSArrayLitNode(ctx.array_liter().expr().map { visit(it) as ExprNode })
+    }
+
+    override fun visitAssignRhsNewpair(ctx: AssignRhsNewpairContext): Node {
+        return RHSNewPairNode(visit(ctx.expr(0)) as ExprNode,
+                visit(ctx.expr(1)) as ExprNode)
+    }
+
+    override fun visitAssignRhsPairElem(ctx: AssignRhsPairElemContext): Node {
+        return RHSPairElemNode(visit(ctx.pair_elem()) as PairElemNode)
+    }
+
+    override fun visitAssignRhsCall(ctx: AssignRhsCallContext): Node {
+        return RHSCallNode(visit(ctx.ident()) as Ident,
+                when {
+                    ctx.arg_list() != null -> ctx.arg_list().expr().map { visit(it) as ExprNode }
+                    else -> null
+                })
+    }
+
+    override fun visitPairFst(ctx: PairFstContext): Node {
+        return FstExpr(visit(ctx.expr()) as ExprNode)
+    }
+
+    override fun visitPairSnd(ctx: PairSndContext): Node {
+        return SndExpr(visit(ctx.expr()) as ExprNode)
     }
 }
