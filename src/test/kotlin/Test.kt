@@ -47,9 +47,9 @@ class Test {
         val ret = compiler.compile()
         //TODO move cases switching earlier? maybe use a map?
         when {
-            inputFile.canonicalPath.contains("syntax") -> assertEquals(ret, 100)
-            inputFile.canonicalPath.contains("semantic") -> assertEquals(ret, 200)
-            inputFile.canonicalPath.contains("valid") -> assertEquals(ret, 0)
+            inputFile.canonicalPath.contains("syntax") -> assertEquals(100, ret)
+            inputFile.canonicalPath.contains("semantic") -> assertEquals(200, ret)
+            inputFile.canonicalPath.contains("valid") -> assertEquals(0, ret)
         }
     }
 
