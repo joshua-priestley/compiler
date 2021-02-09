@@ -1,5 +1,6 @@
 package compiler
 
+import SymbolTable
 import Visitor
 import WACCErrorListener
 import org.antlr.v4.runtime.*
@@ -44,7 +45,7 @@ class Compiler(val inputFile: String) {
         println(tree.toStringTree(parser))
 
         println("--------")
-        val visitor = Visitor();
+        val visitor = Visitor(SymbolTable(null));
         println(visitor.visit(tree).toString())
 
         return true

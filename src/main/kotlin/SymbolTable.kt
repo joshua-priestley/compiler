@@ -1,4 +1,3 @@
-
 class SymbolTable(val parentT: SymbolTable?) {
     val table: LinkedHashMap<String, Node> = linkedMapOf()
     val childrenTables: MutableList<SymbolTable> = mutableListOf()

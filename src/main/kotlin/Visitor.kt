@@ -1,7 +1,10 @@
 import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
 
-class Visitor : WACCParserBaseVisitor<Node>() {
+class Visitor(symbolTable: SymbolTable) : WACCParserBaseVisitor<Node>() {
+
+    val symbolTable: SymbolTable = symbolTable
+
     override fun visitProgram(ctx: ProgramContext): Node {
         println("At a program")
         val functionNodes = mutableListOf<FunctionNode>()
@@ -12,6 +15,7 @@ class Visitor : WACCParserBaseVisitor<Node>() {
 
     override fun visitFunc(ctx: FuncContext): Node {
         println("At a function")
+        /* AST */
         val type = visit(ctx.type()) as TypeNode
 
         val ident = visit(ctx.ident()) as Ident
@@ -24,8 +28,17 @@ class Visitor : WACCParserBaseVisitor<Node>() {
         }
 
         val stat = visit(ctx.stat()) as StatementNode
+        val funcNode = FunctionNode(type, ident, parameterNodes.toList(), stat)
 
-        return FunctionNode(type, ident, parameterNodes.toList(), stat)
+        /* SYMBOL TABLE */
+        val name = ctx.ident().text
+        val localTable = SymbolTable(symbolTable)
+
+        for (pNode in parameterNodes) {
+            localTable.addNode(pNode.ident.name, pNode)
+        }
+
+        return funcNode
     }
 
 /*
