@@ -13,14 +13,26 @@ enum class ErrorType {
 
 class WACCErrorListener : BaseErrorListener() {
 
-    val errorList = LinkedList<String>()
+    val syntaxErrorList = LinkedList<String>()
 
     override fun syntaxError(recognizer: Recognizer<*, *>?,
                              offendingSymbol: Any?,
                              line: Int, charPositionInLine: Int,
                              msg: String?, e: RecognitionException?) {
 
-        errorList.add("Syntactic Error at $line:$charPositionInLine: $msg")
+        syntaxErrorList.add("Syntactic Error at $line:$charPositionInLine: $msg")
+    }
+
+    fun hasSyntaxErrors() = syntaxErrorList.isNotEmpty()
+
+    fun printSyntaxErrors() {
+        println("----- Syntactic Errors Detected -----")
+
+        syntaxErrorList.forEach {
+            println(it)
+        }
+
+        println("${syntaxErrorList.size} parser errors detected. No further compilation attempted.")
     }
 }
 

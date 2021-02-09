@@ -31,17 +31,12 @@ class Compiler(val inputFile: String) {
         val listener = WACCErrorListener()
         parser.addErrorListener(listener)
         val tree = parser.program()
-        if(!listener.errorList.isEmpty()) {
 
-            System.out.println("----- Syntactic Errors Detected -----")
-
-            listener.errorList.forEach {
-                println(it)
-            }
-
-            println("${listener.errorList.size} parser errors detected. No further compilation attempted.")
-            return true;
+        if (listener.hasSyntaxErrors()) {
+            listener.printSyntaxErrors()
+            return false
         }
+
         println(tree.toStringTree(parser))
 
         println("--------")
