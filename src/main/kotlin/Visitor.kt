@@ -1,5 +1,8 @@
+import antlr.WACCParser
 import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
+import antlr.WACCParserVisitor
+import kotlin.Pair
 
 class Visitor : WACCParserBaseVisitor<Node>() {
     override fun visitProgram(ctx: ProgramContext): Node {
@@ -122,37 +125,24 @@ TYPES
 
     override fun visitType(ctx: TypeContext): Node {
         when {
-            ctx.base_type() != null -> {
-                visit(ctx.base_type())
-            }
-            ctx.OPEN_SQUARE() != null -> {
-                return ArrayNode(visit(ctx.type()) as TypeNode)
-            }
-            ctx.pair_type() != null -> {
-                return visit(ctx.pair_type())
-            }
+            ctx.base_type() != null -> visit(ctx.base_type())
+            ctx.OPEN_SQUARE() != null -> return ArrayNode(visit(ctx.type()) as TypeNode)
+            ctx.pair_type() != null -> return visit(ctx.pair_type())
         }
+
         return visitChildren(ctx)
     }
 
-    override fun visitInt(ctx: IntContext): Node {
-        println("At int")
-        return Int()
-    }
+    override fun visitBaseT(ctx: BaseTContext): Node {
+        val ret = when {
+            ctx.INT() != null -> Str()
+            ctx.BOOL() != null -> Bool()
+            ctx.CHAR() != null -> Chr()
+            ctx.STRING() != null -> Str()
+            else -> TODO()
+        }
 
-    override fun visitBool(ctx: BoolContext): Node {
-        println("At bool")
-        return Bool()
-    }
-
-    override fun visitChar(ctx: CharContext): Node {
-        println("At char")
-        return Chr()
-    }
-
-    override fun visitString(ctx: StringContext): Node {
-        println("At string")
-        return Str()
+        return ret;
     }
 
     override fun visitArray_type(ctx: Array_typeContext): Node {
@@ -169,7 +159,7 @@ TYPES
     override fun visitPair_elem_type(ctx: Pair_elem_typeContext): Node {
         println("At pair elem type")
         val type: Any = when {
-            ctx.PAIR() != null -> Pair()
+            ctx.PAIR() != null -> kotlin.Pair()
             ctx.array_type() != null -> visit(ctx.array_type())
             ctx.base_type() != null -> visit(ctx.base_type())
             else -> println("Shouldn't get here...")
@@ -181,25 +171,16 @@ TYPES
 EXPRESSIONS
  */
 
-    override fun visitIntLiter(ctx: IntLiterContext): Node {
-        println("At int liter")
-        return IntLiterNode(ctx.text)
-    }
+    override fun visitLiter(ctx: LiterContext): Node {
+        val ret = when {
+            ctx.BOOL_LITER() != null -> BoolLiterNode(ctx.text)
+            ctx.CHAR_LITER() != null -> CharLiterNode(ctx.text)
+            ctx.INT_LITER() != null -> IntLiterNode(ctx.text)
+            ctx.STR_LITER() != null -> StrLiterNode(ctx.text)
+            else -> TODO()
+        }
 
-    override fun visitStrLiter(ctx: StrLiterContext): Node {
-        println("At str liter")
-        return StrLiterNode(ctx.text)
-    }
-
-    override fun visitCharLiter(ctx: CharLiterContext): Node {
-        println("At char liter")
-        return CharLiterNode(ctx.text)
-    }
-
-    override fun visitBoolLiter(ctx: BoolLiterContext): Node {
-        println("At bool liter")
-        println(ctx.text)
-        return BoolLiterNode(ctx.text)
+        return ret;
     }
 
     override fun visitPairLiter(ctx: PairLiterContext): Node {
@@ -243,52 +224,25 @@ EXPRESSIONS
         return UnaryOpNode(op, visit(ctx.expr()) as ExprNode)
     }
 
-    override fun visitPre1(ctx: Pre1Context): Node {
+    override fun visitBinaryOp(ctx: BinaryOpContext): Node {
         val op = when {
             ctx.MUL() != null -> BinOp.MUL
             ctx.DIV() != null -> BinOp.DIV
             ctx.MOD() != null -> BinOp.MOD
-            else -> BinOp.NOT_SUPPORTED
-        }
-        return BinaryOpNode(op, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
-    }
-
-    override fun visitPre2(ctx: Pre2Context): Node {
-        val op = when {
             ctx.PLUS() != null -> BinOp.PLUS
             ctx.MINUS() != null -> BinOp.MINUS
-            else -> BinOp.NOT_SUPPORTED
-        }
-        return BinaryOpNode(op, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
-    }
-
-    override fun visitPre3(ctx: Pre3Context): Node {
-        val op = when {
             ctx.GT() != null -> BinOp.GT
             ctx.GTE() != null -> BinOp.GTE
             ctx.LT() != null -> BinOp.LT
             ctx.LTE() != null -> BinOp.LTE
-            else -> BinOp.NOT_SUPPORTED
-        }
-        return BinaryOpNode(op, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
-    }
-
-    override fun visitPre4(ctx: Pre4Context): Node {
-        val op = when {
             ctx.EQ() != null -> BinOp.EQ
             ctx.NEQ() != null -> BinOp.NEQ
+            ctx.AND() != null -> BinOp.AND
+            ctx.OR() != null -> BinOp.OR
             else -> BinOp.NOT_SUPPORTED
         }
+
         return BinaryOpNode(op, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
-    }
-
-    override fun visitPre5(ctx: Pre5Context): Node {
-        return BinaryOpNode(BinOp.AND, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
-    }
-
-    override fun visitPre6(ctx: Pre6Context): Node {
-        return BinaryOpNode(BinOp.OR, visit(ctx.expr(0)) as ExprNode, visit(ctx.expr(1)) as ExprNode)
-
     }
 
     override fun visitParentheses(ctx: ParenthesesContext): Node {
