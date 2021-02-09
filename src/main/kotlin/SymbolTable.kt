@@ -1,37 +1,39 @@
+
 class SymbolTable(val parentT: SymbolTable?) {
-    val functions = HashMap<Ident, FunctionNode>()
-    val variables = HashMap<Ident, TypeNode>()
-    val table = HashMap<Ident, AssignRHSNode>()
+    val table: LinkedHashMap<String, Node> = linkedMapOf()
+    val childrenTables: MutableList<SymbolTable> = mutableListOf()
 
-    fun addFunction(function: FunctionNode) {
-        if (functions.containsKey(function.ident)) {
-            println("Function already exists")
-        }
-        functions[function.ident] = function
+    init {
+        parentT?.addChildTable(this)
     }
 
-    fun addVariable(variable: DeclarationNode) {
-        if (variables.containsKey(variable.ident)) {
-            println("Variable already exists")
-        }
-        variables[variable.ident] = variable.type
-        table[variable.ident] = variable.value
+    fun addChildTable(child: SymbolTable) {
+        childrenTables.add(child)
     }
 
-    fun getType(ident: Ident): TypeNode? {
-        if (variables.containsKey(ident)) {
-            return variables[ident]
-        }
-
-        return parentT?.getType(ident)
+    fun addNode(name: String, node: Node) {
+        table[name] = node
     }
 
-    fun getExpr(ident: Ident): AssignRHSNode? {
-        if (table.containsKey(ident)) {
-            return table[ident]
+    fun getNode(name: String): Node? {
+        var currTable: SymbolTable? = this
+        while (currTable != null) {
+            val node = table[name]
+            if (node != null) {
+                return node
+            }
+
+            currTable = currTable.parentT
         }
 
-        return parentT?.getExpr(ident)
+        return null
     }
 
+    fun getGlobalTable(): SymbolTable {
+        var currTable = this
+        while (currTable.parentT != null) {
+            currTable = currTable.parentT!!
+        }
+        return currTable
+    }
 }
