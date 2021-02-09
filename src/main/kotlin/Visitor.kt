@@ -55,7 +55,11 @@ class Visitor : WACCParserBaseVisitor<Node>() {
         }
         addStatToSymbolTable(functionSymbolTable, stat)
 
-        return FunctionNode(type, ident, parameterNodes.toList(), stat, functionSymbolTable)
+        val functionNode = FunctionNode(type, ident, parameterNodes.toList(), stat, functionSymbolTable)
+
+        functionSymbolTable.addNode(functionNode.toString(), type)
+
+        return functionNode
     }
 
 /*
