@@ -16,7 +16,18 @@ data class FunctionNode(val type: TypeNode, val ident: Ident, val params: List<P
 /*
  * Statements
  */
-interface StatementNode : Node
+interface StatementNode : Node {
+    fun valid(): Boolean {
+        if(this is IfElseNode) {
+            return this.then.valid() && this.else_.valid()
+        } else if(this is SequenceNode) {
+            return this.stat2.valid()
+        } else if(this is ExitNode || this is ReturnNode) {
+            return true;
+        }
+        return false;
+    }
+}
 
 class SkipNode : StatementNode
 data class DeclarationNode(val type: TypeNode, val ident: Ident, val value: AssignRHSNode) : StatementNode

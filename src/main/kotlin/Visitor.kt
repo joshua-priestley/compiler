@@ -47,6 +47,10 @@ class Visitor(val syntaxListener: WACCErrorListener) : WACCParserBaseVisitor<Nod
         }
 
         val stat = visit(ctx.stat()) as StatementNode
+        // TODO: CHANGE ERROR MESSAGE TO SMTH BETTER
+        if(!stat.valid()) {
+            syntaxListener.addSyntaxError(ctx, "return type of function invalid")
+        }
 
         /* Symbol Table */
         val functionSymbolTable = SymbolTable(null)
