@@ -26,10 +26,11 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
             for (i in 0..ctx.param_list().childCount step 2) {
                 val p = visit(ctx.param_list().getChild(i)) as Param
                 parameterNodes.add(p)
-                pType = Type()
-                functionSymbolTable.addNode(p.ident.name, p)
+                functionSymbolTable.addNode(p.ident.name, Type(p.type))
             }
         }
+
+        functionSymbolTable.addNode("\$${ident.name}", Type(type))
 
         globalSymbolTable = functionSymbolTable
 
@@ -46,7 +47,7 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
             println("SEMANTIC ERROR DETECTED --- FUNCTION ALREADY EXISTS")
             semantic = true
         } else {
-            globalSymbolTable.addNode(ident.name, fNode)
+            globalSymbolTable.addNode(ident.name, Type(type))
             globalSymbolTable.addChildTable(functionSymbolTable)
         }
         return fNode
@@ -132,7 +133,7 @@ STATEMENTS
             println("SEMANTIC ERROR DETECTED --- VARIABLE ALREADY EXISTS")
             semantic = true
         } else {
-            globalSymbolTable.addNode(ident.toString(), type)
+            globalSymbolTable.addNode(ident.toString(), Type(type))
         }
         return DeclarationNode(type, ident, rhs)
     }

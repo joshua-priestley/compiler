@@ -3,15 +3,58 @@ import kotlin.Int
 
 const val INVALID = -1
 const val ARRAY = -2
+
 class Type {
 
-    private val type : Int
-    private val pairFst : Type?
-    private val pairSnd : Type?
-    private var arrType : Type?
+    private val type: Int
+    private val pairFst: Type?
+    private val pairSnd: Type?
+    private var arrType: Type?
+
+    constructor(typeNode: TypeNode) {
+        when(typeNode) {
+            is BaseType -> {
+                this.type = when (typeNode) {
+                    is Str -> {
+                        STRING
+                    }
+                    is Bool -> {
+                        STRING
+                    }
+                    is Chr -> {
+                        CHR
+                    }
+                    else -> {
+                        INT
+                    }
+                }
+                this.pairFst = null
+                this.pairSnd = null
+                this.arrType = null
+            }
+            is PairTypeNode -> {
+                this.type = PAIR
+                this.pairFst = Type(typeNode.type1.type)
+                this.pairSnd = Type(typeNode.type2.type)
+                this.arrType = null
+            }
+            is ArrayNode -> {
+                this.type = ARRAY
+                this.pairFst = null
+                this.pairSnd = null
+                this.arrType = Type(typeNode.type)
+            }
+            else -> {
+                this.type = -1
+                this.pairFst = null
+                this.pairSnd = null
+                this.arrType = null
+            }
+        }
+    }
 
     //Constructor for arrayTypes
-    constructor(arrType : Type){
+    constructor(arrType: Type) {
         this.type = ARRAY
         this.arrType = arrType
         this.pairFst = null
@@ -19,7 +62,7 @@ class Type {
     }
 
     //Constructor for pair types
-    constructor(type1 : Type, type2: Type) {
+    constructor(type1: Type, type2: Type) {
         this.type = PAIR
         this.pairFst = type1
         this.pairSnd = type2
@@ -62,24 +105,24 @@ class Type {
 
     //Get the type value of a single type
     fun getType(): Int {
-            return type
-        }
+        return type
+    }
 
     //Get the type of the fst of a pair
-    fun getPairFst() : Type {
+    fun getPairFst(): Type {
         return pairFst ?: Type(INVALID)
     }
 
     //Get the type of the snd of a pair
-    fun getPairSnd() : Type {
+    fun getPairSnd(): Type {
         return pairSnd ?: Type(INVALID)
     }
 
-    fun getArray() : Boolean {
+    fun getArray(): Boolean {
         return (this.type == ARRAY)
     }
 
-    fun getPair() : Boolean {
+    fun getPair(): Boolean {
         return (this.type == PAIR)
     }
 
@@ -120,7 +163,7 @@ class Type {
     override fun toString(): String {
         val symbolName = VOCABULARY.getSymbolicName(getType())
         val sb = StringBuilder()
-        if (getPair()){
+        if (getPair()) {
             //Return PAIR(<FstType>,<SndType>)
             sb.append(symbolName)
             sb.append('(')
@@ -130,7 +173,7 @@ class Type {
             sb.append(')')
             return sb.toString()
         }
-        if (getArray()){
+        if (getArray()) {
             //Return <BaseType>[]
             sb.append(getBaseType().toString())
             sb.append("[]")
