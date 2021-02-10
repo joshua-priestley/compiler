@@ -1,61 +1,82 @@
 import antlr.WACCParser.*
+import kotlin.Int
 
+const val INVALID: Int = -1
 class Type {
-    public final var INVALID: kotlin.Int = -1
+
     private var array: Boolean = false
     private var pair: Boolean = false
-    private var type1: kotlin.Int
-    private var type2: kotlin.Int = 0
+    private val type : Int
+    private val pairFst : Type?
+    private val pairSnd : Type?
+    private var arrType : Type?
 
+    //Constructor for arrayTypes
+    constructor(arrType : Type){
+        this.type = arrType.getType()
+        this.arrType = arrType
+        this.array = true
+        this.pairFst = null
+        this.pairSnd = null
+        this.pair = false
+    }
 
-    constructor(type1: kotlin.Int, type2: kotlin.Int) {
-        this.type1 = type1
-        this.type2 = type2
+    //Constructor for pair types
+    constructor(type1 : Type, type2: Type) {
+        this.type = PAIR
+        this.pairFst = type1
+        this.pairSnd = type2
         this.pair = true
+        this.arrType = null
     }
 
-    constructor(type: kotlin.Int) {
-        this.type1 = type
+    //Constructor for singleton types
+    constructor(type: Int) {
+        this.type = type
+        this.pairFst = null
+        this.pairSnd = null
+        this.arrType = null
     }
 
-    fun binaryOps(operator: kotlin.Int): Type {
+    //Get the type of a binary operator
+    fun binaryOps(operator: Int): Type {
         when {
+            //Tokens 1-5 are int operators
             operator <= 5 -> return Type(INT)
+            //Tokens 6-13 are bool operators
             operator in 6..13 -> return Type(BOOL)
         }
         return Type(INVALID)
     }
 
-    fun UnaryOps(operator: kotlin.Int): Type {
+    //Get the type of a unary operator
+    fun UnaryOps(operator: Int): Type {
         when (operator) {
             NOT -> return Type(BOOL)
-            LEN, ORD -> return Type(INT)
+            LEN, ORD, MINUS -> return Type(INT)
             CHR -> return Type(CHAR)
         }
         return Type(INVALID)
     }
 
-    fun setArray(array: Boolean) {
-        this.array = array;
-    }
-
+    //Get the base type of an array
     fun getBaseType(): Type {
-        val base = Type(this.type1, this.type2)
-        base.array = false
-        base.pair = this.pair
-        return base
+        return this.arrType!!
     }
 
-    fun getType(): kotlin.Int {
-        return if (pair) {
-            PAIR
-        } else {
-            return type1
+    //Get the type value of a single type
+    fun getType(): Int {
+            return type
         }
+
+    //Get the type of the fst of a pair
+    fun getPairFst() : Type {
+        return pairFst ?: Type(INVALID)
     }
 
-    fun getType2() : kotlin.Int {
-        return type2
+    //Get the type of the snd of a pair
+    fun getPairSnd() : Type {
+        return pairSnd ?: Type(INVALID)
     }
 
     fun getArray() : Boolean {
@@ -66,18 +87,24 @@ class Type {
         return this.pair
     }
 
+    //Equality for types for semantic checks
     override fun equals(other: Any?): Boolean {
         if (other is Type) {
             var compare: Type = other as Type
             return when {
                 //Char array and string are equivalent
-                compare.getArray() && compare.getBaseType().getType() == CHAR && getType() == STRING -> true
+                getArray() && !getBaseType().getArray() && getBaseType().getType() == CHAR && compare.getType() == STRING -> true
+                compare.getArray() && compare.getBaseType().getType() == CHAR && !compare.getBaseType().getArray() && getType() == STRING -> true
+
                 //Check array base types
                 compare.getArray() && getArray() && compare.getBaseType() == getBaseType() -> true
-                //Check basic types
-                !compare.getPair() && !getPair() && compare.getType() == getType() -> true
+
                 //Check pair types
-                compare.getPair() && getPair() && compare.getType() == getType() && compare.getType2() == getType2() -> true
+                compare.getPair() && getPair() && compare.getPairFst() == getPairFst() && compare.getPairSnd() == getPairSnd() -> true
+
+                //Check basic types
+                compare.getType() == getType() -> true
+
                 else -> false
 
             }
@@ -86,8 +113,28 @@ class Type {
         }
     }
 
+    //Convert a type to a string for the printing of error messages
     override fun toString(): String {
-        return VOCABULARY.getSymbolicName(getType())
+        val symbolName = VOCABULARY.getSymbolicName(getType())
+        val sb = StringBuilder()
+        if (pair){
+            //Return PAIR(<FstType>,<SndType>)
+            sb.append(symbolName)
+            sb.append('(')
+            sb.append(getPairFst().toString())
+            sb.append(',')
+            sb.append(getPairSnd().toString())
+            sb.append(')')
+            return sb.toString()
+        }
+        if (array){
+            //Return <BaseType>[]
+            sb.append(getBaseType().toString())
+            sb.append("[]")
+            return sb.toString()
+        }
+        //Return <Type>
+        return symbolName
     }
 
 
