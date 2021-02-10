@@ -8,6 +8,7 @@ import kotlin.system.exitProcess
 // This class takes in a ProgramNode then walks through the tree doing semantic analysis
 class SemanticWalker(programNode: ProgramNode) {
     val globalSymbolTable = programNode.globalSymbolTable
+    var errorDetected: Boolean = false
 
     init {
         // Check each function
@@ -20,7 +21,8 @@ class SemanticWalker(programNode: ProgramNode) {
 
     // Exit to quit the program if it encounters a semantic error
     private fun semanticErrorDetected() {
-        exitProcess(SEMANTIC_ERROR_RETURN)
+        errorDetected = true
+        //exitProcess(SEMANTIC_ERROR_RETURN)
     }
 
     // Check two type nodes are the same class
