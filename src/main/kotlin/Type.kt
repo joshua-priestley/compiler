@@ -1,11 +1,10 @@
 import antlr.WACCParser.*
 import kotlin.Int
 
-const val INVALID: Int = -1
+const val INVALID = -1
+const val ARRAY = -2
 class Type {
 
-    private val array: Boolean
-    private val pair: Boolean
     private val type : Int
     private val pairFst : Type?
     private val pairSnd : Type?
@@ -13,12 +12,10 @@ class Type {
 
     //Constructor for arrayTypes
     constructor(arrType : Type){
-        this.type = arrType.getType()
+        this.type = ARRAY
         this.arrType = arrType
-        this.array = true
         this.pairFst = null
         this.pairSnd = null
-        this.pair = false
     }
 
     //Constructor for pair types
@@ -26,16 +23,12 @@ class Type {
         this.type = PAIR
         this.pairFst = type1
         this.pairSnd = type2
-        this.pair = true
-        this.array = false
         this.arrType = null
     }
 
     //Constructor for singleton types
     constructor(type: Int) {
         this.type = type
-        this.array = false
-        this.pair = false
         this.pairFst = null
         this.pairSnd = null
         this.arrType = null
@@ -43,28 +36,28 @@ class Type {
 
     //Get the type of a binary operator
     fun binaryOps(operator: Int): Type {
-        when {
+        return when {
             //Tokens 1-5 are int operators
-            operator <= 5 -> return Type(INT)
+            operator <= 5 -> Type(INT)
             //Tokens 6-13 are bool operators
-            operator in 6..13 -> return Type(BOOL)
+            operator in 6..13 -> Type(BOOL)
+            else -> Type(INVALID)
         }
-        return Type(INVALID)
     }
 
     //Get the type of a unary operator
     fun UnaryOps(operator: Int): Type {
-        when (operator) {
-            NOT -> return Type(BOOL)
-            LEN, ORD, MINUS -> return Type(INT)
-            CHR -> return Type(CHAR)
+        return when (operator) {
+            NOT -> Type(BOOL)
+            LEN, ORD, MINUS -> Type(INT)
+            CHR -> Type(CHAR)
+            else -> Type(INVALID)
         }
-        return Type(INVALID)
     }
 
     //Get the base type of an array
     fun getBaseType(): Type {
-        return this.arrType!!
+        return this.arrType ?: Type(INVALID)
     }
 
     //Get the type value of a single type
@@ -83,11 +76,11 @@ class Type {
     }
 
     fun getArray() : Boolean {
-        return this.array
+        return (this.type == ARRAY)
     }
 
     fun getPair() : Boolean {
-        return this.pair
+        return (this.type == PAIR)
     }
 
     override fun hashCode(): Int {
@@ -124,7 +117,7 @@ class Type {
     override fun toString(): String {
         val symbolName = VOCABULARY.getSymbolicName(getType())
         val sb = StringBuilder()
-        if (pair){
+        if (getPair()){
             //Return PAIR(<FstType>,<SndType>)
             sb.append(symbolName)
             sb.append('(')
@@ -134,7 +127,7 @@ class Type {
             sb.append(')')
             return sb.toString()
         }
-        if (array){
+        if (getArray()){
             //Return <BaseType>[]
             sb.append(getBaseType().toString())
             sb.append("[]")
