@@ -1,8 +1,8 @@
-import org.antlr.v4.codegen.model.decl.Decl
-import kotlin.math.exp
 import kotlin.system.exitProcess
 
 //TODO: When an assign node is reached, change the value in the symbol table
+//TODO: Implement the "equalTypes" function everywhere necessary
+//TODO: Swap the big if statements for when clauses
 
 class SemanticWalker(programNode: ProgramNode) {
     val globalSymbolTable = programNode.globalSymbolTable
