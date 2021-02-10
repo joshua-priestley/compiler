@@ -62,7 +62,7 @@ pair_type: PAIR OPEN_PARENTHESES pair_elem_type COMMA pair_elem_type CLOSE_PAREN
 pair_elem_type: base_type | array_type| PAIR;
 
 
-expr: (PLUS | MINUS)? INT_LITER                 # intLiter
+expr: (PLUS | MINUS)? INT_LITER                 # liter
   | BOOL_LITER                                  # liter
   | CHAR_LITER                                  # liter
   | STR_LITER                                   # liter

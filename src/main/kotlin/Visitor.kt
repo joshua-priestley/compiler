@@ -202,9 +202,8 @@ EXPRESSIONS
         val ret = when {
             ctx.BOOL_LITER() != null -> BoolLiterNode(ctx.text)
             ctx.CHAR_LITER() != null -> CharLiterNode(ctx.text)
-            ctx.INT_LITER() != null -> IntLiterNode(ctx.text)
             ctx.STR_LITER() != null -> StrLiterNode(ctx.text)
-            else -> TODO()
+            else -> IntLiterNode(ctx.text)
         }
 
         return ret;
