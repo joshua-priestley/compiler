@@ -25,6 +25,14 @@ class WACCErrorListener : BaseErrorListener() {
 
     fun hasSyntaxErrors() = syntaxErrorList.isNotEmpty()
 
+    fun errorPosition(ctx: ParserRuleContext): String {
+        return "${ctx.getStart().line}:${ctx.getStart().charPositionInLine}"
+    }
+
+    fun addSyntaxError(ctx: ParserRuleContext, msg: String) {
+        syntaxErrorList.add("Syntactic Error at ${errorPosition(ctx)}: $msg")
+    }
+
     fun printSyntaxErrors() {
         println("================================================================")
         println("==================== SYNTACTIC ERRORS FOUND ====================")

@@ -1,7 +1,7 @@
 import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
 
-class Visitor : WACCParserBaseVisitor<Node>() {
+class Visitor(val syntaxListener: WACCErrorListener) : WACCParserBaseVisitor<Node>() {
 
     private fun addStatToSymbolTable(symbolTable: SymbolTable, stat: StatementNode) {
         when (stat) {
@@ -199,13 +199,19 @@ EXPRESSIONS
  */
 
     override fun visitLiter(ctx: LiterContext): Node {
+        println("at liter")
         val ret = when {
             ctx.BOOL_LITER() != null -> BoolLiterNode(ctx.text)
             ctx.CHAR_LITER() != null -> CharLiterNode(ctx.text)
             ctx.STR_LITER() != null -> StrLiterNode(ctx.text)
-            else -> IntLiterNode(ctx.text)
+            else -> {
+                val value = ctx.text.toLong()
+                if (value !in Integer.MIN_VALUE .. Integer.MAX_VALUE) {
+                    syntaxListener.addSyntaxError(ctx, "int value must be between -2147483648 and 2147483647")
+                }
+                IntLiterNode(ctx.text)
+            }
         }
-
         return ret;
     }
 

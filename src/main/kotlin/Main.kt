@@ -48,8 +48,13 @@ class Compiler(val inputFile: String) {
         println(tree.toStringTree(parser))
 
         println("--------")
-        val visitor = Visitor();
+        val visitor = Visitor(listener);
         println(visitor.visit(tree).toString())
+
+        if (listener.hasSyntaxErrors()) {
+            listener.printSyntaxErrors()
+            return false
+        }
 
         return true
     }
@@ -61,5 +66,6 @@ class Compiler(val inputFile: String) {
         } else {
             100
         }
+
     }
 }
