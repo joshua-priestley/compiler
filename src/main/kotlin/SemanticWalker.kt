@@ -3,6 +3,7 @@ import kotlin.system.exitProcess
 //TODO: When an assign node is reached, change the value in the symbol table
 //TODO: Implement the "equalTypes" function everywhere necessary
 //TODO: Swap the big if statements for when clauses
+//TODO: Check lhs stuff because if its an array then the types will differ
 
 // This class takes in a ProgramNode then walks through the tree doing semantic analysis
 class SemanticWalker(programNode: ProgramNode) {
@@ -28,30 +29,28 @@ class SemanticWalker(programNode: ProgramNode) {
     }
 
     // Get the type of a binary operator for further checks using the enum values
-    private fun getTypeOfBinOp(operator: BinOp): TypeNode? {
+    private fun getTypeOfBinOp(operator: BinOp): TypeNode {
         // PLUS, MINUS, MUL, DIV, MOD
-        if (1 <= operator.value || operator.value <= 5) {
-            return Int()
+        return if (1 <= operator.value || operator.value <= 5) {
+            Int()
             // Comparisons, EQ, NEQ, AND, OR
-        } else if (5 <= operator.value || operator.value <= 13) {
-            return Bool()
+        } else {
+            Bool()
         }
-        return null
     }
 
     // Get the type of a unary operator
-    private fun getTypeOfUnOp(operator: UnOp): TypeNode? {
+    private fun getTypeOfUnOp(operator: UnOp): TypeNode {
         // MINUS, LEN, ORD
-        if (operator.value in arrayOf(2, 15, 16)) {
-            return Int()
+        return if (operator.value in arrayOf(2, 15, 16)) {
+            Int()
             // NOT
         } else if (operator.value == 14) {
-            return Bool()
+            Bool()
             // CHR
-        } else if (operator.value == 17) {
-            return Chr()
+        } else {
+            Chr()
         }
-        return null
     }
 
     // Takes and expression node and the symbol table and gets the top layer type of that node
@@ -107,12 +106,35 @@ class SemanticWalker(programNode: ProgramNode) {
                 }
                 return null
             }
-            //TODO: Pair liter type check
-            is PairLiterNode -> null
-            //TODO: Check the expression type matches the UnOp type
-            is UnaryOpNode -> getTypeOfUnOp(exprNode.operator)
-            //TODO: Check each expression type matches the BinOp type
-            is BinaryOpNode -> getTypeOfBinOp(exprNode.operator)
+            // A Pair Liter is just null
+            is PairLiterNode -> Pair()
+            is UnaryOpNode -> {
+                val opType = getTypeOfUnOp(exprNode.operator)
+                val exprType = getTypeOfExpr(exprNode.expr, symbolTable)
+                if (exprType == null) {
+                    println("SEMANTIC ERROR --- Operator expression issue")
+                    semanticErrorDetected()
+                }
+                if (!equalTypes(opType, exprType!!)) {
+                    println("SEMANTIC ERROR --- Wrong type for this operation")
+                    semanticErrorDetected()
+                }
+                return opType
+            }
+            is BinaryOpNode -> {
+                val opType = getTypeOfBinOp(exprNode.operator)
+                val expr1Type = getTypeOfExpr(exprNode.expr1, symbolTable)
+                val expr2Type = getTypeOfExpr(exprNode.expr2, symbolTable)
+                if (expr1Type == null || !equalTypes(expr1Type, opType)) {
+                    println("SEMANTIC ERROR --- Expression 1 type error")
+                    semanticErrorDetected()
+                }
+                if (expr2Type == null || !equalTypes(expr2Type, opType)) {
+                    println("SEMANTIC ERROR --- Expression 2 type error")
+                    semanticErrorDetected()
+                }
+                return opType
+            }
             else -> null
         }
     }
@@ -156,13 +178,14 @@ class SemanticWalker(programNode: ProgramNode) {
                     println("SEMANTIC ERROR --- Second elem of Pair not typeable")
                     semanticErrorDetected()
                 }
-                return PairTypeNode(PairElemTypeNode(type1!!), PairElemTypeNode(type2!!))
+                PairTypeNode(PairElemTypeNode(type1!!), PairElemTypeNode(type2!!))
             }
             is RHSPairElemNode -> {
+                //TODO: the pair elem actually holds the name of the pair that you are trying to get first or second from so this will have to change
                 if (rhsNode.pairElem::class == FstExpr::class) {
-                    return getTypeOfExpr((rhsNode.pairElem as FstExpr).expr, symbolTable)
+                    getTypeOfExpr((rhsNode.pairElem as FstExpr).expr, symbolTable)
                 } else {
-                    return getTypeOfExpr((rhsNode.pairElem as SndExpr).expr, symbolTable)
+                    getTypeOfExpr((rhsNode.pairElem as SndExpr).expr, symbolTable)
                 }
             }
             is RHSCallNode -> {
@@ -177,18 +200,44 @@ class SemanticWalker(programNode: ProgramNode) {
                         println("SEMANTIC ERROR --- Call to something other than a function")
                         semanticErrorDetected()
                     }
-                    // If it is a valid function then return its return type
-                    else -> return (functionNode as FunctionNode).type
                 }
-                return null
+                // If it is a valid function then return its return type
+                (functionNode as FunctionNode).type
             }
-            else -> return null
+            else -> null
         }
     }
 
     // Check the LHS of a statement node and get its type
     private fun getLHSType(lhsNode: AssignLHSNode, symbolTable: SymbolTable): TypeNode? {
-        return null
+        return when (lhsNode) {
+            is AssignLHSIdentNode -> {
+                val node = symbolTable.getNode(lhsNode.ident.name)
+                if (node == null) {
+                    println("SEMANTIC ERROR --- Variable does not exist")
+                    semanticErrorDetected()
+                } else if (node::class != DeclarationNode::class) {
+                    println("SEMANTIC ERROR --- LHS not a variable")
+                    semanticErrorDetected()
+                }
+                (node as DeclarationNode).type
+            }
+            is LHSArrayElemNode -> {
+                val array = symbolTable.getNode(lhsNode.arrayElem.ident.name)
+                if (array == null) {
+                    println("SEMANTIC ERROR --- Array does not exist")
+                    semanticErrorDetected()
+                } else if (array::class != DeclarationNode::class) {
+                    println("SEMANTIC ERROR --- LHS not an array")
+                    semanticErrorDetected()
+                }
+                (array as DeclarationNode).type
+            }
+            is LHSPairElemNode -> {
+                null
+            }
+            else -> null
+        }
     }
 
     // Check an expression is in the table
