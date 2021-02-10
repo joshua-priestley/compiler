@@ -260,11 +260,17 @@ class SemanticWalker(programNode: ProgramNode) {
         return false
     }
 
+    private fun isExprHardCoded(exprNode: ExprNode): Boolean {
+        return exprNode is StrLiterNode || exprNode is IntLiterNode || exprNode is CharLiterNode || exprNode is BoolLiterNode
+    }
+
     // TODO: Return a boolean to check its passed correctly?
     // TODO: Check the statement of the while loop
     // TODO: Check the expressions of the branches of the if statement?
     // Check all the different types of StatementNodes
     private fun checkStat(statementNode: StatementNode, symbolTable: SymbolTable, functionNode: FunctionNode?) {
+        // If one error is found, dont bother with the rest of the checks
+        var error = false
         when (statementNode) {
             // If it is a sequence node, check either side
             is SequenceNode -> {
@@ -309,16 +315,20 @@ class SemanticWalker(programNode: ProgramNode) {
                 if (functionNode == null) {
                     println("SEMANTIC ERROR --- Return statement outside of function")
                     semanticErrorDetected()
+                    error = true
                 }
-                //TODO: Does this check properly if we're returning just hardcoded values?
+                if (error) { return }
                 val funcReturnNodeType = symbolTable.getNode(functionNode.toString())
                 val valid = checkExprInSymbolTable(statementNode.expr, symbolTable)
-                if (!valid) {
+                if (!valid && !isExprHardCoded(statementNode.expr)) {
                     println("SEMANTIC ERROR --- Return value not in scope")
                     semanticErrorDetected()
+                    error = true
                 }
+                if (error) { return }
                 val returnNodeType = getTypeOfExpr(statementNode.expr, symbolTable)
-                if (funcReturnNodeType!!::class != returnNodeType!!::class) {
+                val thing1 = funcReturnNodeType!!::class
+                if (thing1 != returnNodeType!!::class) {
                     println("SEMANTIC ERROR --- Mismatched return types")
                     semanticErrorDetected()
                 }

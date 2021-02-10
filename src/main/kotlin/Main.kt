@@ -1,5 +1,7 @@
 package compiler
 
+import ProgramNode
+import SemanticWalker
 import SymbolTable
 import Visitor
 import WACCErrorListener
@@ -21,7 +23,7 @@ fun main(args: Array<String>) {
 
 class Compiler(val inputFile: String) {
     //TODO: rethink return types to handle syntax vs semantic fail, error messages etc...
-    fun check(): Boolean {
+    fun check(): Int {
         val file = File(inputFile)
         val input = CharStreams.fromPath(file.toPath())
         val lexer = WACCLexer(input)
@@ -40,23 +42,23 @@ class Compiler(val inputFile: String) {
             }
 
             println("${listener.errorList.size} parser errors detected. No further compilation attempted.")
-            return true;
+            return 0;
         }
         println(tree.toStringTree(parser))
 
         println("--------")
         val visitor = Visitor();
         println(visitor.visit(tree).toString())
+        println("--------")
+        val semanticWalker = SemanticWalker(visitor.visit(tree) as ProgramNode)
+        if (semanticWalker.errorDetected) {
+            return 200
+        }
 
-        return true
+        return 0
     }
 
     fun compile(): Int {
-        val result = check()
-        return if (result) {
-            0
-        } else {
-            100;
-        }
+        return check()
     }
 }

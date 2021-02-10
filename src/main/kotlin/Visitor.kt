@@ -16,7 +16,6 @@ class Visitor : WACCParserBaseVisitor<Node>() {
     }
 
     override fun visitProgram(ctx: ProgramContext): Node {
-        println("At a program")
         /* AST */
         val functionNodes = mutableListOf<FunctionNode>()
         ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
@@ -37,7 +36,6 @@ class Visitor : WACCParserBaseVisitor<Node>() {
     }
 
     override fun visitFunc(ctx: FuncContext): Node {
-        println("At a function")
         /* AST */
         val type = visit(ctx.type()) as TypeNode
 
@@ -83,23 +81,19 @@ STATEMENTS
  */
 
     override fun visitVarAssign(ctx: VarAssignContext): Node {
-        println("At variable assignment")
         return AssignNode(visit(ctx.assign_lhs()) as AssignLHSNode,
                 visit(ctx.assign_rhs()) as AssignRHSNode)
     }
 
     override fun visitRead(ctx: ReadContext): Node {
-        println("At read node")
         return ReadNode(visit(ctx.assign_lhs()) as AssignLHSNode)
     }
 
     override fun visitExit(ctx: ExitContext): Node {
-        println("At exit node")
         return ExitNode(visit(ctx.expr()) as ExprNode)
     }
 
     override fun visitFree(ctx: FreeContext): Node {
-        println("at free node")
         return FreeNode(visit(ctx.expr()) as ExprNode)
     }
 
@@ -108,45 +102,37 @@ STATEMENTS
     }
 
     override fun visitPrintln(ctx: PrintlnContext): Node {
-        println("at println node")
         return PrintlnNode(visit(ctx.expr()) as ExprNode)
     }
 
     override fun visitSkip(ctx: SkipContext): Node {
-        println("at a skip")
         return SkipNode()
     }
 
     override fun visitPrint(ctx: PrintContext): Node {
-        println("at a print")
         return PrintNode(visit(ctx.expr()) as ExprNode)
     }
 
     override fun visitIf(ctx: IfContext): Node {
-        println("at an if")
         return IfElseNode(visit(ctx.expr()) as ExprNode,
                 visit(ctx.stat(0)) as StatementNode,
                 visit(ctx.stat((1))) as StatementNode)
     }
 
     override fun visitWhile(ctx: WhileContext): Node {
-        println("at a while")
         return WhileNode(visit(ctx.expr()) as ExprNode,
                 visit(ctx.stat()) as StatementNode)
     }
 
     override fun visitBegin(ctx: BeginContext): Node {
-        println("at a begin")
         return BeginEndNode(visit(ctx.stat()) as StatementNode)
     }
 
     override fun visitSequence(ctx: SequenceContext): Node {
-        println("sequence item")
         return SequenceNode(visit(ctx.stat(0)) as StatementNode, visit(ctx.stat(1)) as StatementNode)
     }
 
     override fun visitVarDeclaration(ctx: VarDeclarationContext): Node {
-        println("at a variable declaration")
         return DeclarationNode(visit(ctx.type()) as TypeNode, Ident(ctx.ident().text), visit(ctx.assign_rhs()) as AssignRHSNode)
     }
 
@@ -171,38 +157,31 @@ TYPES
     }
 
     override fun visitInt(ctx: IntContext): Node {
-        println("At int")
         return Int()
     }
 
     override fun visitBool(ctx: BoolContext): Node {
-        println("At bool")
         return Bool()
     }
 
     override fun visitChar(ctx: CharContext): Node {
-        println("At char")
         return Chr()
     }
 
     override fun visitString(ctx: StringContext): Node {
-        println("At string")
         return Str()
     }
 
     override fun visitArray_type(ctx: Array_typeContext): Node {
-        println("At array type")
         return ArrayNode(visit(ctx.type()) as TypeNode)
     }
 
     override fun visitPair_type(ctx: Pair_typeContext): Node {
-        println("At pair type")
         return PairTypeNode(visit(ctx.pair_elem_type(0)) as PairElemTypeNode,
                 visit(ctx.pair_elem_type(1)) as PairElemTypeNode)
     }
 
     override fun visitPair_elem_type(ctx: Pair_elem_typeContext): Node {
-        println("At pair elem type")
         val type: Any = when {
             ctx.PAIR() != null -> Pair()
             ctx.array_type() != null -> visit(ctx.array_type())
@@ -217,28 +196,22 @@ EXPRESSIONS
  */
 
     override fun visitIntLiter(ctx: IntLiterContext): Node {
-        println("At int liter")
         return IntLiterNode(ctx.text)
     }
 
     override fun visitStrLiter(ctx: StrLiterContext): Node {
-        println("At str liter")
         return StrLiterNode(ctx.text)
     }
 
     override fun visitCharLiter(ctx: CharLiterContext): Node {
-        println("At char liter")
         return CharLiterNode(ctx.text)
     }
 
     override fun visitBoolLiter(ctx: BoolLiterContext): Node {
-        println("At bool liter")
-        println(ctx.text)
         return BoolLiterNode(ctx.text)
     }
 
     override fun visitPairLiter(ctx: PairLiterContext): Node {
-        println("At pair liter")
         return PairLiterNode()
     }
 
@@ -248,7 +221,6 @@ EXPRESSIONS
     }
 
     override fun visitIdent(ctx: IdentContext): Node {
-        println("At ident")
         return Ident(ctx.text)
     }
 
@@ -258,13 +230,11 @@ EXPRESSIONS
     }
 
     override fun visitArray_elem(ctx: Array_elemContext): Node {
-        println("At array elem")
         return ArrayElem(visit(ctx.ident()) as Ident,
                 ctx.expr().map { visit(it) as ExprNode })
     }
 
     override fun visitUnaryOp(ctx: UnaryOpContext): Node {
-        println("At unary op")
         //TODO handle semantic errors here? or handle later using NOT_SUPPORTED flag
         //TODO is there a ore elegant way to do this?
         val op = when {
