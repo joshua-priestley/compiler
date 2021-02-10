@@ -32,7 +32,7 @@ class SemanticWalker(programNode: ProgramNode) {
         // PLUS, MINUS, MUL, DIV, MOD
         if (1 <= operator.value || operator.value <= 5) {
             return Int()
-        // Comparisons, EQ, NEQ, AND, OR
+            // Comparisons, EQ, NEQ, AND, OR
         } else if (5 <= operator.value || operator.value <= 13) {
             return Bool()
         }
@@ -44,10 +44,10 @@ class SemanticWalker(programNode: ProgramNode) {
         // MINUS, LEN, ORD
         if (operator.value in arrayOf(2, 15, 16)) {
             return Int()
-        // NOT
+            // NOT
         } else if (operator.value == 14) {
             return Bool()
-        // CHR
+            // CHR
         } else if (operator.value == 17) {
             return Chr()
         }
@@ -125,7 +125,7 @@ class SemanticWalker(programNode: ProgramNode) {
             if (getTypeOfExpr(expr, symbolTable) == null) {
                 println("SEMANTIC ERROR --- Invalid array element")
                 semanticErrorDetected()
-            // If the elements type does not match the first then there is an error
+                // If the elements type does not match the first then there is an error
             } else if (getTypeOfExpr(expr, symbolTable)!!::class != firstType!!::class) {
                 println("SEMANTIC ERROR --- Array elements have differing types")
                 semanticErrorDetected()
@@ -147,12 +147,23 @@ class SemanticWalker(programNode: ProgramNode) {
                 checkArrayAllSameType(rhsNode.exprs, symbolTable)
             }
             is RHSNewPairNode -> {
-                //TODO: Implement
-                return null
+                val type1 = getTypeOfExpr(rhsNode.expr1, symbolTable)
+                val type2 = getTypeOfExpr(rhsNode.expr2, symbolTable)
+                if (type1 == null) {
+                    println("SEMANTIC ERROR --- First elem of Pair not typeable")
+                    semanticErrorDetected()
+                } else if (type2 == null) {
+                    println("SEMANTIC ERROR --- Second elem of Pair not typeable")
+                    semanticErrorDetected()
+                }
+                return PairTypeNode(PairElemTypeNode(type1!!), PairElemTypeNode(type2!!))
             }
             is RHSPairElemNode -> {
-                //TODO: Implement
-                return null
+                if (rhsNode.pairElem::class == FstExpr::class) {
+                    return getTypeOfExpr((rhsNode.pairElem as FstExpr).expr, symbolTable)
+                } else {
+                    return getTypeOfExpr((rhsNode.pairElem as SndExpr).expr, symbolTable)
+                }
             }
             is RHSCallNode -> {
                 // Check the reference exists and is actually a function
