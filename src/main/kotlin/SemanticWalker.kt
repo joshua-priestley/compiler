@@ -218,22 +218,28 @@ class SemanticWalker(programNode: ProgramNode) {
                 if (node == null) {
                     println("SEMANTIC ERROR --- Variable does not exist")
                     semanticErrorDetected()
+                    null
                 } else if (node::class != DeclarationNode::class) {
                     println("SEMANTIC ERROR --- LHS not a variable")
                     semanticErrorDetected()
+                    null
+                } else {
+                    (node as DeclarationNode).type
                 }
-                (node as DeclarationNode).type
             }
             is LHSArrayElemNode -> {
                 val array = symbolTable.getNode(lhsNode.arrayElem.ident.name)
                 if (array == null) {
                     println("SEMANTIC ERROR --- Array does not exist")
                     semanticErrorDetected()
+                    null
                 } else if (array::class != DeclarationNode::class) {
                     println("SEMANTIC ERROR --- LHS not an array")
                     semanticErrorDetected()
+                    null
+                } else {
+                    (array as DeclarationNode).type
                 }
-                (array as DeclarationNode).type
             }
             is LHSPairElemNode -> {
                 null
@@ -270,7 +276,6 @@ class SemanticWalker(programNode: ProgramNode) {
     // Check all the different types of StatementNodes
     private fun checkStat(statementNode: StatementNode, symbolTable: SymbolTable, functionNode: FunctionNode?) {
         // If one error is found, dont bother with the rest of the checks
-        var error = false
         when (statementNode) {
             // If it is a sequence node, check either side
             is SequenceNode -> {
@@ -315,20 +320,24 @@ class SemanticWalker(programNode: ProgramNode) {
                 if (functionNode == null) {
                     println("SEMANTIC ERROR --- Return statement outside of function")
                     semanticErrorDetected()
-                    error = true
+                    return
                 }
-                if (error) { return }
                 val funcReturnNodeType = symbolTable.getNode(functionNode.toString())
                 val valid = checkExprInSymbolTable(statementNode.expr, symbolTable)
                 if (!valid && !isExprHardCoded(statementNode.expr)) {
                     println("SEMANTIC ERROR --- Return value not in scope")
                     semanticErrorDetected()
-                    error = true
+                    return
                 }
-                if (error) { return }
                 val returnNodeType = getTypeOfExpr(statementNode.expr, symbolTable)
-                val thing1 = funcReturnNodeType!!::class
-                if (thing1 != returnNodeType!!::class) {
+                if (returnNodeType == null) {
+                    println("SEMANTIC ERROR --- Return type issue")
+                    semanticErrorDetected()
+                    return
+                }
+                val func = funcReturnNodeType!!::class
+                val ret = returnNodeType::class
+                if (func != ret) {
                     println("SEMANTIC ERROR --- Mismatched return types")
                     semanticErrorDetected()
                 }
