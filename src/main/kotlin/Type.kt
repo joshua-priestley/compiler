@@ -87,6 +87,10 @@ class Type {
         return this.pair
     }
 
+    override fun hashCode(): Int {
+        return super.hashCode()
+    }
+
     //Equality for types for semantic checks
     override fun equals(other: Any?): Boolean {
         if (other is Type) {
