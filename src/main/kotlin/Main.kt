@@ -1,5 +1,7 @@
 package compiler
 
+import ProgramNode
+import SemanticWalker
 import SymbolTable
 import Visitor
 import WACCErrorListener
@@ -24,7 +26,7 @@ fun main(args: Array<String>) {
 
 class Compiler(val inputFile: String) {
     //TODO: rethink return types to handle syntax vs semantic fail, error messages etc...
-    fun check(): Boolean {
+    fun check(): Int {
         val file = File(inputFile)
 
         if(!file.exists() || !file.isFile) {
@@ -50,6 +52,11 @@ class Compiler(val inputFile: String) {
         println("--------")
         val visitor = Visitor(listener);
         println(visitor.visit(tree).toString())
+        println("--------")
+        val semanticWalker = SemanticWalker(visitor.visit(tree) as ProgramNode)
+        if (semanticWalker.errorDetected) {
+            return 200
+        }
 
         if (listener.hasSyntaxErrors()) {
             listener.printSyntaxErrors()
