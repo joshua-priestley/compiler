@@ -4,8 +4,8 @@ import kotlin.Int
 const val INVALID: Int = -1
 class Type {
 
-    private var array: Boolean = false
-    private var pair: Boolean = false
+    private val array: Boolean
+    private val pair: Boolean
     private val type : Int
     private val pairFst : Type?
     private val pairSnd : Type?
@@ -27,12 +27,15 @@ class Type {
         this.pairFst = type1
         this.pairSnd = type2
         this.pair = true
+        this.array = false
         this.arrType = null
     }
 
     //Constructor for singleton types
     constructor(type: Int) {
         this.type = type
+        this.array = false
+        this.pair = false
         this.pairFst = null
         this.pairSnd = null
         this.arrType = null
