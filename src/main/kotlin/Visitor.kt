@@ -5,7 +5,9 @@ class Visitor : WACCParserBaseVisitor<Node>() {
 
     private fun addStatToSymbolTable(symbolTable: SymbolTable, stat: StatementNode) {
         when (stat) {
+            // Only add a new entry if the stat is a declaration node
             is DeclarationNode -> symbolTable.addNode(stat.ident.name, stat)
+            // Recursively check the other stats
             is SequenceNode -> {
                 addStatToSymbolTable(symbolTable, stat.stat1)
                 addStatToSymbolTable(symbolTable, stat.stat2)
@@ -22,9 +24,11 @@ class Visitor : WACCParserBaseVisitor<Node>() {
 
         /* Symbol Table */
         val globalSymbolTable = SymbolTable(null)
+        // Add each function's symbol table to the global program symbol table
         for (fNode in functionNodes) {
             fNode.functionSymbolTable.setParentTable(globalSymbolTable)
             globalSymbolTable.addChildTable(fNode.functionSymbolTable)
+            // Add the function itself to the symbol table
             globalSymbolTable.addNode(fNode.ident.name, fNode)
         }
         addStatToSymbolTable(globalSymbolTable, stat)
@@ -50,12 +54,11 @@ class Visitor : WACCParserBaseVisitor<Node>() {
 
         /* Symbol Table */
         val functionSymbolTable = SymbolTable(null)
+        // Add each parameter to the symbol table
         for (pNode in parameterNodes) {
             functionSymbolTable.addNode(pNode.ident.name, pNode)
         }
         addStatToSymbolTable(functionSymbolTable, stat)
-
-        functionSymbolTable.addNode(ctx.toString(), type)
 
         return FunctionNode(type, ident, parameterNodes.toList(), stat, functionSymbolTable)
     }
