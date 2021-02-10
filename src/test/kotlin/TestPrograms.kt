@@ -8,7 +8,7 @@ import java.io.File
 
 //TODO clean up/rethink how to control which tests are run in a more elegant way
 
-class Test {
+class TestPrograms {
 
     /*
         We can get the compiler output as follows:
