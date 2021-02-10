@@ -5,6 +5,8 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
               private val syntaxListener: WACCErrorListener,
               private var globalSymbolTable: SymbolTable) : WACCParserBaseVisitor<Node>() {
 
+    var semantic = false
+
     override fun visitProgram(ctx: ProgramContext): Node {
         val functionNodes = mutableListOf<FunctionNode>()
         ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
@@ -24,6 +26,7 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
             for (i in 0..ctx.param_list().childCount step 2) {
                 val p = visit(ctx.param_list().getChild(i)) as Param
                 parameterNodes.add(p)
+                pType = Type()
                 functionSymbolTable.addNode(p.ident.name, p)
             }
         }
@@ -41,6 +44,7 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
         val fNode = FunctionNode(type, ident, parameterNodes.toList(), stat)
         if (globalSymbolTable.containsNode(ident.name)) {
             println("SEMANTIC ERROR DETECTED --- FUNCTION ALREADY EXISTS")
+            semantic = true
         } else {
             globalSymbolTable.addNode(ident.name, fNode)
             globalSymbolTable.addChildTable(functionSymbolTable)
@@ -126,6 +130,7 @@ STATEMENTS
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
         if (globalSymbolTable.containsNode(ident.toString())) {
             println("SEMANTIC ERROR DETECTED --- VARIABLE ALREADY EXISTS")
+            semantic = true
         } else {
             globalSymbolTable.addNode(ident.toString(), type)
         }

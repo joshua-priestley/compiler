@@ -1,8 +1,6 @@
 package compiler
 
-import ProgramNode
 import SemanticErrorHandler
-import SemanticWalker
 import SymbolTable
 import Visitor
 import WACCErrorListener
@@ -60,6 +58,9 @@ class Compiler(val inputFile: String) {
         if (listener.hasSyntaxErrors()) {
             listener.printSyntaxErrors()
             return 100
+        }
+        if (visitor.semantic) {
+            return 200
         }
 
         return 0
