@@ -3,14 +3,14 @@ import antlr.WACCParserBaseVisitor
 
 class Visitor(val syntaxListener: WACCErrorListener) : WACCParserBaseVisitor<Node>() {
 
-    private fun addStatToSymbolTable(symbolTable: SymbolTable, stat: StatementNode) {
+    private fun addStatToSymbolTable(symbolTableOld: SymbolTable_old, stat: StatementNode) {
         when (stat) {
             // Only add a new entry if the stat is a declaration node
-            is DeclarationNode -> symbolTable.addNode(stat.ident.name, stat)
+            is DeclarationNode -> symbolTableOld.addNode(stat.ident.name, stat)
             // Recursively check the other stats
             is SequenceNode -> {
-                addStatToSymbolTable(symbolTable, stat.stat1)
-                addStatToSymbolTable(symbolTable, stat.stat2)
+                addStatToSymbolTable(symbolTableOld, stat.stat1)
+                addStatToSymbolTable(symbolTableOld, stat.stat2)
             }
         }
     }
@@ -22,11 +22,11 @@ class Visitor(val syntaxListener: WACCErrorListener) : WACCParserBaseVisitor<Nod
         val stat = visit(ctx.stat()) as StatementNode
 
         /* Symbol Table */
-        val globalSymbolTable = SymbolTable(null)
+        val globalSymbolTable = SymbolTable_old(null)
         // Add each function's symbol table to the global program symbol table
         for (fNode in functionNodes) {
-            fNode.functionSymbolTable.setParentTable(globalSymbolTable)
-            globalSymbolTable.addChildTable(fNode.functionSymbolTable)
+            fNode.functionSymbolTableOld.setParentTable(globalSymbolTable)
+            globalSymbolTable.addChildTable(fNode.functionSymbolTableOld)
             // Add the function itself to the symbol table
             globalSymbolTable.addNode(fNode.ident.name, fNode)
         }
@@ -55,7 +55,7 @@ class Visitor(val syntaxListener: WACCErrorListener) : WACCParserBaseVisitor<Nod
         }
 
         /* Symbol Table */
-        val functionSymbolTable = SymbolTable(null)
+        val functionSymbolTable = SymbolTable_old(null)
         // Add each parameter to the symbol table
         for (pNode in parameterNodes) {
             functionSymbolTable.addNode(pNode.ident.name, pNode)
@@ -191,7 +191,6 @@ EXPRESSIONS
  */
 
     override fun visitLiter(ctx: LiterContext): Node {
-        println("at liter")
         val ret = when {
             ctx.BOOL_LITER() != null -> BoolLiterNode(ctx.text)
             ctx.CHAR_LITER() != null -> CharLiterNode(ctx.text)
