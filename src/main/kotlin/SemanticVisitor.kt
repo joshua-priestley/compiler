@@ -2,6 +2,7 @@ import antlr.WACCParser
 import antlr.WACCParserBaseVisitor
 
 class SemanticVisitor(private val globalSymbolTable: SymbolTable, val errorHandler: SemanticErrorHandler) : WACCParserBaseVisitor<Node>() {
+    /*
     override fun visitProgram(ctx: WACCParser.ProgramContext): Node {
         val fNodes: MutableList<FunctionNode> = mutableListOf()
         for (func in ctx.func()) {
@@ -93,5 +94,5 @@ STATEMENTS
     override fun visitVarDeclaration(ctx: WACCParser.VarDeclarationContext): Node {
         return DeclarationNode(visit(ctx.type()) as TypeNode, Ident(ctx.ident().text), visit(ctx.assign_rhs()) as AssignRHSNode)
     }
-
+    */
 }

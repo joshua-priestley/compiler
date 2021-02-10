@@ -6,7 +6,7 @@ import antlr.WACCParser
 //TODO: Check lhs stuff because if its an array then the types will differ
 
 // This class takes in a ProgramNode then walks through the tree doing semantic analysis
-class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.ProgramContext) {
+class SemanticWalker() {
     /*
     private val globalSymbolTable = programNode.globalSymbolTable
     var errorDetected: Boolean = false

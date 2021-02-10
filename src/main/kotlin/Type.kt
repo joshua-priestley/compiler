@@ -132,11 +132,11 @@ class Type {
 
     //Equality for types for semantic checks
     override fun equals(other: Any?): Boolean {
-        println("this ${toString()}")
-        println("other ${other.toString()}")
+//        println("this ${toString()}")
+//        println("other ${other.toString()}")
         if (other is Type) {
-            var compare: Type = other as Type
-            println(compare)
+            var compare: Type = other
+//            println(compare)
             return when {
                 //Char array and string are equivalent
                 getArray() && !getBaseType().getArray() && getBaseType().getType() == CHAR && compare.getType() == STRING -> true
