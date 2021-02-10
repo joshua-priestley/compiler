@@ -7,7 +7,8 @@ import antlr.WACCParser
 
 // This class takes in a ProgramNode then walks through the tree doing semantic analysis
 class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.ProgramContext) {
-    private val globalSymbolTable = programNode.globalSymbolTableOld
+    /*
+    private val globalSymbolTable = programNode.globalSymbolTable
     var errorDetected: Boolean = false
 
     init {
@@ -58,7 +59,7 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
     }
 
     // Takes and expression node and the symbol table and gets the top layer type of that node
-    private fun getTypeOfExpr(exprNode: ExprNode, symbolTableOld: SymbolTable_old, exprContext: WACCParser.ExprContext?): TypeNode? {
+    private fun getTypeOfExpr(exprNode: ExprNode, symbolTable: SymbolTable, exprContext: WACCParser.ExprContext?): TypeNode? {
         //TODO: for array elem, i think this just stores the index of the list so this doesnt need
         //TODO: to be checked in the same way, maybe?
         return when (exprNode) {
@@ -70,12 +71,12 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
             // Checks the types of the array elem are correct
             is ArrayElem -> {
                 // Check the index is correct
-                if (getTypeOfExpr(exprNode.expr[0], symbolTableOld, (exprContext as WACCParser.ArrayElemContext))?.let { equalTypes(it, Int()) } == false) {
+                if (getTypeOfExpr(exprNode.expr[0], symbolTable, (exprContext as WACCParser.ArrayElemContext))?.let { equalTypes(it, Int()) } == false) {
                     println("SEMANTIC ERROR --- Array index must be an integer")
                     semanticErrorDetected()
                 }
                 // Check the node being indexed is an array that exists then return the type
-                val arrayNode = symbolTableOld.getNode(exprNode.ident.name)
+                val arrayNode = symbolTable.getNode(exprNode.ident.name)
                 when {
                     arrayNode == null -> {
                         println("SEMANTIC ERROR --- Array does not exist")
@@ -93,7 +94,7 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
             }
             // Get the type of the variable referenced and return it
             is Ident -> {
-                val variableNode = symbolTableOld.getNode(exprNode.name)
+                val variableNode = symbolTable.getNode(exprNode.name)
                 when {
                     // Check it actually exists
                     variableNode == null -> {
@@ -114,7 +115,7 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
             is PairLiterNode -> Pair()
             is UnaryOpNode -> {
                 val opType = getTypeOfUnOp(exprNode.operator)
-                val exprType = getTypeOfExpr(exprNode.expr, symbolTableOld, (exprContext as WACCParser.UnaryOpContext).expr())
+                val exprType = getTypeOfExpr(exprNode.expr, symbolTable, (exprContext as WACCParser.UnaryOpContext).expr())
                 if (exprType == null) {
                     println("SEMANTIC ERROR --- Operator expression issue")
                     semanticErrorDetected()
@@ -127,8 +128,8 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
             }
             is BinaryOpNode -> {
                 val opType = getTypeOfBinOp(exprNode.operator)
-                val expr1Type = getTypeOfExpr(exprNode.expr1, symbolTableOld, (exprContext as WACCParser.BinaryOpContext).expr(0))
-                val expr2Type = getTypeOfExpr(exprNode.expr2, symbolTableOld, exprContext.expr(1))
+                val expr1Type = getTypeOfExpr(exprNode.expr1, symbolTable, (exprContext as WACCParser.BinaryOpContext).expr(0))
+                val expr2Type = getTypeOfExpr(exprNode.expr2, symbolTable, exprContext.expr(1))
                 if (expr1Type == null || !equalTypes(expr1Type, opType)) {
                     println("SEMANTIC ERROR --- Expression 1 type error")
                     semanticErrorDetected()
@@ -144,15 +145,15 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
     }
 
     // Check all the elements of an array have the same type
-    private fun checkArrayAllSameType(exprs: List<ExprNode>, symbolTableOld: SymbolTable_old, exprCtxs: MutableList<WACCParser.ExprContext>): TypeNode? {
-        val firstType = getTypeOfExpr(exprs[0], symbolTableOld, exprCtxs[0])
+    private fun checkArrayAllSameType(exprs: List<ExprNode>, symbolTable: SymbolTable, exprCtxs: MutableList<WACCParser.ExprContext>): TypeNode? {
+        val firstType = getTypeOfExpr(exprs[0], symbolTable, exprCtxs[0])
         for (i in 0..exprs.size) {
             // If the type cannot be found, something is wrong with the element
-            if (getTypeOfExpr(exprs[i], symbolTableOld, exprCtxs[i]) == null) {
+            if (getTypeOfExpr(exprs[i], symbolTable, exprCtxs[i]) == null) {
                 println("SEMANTIC ERROR --- Invalid array element")
                 semanticErrorDetected()
                 // If the elements type does not match the first then there is an error
-            } else if (getTypeOfExpr(exprs[i], symbolTableOld, exprCtxs[i])!!::class != firstType!!::class) {
+            } else if (getTypeOfExpr(exprs[i], symbolTable, exprCtxs[i])!!::class != firstType!!::class) {
                 println("SEMANTIC ERROR --- Array elements have differing types")
                 semanticErrorDetected()
             }
@@ -162,19 +163,19 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
     }
 
     // Get the type of the RHS of a statement node
-    private fun getRHSType(rhsNode: AssignRHSNode, symbolTableOld: SymbolTable_old, rhsExprContext: WACCParser.Assign_rhsContext): TypeNode? {
+    private fun getRHSType(rhsNode: AssignRHSNode, symbolTable: SymbolTable, rhsExprContext: WACCParser.Assign_rhsContext): TypeNode? {
         return when (rhsNode) {
             // If it is expression, simply call the function to get the type
             is RHSExprNode -> {
-                getTypeOfExpr(rhsNode.expr, symbolTableOld, (rhsExprContext as WACCParser.AssignRhsExprContext).expr())
+                getTypeOfExpr(rhsNode.expr, symbolTable, (rhsExprContext as WACCParser.AssignRhsExprContext).expr())
             }
             // If it is an array then check all types are the same and return that
             is RHSArrayLitNode -> {
-                checkArrayAllSameType(rhsNode.exprs, symbolTableOld, (rhsExprContext as WACCParser.AssignRhsArrayContext).array_liter().expr())
+                checkArrayAllSameType(rhsNode.exprs, symbolTable, (rhsExprContext as WACCParser.AssignRhsArrayContext).array_liter().expr())
             }
             is RHSNewPairNode -> {
-                val type1 = getTypeOfExpr(rhsNode.expr1, symbolTableOld, (rhsExprContext as WACCParser.AssignRhsNewpairContext).expr(0))
-                val type2 = getTypeOfExpr(rhsNode.expr2, symbolTableOld, rhsExprContext.expr(1))
+                val type1 = getTypeOfExpr(rhsNode.expr1, symbolTable, (rhsExprContext as WACCParser.AssignRhsNewpairContext).expr(0))
+                val type2 = getTypeOfExpr(rhsNode.expr2, symbolTable, rhsExprContext.expr(1))
                 if (type1 == null) {
                     println("SEMANTIC ERROR --- First elem of Pair not typeable")
                     semanticErrorDetected()
@@ -187,14 +188,14 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
             is RHSPairElemNode -> {
                 //TODO: the pair elem actually holds the name of the pair that you are trying to get first or second from so this will have to change
                 if (rhsNode.pairElem::class == FstExpr::class) {
-                    getTypeOfExpr((rhsNode.pairElem as FstExpr).expr, symbolTableOld, null)
+                    getTypeOfExpr((rhsNode.pairElem as FstExpr).expr, symbolTable, null)
                 } else {
-                    getTypeOfExpr((rhsNode.pairElem as SndExpr).expr, symbolTableOld, null)
+                    getTypeOfExpr((rhsNode.pairElem as SndExpr).expr, symbolTable, null)
                 }
             }
             is RHSCallNode -> {
                 // Check the reference exists and is actually a function
-                val functionNode = symbolTableOld.getNode(rhsNode.ident.name)
+                val functionNode = symbolTable.getNode(rhsNode.ident.name)
                 when {
                     functionNode == null -> {
                         println("SEMANTIC ERROR --- Function does not exist")
@@ -213,10 +214,10 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
     }
 
     // Check the LHS of a statement node and get its type
-    private fun getLHSType(lhsNode: AssignLHSNode, symbolTableOld: SymbolTable_old, lhsCTX: WACCParser.Assign_lhsContext): TypeNode? {
+    private fun getLHSType(lhsNode: AssignLHSNode, symbolTable: SymbolTable, lhsCTX: WACCParser.Assign_lhsContext): TypeNode? {
         return when (lhsNode) {
             is AssignLHSIdentNode -> {
-                val node = symbolTableOld.getNode(lhsNode.ident.name)
+                val node = symbolTable.getNode(lhsNode.ident.name)
                 if (node == null) {
                     println("SEMANTIC ERROR --- Variable does not exist")
                     semanticErrorDetected()
@@ -230,7 +231,7 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
                 }
             }
             is LHSArrayElemNode -> {
-                val array = symbolTableOld.getNode(lhsNode.arrayElem.ident.name)
+                val array = symbolTable.getNode(lhsNode.arrayElem.ident.name)
                 if (array == null) {
                     println("SEMANTIC ERROR --- Array does not exist")
                     semanticErrorDetected()
@@ -251,16 +252,16 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
     }
 
     // Check an expression is in the table
-    private fun checkExprInSymbolTable(exprNode: ExprNode, symbolTableOld: SymbolTable_old): Boolean {
+    private fun checkExprInSymbolTable(exprNode: ExprNode, symbolTable: SymbolTable): Boolean {
         // An expression will only be in the table if it is an array or a variable
         when (exprNode) {
             is Ident -> {
-                if (symbolTableOld.getNode(exprNode.name) != null) {
+                if (symbolTable.getNode(exprNode.name) != null) {
                     return true
                 }
             }
             is ArrayElem -> {
-                if (symbolTableOld.getNode(exprNode.ident.name) != null) {
+                if (symbolTable.getNode(exprNode.ident.name) != null) {
                     return true
                 }
             }
@@ -276,17 +277,17 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
     // TODO: Check the statement of the while loop
     // TODO: Check the expressions of the branches of the if statement?
     // Check all the different types of StatementNodes
-    private fun checkStat(statementNode: StatementNode, symbolTableOld: SymbolTable_old, functionNode: FunctionNode?, statCTX: WACCParser.StatContext) {
+    private fun checkStat(statementNode: StatementNode, symbolTable: SymbolTable, functionNode: FunctionNode?, statCTX: WACCParser.StatContext) {
         // If one error is found, dont bother with the rest of the checks
         when (statementNode) {
             // If it is a sequence node, check either side
             is SequenceNode -> {
-                checkStat(statementNode.stat1, symbolTableOld, functionNode, (statCTX as WACCParser.SequenceContext).stat(0))
-                checkStat(statementNode.stat2, symbolTableOld, functionNode, statCTX.stat(1))
+                checkStat(statementNode.stat1, symbolTable, functionNode, (statCTX as WACCParser.SequenceContext).stat(0))
+                checkStat(statementNode.stat2, symbolTable, functionNode, statCTX.stat(1))
             }
             // Check the condition given is a boolean
             is IfElseNode -> {
-                val condNode = getTypeOfExpr(statementNode.expr, symbolTableOld, (statCTX as WACCParser.IfContext).expr())
+                val condNode = getTypeOfExpr(statementNode.expr, symbolTable, (statCTX as WACCParser.IfContext).expr())
                 if (condNode == null || !equalTypes(condNode, Bool())) {
                     println("SEMANTIC ERROR --- If statement condition must be a boolean")
                     semanticErrorDetected()
@@ -294,7 +295,7 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
             }
             // Check the condition given is a boolean
             is WhileNode -> {
-                val condNode = getTypeOfExpr(statementNode.expr, symbolTableOld, (statCTX as WACCParser.WhileContext).expr())
+                val condNode = getTypeOfExpr(statementNode.expr, symbolTable, (statCTX as WACCParser.WhileContext).expr())
                 if (condNode == null || !equalTypes(condNode, Bool())) {
                     println("SEMANTIC ERROR --- While loop condition must be a boolean")
                     semanticErrorDetected()
@@ -302,7 +303,7 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
             }
             // Check the exit value is an integer
             is ExitNode -> {
-                val exitNode = getTypeOfExpr(statementNode.expr, symbolTableOld, (statCTX as WACCParser.ExitContext).expr())
+                val exitNode = getTypeOfExpr(statementNode.expr, symbolTable, (statCTX as WACCParser.ExitContext).expr())
                 if (exitNode == null || !equalTypes(exitNode, Int())) {
                     println("SEMANTIC ERROR --- Cannot exit a non-integer")
                     semanticErrorDetected()
@@ -324,14 +325,14 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
                     semanticErrorDetected()
                     return
                 }
-                val funcReturnNodeType = symbolTableOld.getNode(functionNode.toString())
-                val valid = checkExprInSymbolTable(statementNode.expr, symbolTableOld)
+                val funcReturnNodeType = symbolTable.getNode(functionNode.toString())
+                val valid = checkExprInSymbolTable(statementNode.expr, symbolTable)
                 if (!valid && !isExprHardCoded(statementNode.expr)) {
                     println("SEMANTIC ERROR --- Return value not in scope")
                     semanticErrorDetected()
                     return
                 }
-                val returnNodeType = getTypeOfExpr(statementNode.expr, symbolTableOld, (statCTX as WACCParser.ReturnContext).expr())
+                val returnNodeType = getTypeOfExpr(statementNode.expr, symbolTable, (statCTX as WACCParser.ReturnContext).expr())
                 if (returnNodeType == null) {
                     println("SEMANTIC ERROR --- Return type issue")
                     semanticErrorDetected()
@@ -346,20 +347,20 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
             }
             // Checks the node being freed hasn't already been freed/never exists
             is FreeNode -> {
-                val valid = checkExprInSymbolTable(statementNode.expr, symbolTableOld)
+                val valid = checkExprInSymbolTable(statementNode.expr, symbolTable)
                 if (!valid) {
                     println("SEMANTIC ERROR --- Variable doesnt exist/Already freed")
                     semanticErrorDetected()
                 } else {
                     // Removes the freed node from the symbol table so it cant be used anymore
                     if (statementNode.expr is Ident) {
-                        symbolTableOld.removeNode(statementNode.expr.name)
+                        symbolTable.removeNode(statementNode.expr.name)
                     }
                 }
             }
             // Makes sure the lhs of the argument is an integer or a char type
             is ReadNode -> {
-                val lhsTypeNode = getLHSType(statementNode.lhs, symbolTableOld, (statCTX as WACCParser.ReadContext).assign_lhs())
+                val lhsTypeNode = getLHSType(statementNode.lhs, symbolTable, (statCTX as WACCParser.ReadContext).assign_lhs())
                 if (lhsTypeNode == null || (!equalTypes(lhsTypeNode, Int())) || (!equalTypes(lhsTypeNode, Chr()))) {
                     println("SEMANTIC ERROR --- LHS must be of type int or chr variable or array for READ")
                     semanticErrorDetected()
@@ -367,7 +368,7 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
             }
             // Checks the lhs and rhs of the declaration are equal
             is DeclarationNode -> {
-                val rhsTypeNode = getRHSType(statementNode.value, symbolTableOld, (statCTX as WACCParser.VarDeclarationContext).assign_rhs())
+                val rhsTypeNode = getRHSType(statementNode.value, symbolTable, (statCTX as WACCParser.VarDeclarationContext).assign_rhs())
                 if (rhsTypeNode == null || !equalTypes(statementNode.type, rhsTypeNode)) {
                     println("SEMANTIC ERROR --- LHS type != RHS Type")
                     semanticErrorDetected()
@@ -375,8 +376,8 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
             }
             // Checks the lhs and rhs of the assignment are equal
             is AssignNode -> {
-                val lhsTypeNode = getLHSType(statementNode.lhs, symbolTableOld, (statCTX as WACCParser.VarAssignContext).assign_lhs())
-                val rhsTypeNode = getRHSType(statementNode.rhs, symbolTableOld, statCTX.assign_rhs())
+                val lhsTypeNode = getLHSType(statementNode.lhs, symbolTable, (statCTX as WACCParser.VarAssignContext).assign_lhs())
+                val rhsTypeNode = getRHSType(statementNode.rhs, symbolTable, statCTX.assign_rhs())
                 if (lhsTypeNode == null || rhsTypeNode == null || !equalTypes(lhsTypeNode, rhsTypeNode)) {
                     println("SEMANTIC ERROR --- LHS type != RHS Type")
                     semanticErrorDetected()
@@ -387,7 +388,7 @@ class SemanticWalker(programNode: ProgramNode, programContext: WACCParser.Progra
 
     // Checks the stat within a function
     private fun checkFunc(functionNode: FunctionNode, funcCTX: WACCParser.FuncContext) {
-        checkStat(functionNode.stat, functionNode.functionSymbolTableOld, functionNode, funcCTX.stat())
+        checkStat(functionNode.stat, functionNode.functionSymbolTable, functionNode, funcCTX.stat())
     }
-
+ */
 }
