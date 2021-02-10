@@ -1,19 +1,19 @@
 // Class to store the symbol table with a reference to the parent symbol table
-class SymbolTable(var parentT: SymbolTable?) {
+class SymbolTable_old(var parentT: SymbolTable_old?) {
     // Table to store all variables and functions available
     private val table: LinkedHashMap<String, Node> = linkedMapOf()
     // List of the other children tables (of functions)
-    private val childrenTables: MutableList<SymbolTable> = mutableListOf()
+    private val childrenTableOlds: MutableList<SymbolTable_old> = mutableListOf()
 
     init {
         parentT?.addChildTable(this)
     }
 
-    fun addChildTable(child: SymbolTable) {
-        childrenTables.add(child)
+    fun addChildTable(child: SymbolTable_old) {
+        childrenTableOlds.add(child)
     }
 
-    fun setParentTable(parentT: SymbolTable?) {
+    fun setParentTable(parentT: SymbolTable_old?) {
         this.parentT = parentT
     }
 
@@ -23,14 +23,14 @@ class SymbolTable(var parentT: SymbolTable?) {
 
     fun getNode(name: String): Node? {
         // Check the symbol table and each parent's table for an entry match
-        var currTable: SymbolTable? = this
-        while (currTable != null) {
-            val node = currTable.table[name]
+        var currTableOld: SymbolTable_old? = this
+        while (currTableOld != null) {
+            val node = currTableOld.table[name]
             if (node != null) {
                 return node
             }
 
-            currTable = currTable.parentT
+            currTableOld = currTableOld.parentT
         }
 
         // If we reach here then no match was found
@@ -39,13 +39,13 @@ class SymbolTable(var parentT: SymbolTable?) {
 
     fun removeNode(name: String) {
         // Same idea as adding a node
-        var currTable: SymbolTable? = this
-        while (currTable!= null) {
-            if (currTable.table.containsKey(name)) {
-                currTable.table.remove(name)
+        var currTableOld: SymbolTable_old? = this
+        while (currTableOld!= null) {
+            if (currTableOld.table.containsKey(name)) {
+                currTableOld.table.remove(name)
                 return
             }
-            currTable = currTable.parentT
+            currTableOld = currTableOld.parentT
         }
     }
 }

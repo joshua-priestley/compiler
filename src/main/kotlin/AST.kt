@@ -5,17 +5,28 @@ interface Node
 /*
  * Programs
  */
-data class ProgramNode(val funcs: List<FunctionNode>, val stat: StatementNode, val globalSymbolTable: SymbolTable) : Node
+data class ProgramNode(val funcs: List<FunctionNode>, val stat: StatementNode, val globalSymbolTableOld: SymbolTable_old) : Node
 
 /*
  * Functions
  */
-data class FunctionNode(val type: TypeNode, val ident: Ident, val params: List<Param>, val stat: StatementNode, val functionSymbolTable: SymbolTable) : Node
+data class FunctionNode(val type: TypeNode, val ident: Ident, val params: List<Param>, val stat: StatementNode, val functionSymbolTableOld: SymbolTable_old) : Node
 
 /*
  * Statements
  */
-interface StatementNode : Node
+interface StatementNode : Node {
+    fun valid(): Boolean {
+        if(this is IfElseNode) {
+            return this.then.valid() && this.else_.valid()
+        } else if(this is SequenceNode) {
+            return this.stat2.valid()
+        } else if(this is ExitNode || this is ReturnNode) {
+            return true;
+        }
+        return false;
+    }
+}
 
 class SkipNode : StatementNode
 data class DeclarationNode(val type: TypeNode, val ident: Ident, val value: AssignRHSNode) : StatementNode

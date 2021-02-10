@@ -49,10 +49,10 @@ type: base_type
   | type OPEN_SQUARE CLOSE_SQUARE
   | pair_type;
 
-base_type: INT                                  # int
-  | BOOL                                        # bool
-  | CHAR                                        # char
-  | STRING                                      # string
+base_type: INT                                  # baseT
+  | BOOL                                        # baseT
+  | CHAR                                        # baseT
+  | STRING                                      # baseT
   ;
 
 array_type: type OPEN_SQUARE CLOSE_SQUARE;
@@ -62,20 +62,20 @@ pair_type: PAIR OPEN_PARENTHESES pair_elem_type COMMA pair_elem_type CLOSE_PAREN
 pair_elem_type: base_type | array_type| PAIR;
 
 
-expr: INT_LITER                                 # intLiter
-  | BOOL_LITER                                  # boolLiter
-  | CHAR_LITER                                  # charLiter
-  | STR_LITER                                   # strLiter
+expr: (PLUS | MINUS)? INT_LITER                 # liter
+  | BOOL_LITER                                  # liter
+  | CHAR_LITER                                  # liter
+  | STR_LITER                                   # liter
   | pair_liter                                  # pairLiter
   | ident                                       # id
   | array_elem                                  # arrayElem
   | (NOT | MINUS | LEN | ORD | CHR) expr        # unaryOp
-  | expr (MUL | DIV | MOD) expr                 # pre1
-  | expr (PLUS | MINUS) expr                    # pre2
-  | expr (GT | GTE | LT | LTE) expr             # pre3
-  | expr (EQ | NEQ) expr                        # pre4
-  | expr (AND) expr                             # pre5
-  | expr (OR) expr                              # pre6
+  | expr (MUL | DIV | MOD) expr                 # binaryOp
+  | expr (PLUS | MINUS) expr                    # binaryOp
+  | expr (GT | GTE | LT | LTE) expr             # binaryOp
+  | expr (EQ | NEQ) expr                        # binaryOp
+  | expr (AND) expr                             # binaryOp
+  | expr (OR) expr                              # binaryOp
   | OPEN_PARENTHESES expr CLOSE_PARENTHESES     # parentheses
   ;
 
