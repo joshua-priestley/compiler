@@ -35,6 +35,15 @@ class SemanticErrorHandler {
 
         errorList.add(fullMsg)
     }
+    //Error message for redefining variable within same scope
+    fun redefinedVariable(ident: String) {
+        val line = errorLine()
+        val char = errorChar()
+        val msg = "\"$ident\" is already defined in this scope"
+        val fullMsg = buildErrorMessage(msg,line,char)
+
+        errorList.add(fullMsg)
+    }
 
     //Error message for incompatible types in an expression
     fun incompatibleTypes(expr: String, expected: Type, actual: Type) {
