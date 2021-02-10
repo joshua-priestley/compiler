@@ -1,68 +1,55 @@
 import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
 
-class Visitor(val syntaxListener: WACCErrorListener) : WACCParserBaseVisitor<Node>() {
+class Visitor(private val semanticListener: SemanticErrorHandler,
+              private val syntaxListener: WACCErrorListener,
+              private var globalSymbolTable: SymbolTable) : WACCParserBaseVisitor<Node>() {
 
-    private fun addStatToSymbolTable(symbolTable: SymbolTable, stat: StatementNode) {
-        when (stat) {
-            // Only add a new entry if the stat is a declaration node
-            is DeclarationNode -> symbolTable.addNode(stat.ident.name, stat)
-            // Recursively check the other stats
-            is SequenceNode -> {
-                addStatToSymbolTable(symbolTable, stat.stat1)
-                addStatToSymbolTable(symbolTable, stat.stat2)
-            }
-        }
-    }
+    var semantic = false
 
     override fun visitProgram(ctx: ProgramContext): Node {
-        /* AST */
         val functionNodes = mutableListOf<FunctionNode>()
         ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
         val stat = visit(ctx.stat()) as StatementNode
 
-        /* Symbol Table */
-        val globalSymbolTable = SymbolTable(null)
-        // Add each function's symbol table to the global program symbol table
-        for (fNode in functionNodes) {
-            fNode.functionSymbolTable.setParentTable(globalSymbolTable)
-            globalSymbolTable.addChildTable(fNode.functionSymbolTable)
-            // Add the function itself to the symbol table
-            globalSymbolTable.addNode(fNode.ident.name, fNode)
-        }
-        addStatToSymbolTable(globalSymbolTable, stat)
-
-        return ProgramNode(functionNodes, stat, globalSymbolTable)
+        return ProgramNode(functionNodes, stat)
     }
 
     override fun visitFunc(ctx: FuncContext): Node {
-        /* AST */
-        val type = visit(ctx.type()) as TypeNode
+        val functionSymbolTable: SymbolTable = SymbolTable(globalSymbolTable)
 
         val ident = visit(ctx.ident()) as Ident
+        val type = visit(ctx.type()) as TypeNode
 
         val parameterNodes = mutableListOf<Param>()
         if (ctx.param_list() != null) {
             for (i in 0..ctx.param_list().childCount step 2) {
-                parameterNodes.add(visit(ctx.param_list().getChild(i)) as Param)
+                val p = visit(ctx.param_list().getChild(i)) as Param
+                parameterNodes.add(p)
+                pType = Type()
+                functionSymbolTable.addNode(p.ident.name, p)
             }
         }
 
+        globalSymbolTable = functionSymbolTable
+
         val stat = visit(ctx.stat()) as StatementNode
         // TODO: CHANGE ERROR MESSAGE TO SMTH BETTER
-        if(!stat.valid()) {
+        if (!stat.valid()) {
             syntaxListener.addSyntaxError(ctx, "return type of function invalid")
         }
 
-        /* Symbol Table */
-        val functionSymbolTable = SymbolTable(null)
-        // Add each parameter to the symbol table
-        for (pNode in parameterNodes) {
-            functionSymbolTable.addNode(pNode.ident.name, pNode)
-        }
-        addStatToSymbolTable(functionSymbolTable, stat)
+        globalSymbolTable = globalSymbolTable.parentT!!
 
-        return FunctionNode(type, ident, parameterNodes.toList(), stat, functionSymbolTable)
+        val fNode = FunctionNode(type, ident, parameterNodes.toList(), stat)
+        if (globalSymbolTable.containsNode(ident.name)) {
+            println("SEMANTIC ERROR DETECTED --- FUNCTION ALREADY EXISTS")
+            semantic = true
+        } else {
+            globalSymbolTable.addNode(ident.name, fNode)
+            globalSymbolTable.addChildTable(functionSymbolTable)
+        }
+        return fNode
     }
 
 /*
@@ -98,7 +85,8 @@ STATEMENTS
     }
 
     override fun visitFree(ctx: FreeContext): Node {
-        return FreeNode(visit(ctx.expr()) as ExprNode)
+        val freedExpr = visit(ctx.expr()) as ExprNode
+        return FreeNode(freedExpr)
     }
 
     override fun visitReturn(ctx: ReturnContext): Node {
@@ -137,7 +125,16 @@ STATEMENTS
     }
 
     override fun visitVarDeclaration(ctx: VarDeclarationContext): Node {
-        return DeclarationNode(visit(ctx.type()) as TypeNode, Ident(ctx.ident().text), visit(ctx.assign_rhs()) as AssignRHSNode)
+        val type = visit(ctx.type()) as TypeNode
+        val ident = Ident(ctx.ident().text)
+        val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
+        if (globalSymbolTable.containsNode(ident.toString())) {
+            println("SEMANTIC ERROR DETECTED --- VARIABLE ALREADY EXISTS")
+            semantic = true
+        } else {
+            globalSymbolTable.addNode(ident.toString(), type)
+        }
+        return DeclarationNode(type, ident, rhs)
     }
 
 /*
@@ -191,14 +188,13 @@ EXPRESSIONS
  */
 
     override fun visitLiter(ctx: LiterContext): Node {
-        println("at liter")
         val ret = when {
             ctx.BOOL_LITER() != null -> BoolLiterNode(ctx.text)
             ctx.CHAR_LITER() != null -> CharLiterNode(ctx.text)
             ctx.STR_LITER() != null -> StrLiterNode(ctx.text)
             else -> {
                 val value = ctx.text.toLong()
-                if (value !in Integer.MIN_VALUE .. Integer.MAX_VALUE) {
+                if (value !in Integer.MIN_VALUE..Integer.MAX_VALUE) {
                     syntaxListener.addSyntaxError(ctx, "int value must be between -2147483648 and 2147483647")
                 }
                 IntLiterNode(ctx.text)

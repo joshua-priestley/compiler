@@ -1,7 +1,7 @@
 package compiler
 
-import ProgramNode
-import SemanticWalker
+import SemanticErrorHandler
+import SymbolTable
 import Visitor
 import WACCErrorListener
 import org.antlr.v4.runtime.*
@@ -49,17 +49,18 @@ class Compiler(val inputFile: String) {
         println(tree.toStringTree(parser))
 
         println("--------")
-        val visitor = Visitor(listener);
+        val semanticErrorHandler = SemanticErrorHandler()
+        val symbolTable = SymbolTable(null)
+        val visitor = Visitor(semanticErrorHandler, listener, symbolTable);
         println(visitor.visit(tree).toString())
         println("--------")
-        val semanticWalker = SemanticWalker(visitor.visit(tree) as ProgramNode)
-        if (semanticWalker.errorDetected) {
-            return 200
-        }
 
         if (listener.hasSyntaxErrors()) {
             listener.printSyntaxErrors()
             return 100
+        }
+        if (visitor.semantic) {
+            return 200
         }
 
         return 0
@@ -67,6 +68,5 @@ class Compiler(val inputFile: String) {
 
     fun compile(): Int {
         return check()
-
     }
 }
