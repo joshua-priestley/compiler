@@ -46,7 +46,7 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
             for (i in 0..ctx.param_list().childCount step 2) {
                 val p = visit(ctx.param_list().getChild(i)) as Param
                 parameterNodes.add(p)
-                functionSymbolTable.addNode(p.ident.name, Type(p.type))
+                functionSymbolTable.addNode(p.ident.toString(), Type(p.type))
             }
         }
 
@@ -178,7 +178,7 @@ STATEMENTS
             return
         }
         val firstType = getExprType(exprs[0])
-        for (i in 0..exprs.size - 1) {
+        for (i in exprs.indices) {
             // If the type cannot be found, something is wrong with the element
             if (getExprType(exprs[i]) == null) {
                 println("SEMANTIC ERROR --- Invalid array element")
@@ -246,10 +246,12 @@ STATEMENTS
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
 
         val lhsType = getLHSType(lhs)
+
+        cond = true
         val rhsType = getRHSType(rhs)
+        cond = false
 
         if (lhsType != rhsType) {
-            println("This is the error flagging")
             println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT")
             semantic = true
         }
@@ -379,10 +381,12 @@ STATEMENTS
             globalSymbolTable.addNode(ident.toString(), Type(type))
         }
 
-        val lhs_type = Type(type)
-        val rhs_type = getRHSType(rhs)
+        val lhsType = Type(type)
+        cond = true
+        val rhsType = getRHSType(rhs)
+        cond = false
 
-        if (lhs_type != rhs_type) {
+        if (lhsType != rhsType) {
             println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION")
             semantic = true
 
