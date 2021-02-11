@@ -1,0 +1,12 @@
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+  int[] x = [1, 2, 3] ;
+  x['a'] = 3
+end

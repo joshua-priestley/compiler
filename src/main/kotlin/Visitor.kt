@@ -129,8 +129,17 @@ STATEMENTS
                 }
             }
             is LHSArrayElemNode -> {
+                println("ARRAY ELEM")
                 if (!globalSymbolTable.containsNodeGlobal(lhs.arrayElem.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY REFERENCED BEFORE ASSIGNMENT")
+                    semantic = true
+                    null
+                } else if (getExprType(lhs.arrayElem.expr[0]) != Type(Int())) {
+                    println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER")
+                    semantic = true
+                    null
+                } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString()) == Type(Str())) {
+                    println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED")
                     semantic = true
                     null
                 } else {
@@ -160,8 +169,24 @@ STATEMENTS
             is RHSPairElemNode -> {
                 getPairElemType(rhs.pairElem)
             }
-            else -> {
+            is RHSArrayLitNode -> {
                 null
+            }
+            else -> {
+                // RHSNewPairElemNode
+                val expr1 = getExprType((rhs as RHSNewPairNode).expr1)
+                val expr2 = getExprType(rhs.expr1)
+                if (expr1 == null) {
+                    println("SEMANTIC ERROR DETECTED --- NEWPAIR EXPRESSION 1 IS FALSE")
+                    semantic = true
+                    null
+                } else if (expr2 == null) {
+                    println("SEMANTIC ERROR DETECTED --- NEWPAIR EXPRESSION 2 IS FALSE")
+                    semantic = true
+                    null
+                } else {
+                    Type(Type(expr1), Type(expr2))
+                }
             }
         }
     }
@@ -188,7 +213,12 @@ STATEMENTS
     }
 
     override fun visitExit(ctx: ExitContext): Node {
-        return ExitNode(visit(ctx.expr()) as ExprNode)
+        val expr = visit(ctx.expr()) as ExprNode
+        if (getExprType(expr) != Type(Int())) {
+            println("SEMANTIC ERROR DETECTED --- EXIT CODE MUST BE INT")
+            semantic = true
+        }
+        return ExitNode(expr)
     }
 
     override fun visitFree(ctx: FreeContext): Node {
@@ -197,6 +227,10 @@ STATEMENTS
     }
 
     override fun visitReturn(ctx: ReturnContext): Node {
+        if (globalSymbolTable.parentT == null) {
+            println("SEMANTIC ERROR DETECTED --- RETURNING FROM GLOBAL")
+            semantic = true
+        }
         return ReturnNode(visit(ctx.expr()) as ExprNode)
     }
 
@@ -340,7 +374,22 @@ TYPES
                 }
             }
             is ArrayElem -> {
-                null
+                println("ARRAY ELEM")
+                if (getExprType(expr.expr[0]) != Type(Int())) {
+                    println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER")
+                    semantic = true
+                    null
+                } else if (!globalSymbolTable.containsNodeGlobal(expr.ident.toString())) {
+                    println("SEMANTIC ERROR DETECTED --- ARRAY DOES NOT EXIST")
+                    semantic = true
+                    null
+                } else if (globalSymbolTable.getNodeGlobal(expr.ident.toString()) == Type(Str())) {
+                    println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED")
+                    semantic = true
+                    null
+                } else {
+                    globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
+                }
             }
             is UnaryOpNode -> {
                 unaryOps(expr.operator.value)
@@ -348,7 +397,10 @@ TYPES
             is BinaryOpNode -> {
                 binaryOps(expr.operator.value)
             }
-            else -> null
+            else -> {
+                // PairLiterNode
+                null
+            }
         }
     }
 
@@ -424,6 +476,17 @@ TYPES
 
         val expr1 = visit(ctx.expr(0)) as ExprNode
         val expr2 = visit(ctx.expr(1)) as ExprNode
+
+        val exprType = getExprType(expr1)
+
+        if (exprType != getExprType(expr2)) {
+            println("SEMANTIC ERROR DETECTED --- BOOLEAN EXPRESSION TYPES DO NOT MATCH WITH EACHOTHER")
+            semantic = true
+        }
+        if (exprType != binaryOps(op.value)) {
+            println("SEMANTIC ERROR DETECTED --- WRONG TYPE FOR THIS BIN OP")
+            semantic = true
+        }
 
         return BinaryOpNode(op, expr1, expr2)
     }
