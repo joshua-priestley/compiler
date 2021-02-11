@@ -47,7 +47,7 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
             for (i in 0..ctx.param_list().childCount step 2) {
                 val p = visit(ctx.param_list().getChild(i)) as Param
                 parameterNodes.add(p)
-                functionSymbolTable.addNode(p.ident.name, p.type.type)
+                functionSymbolTable.addNode(p.ident.toString(), p.type.type)
             }
         }
 
@@ -142,31 +142,24 @@ STATEMENTS
                 if (!globalSymbolTable.containsNodeGlobal(lhs.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- VARIABLE REFERENCED BEFORE ASSIGNMENT")
                     semantic = true
-                    null
                 } else if (globalSymbolTable.getNodeGlobal(lhs.ident.toString())!!.isFunction()) {
                     println("SEMANTIC ERROR DETECTED --- CANNOT ASSIGN A FUNCTION")
                     semantic = true
-                    null
-                } else {
-                    globalSymbolTable.getNodeGlobal(lhs.ident.toString())
                 }
+                globalSymbolTable.getNodeGlobal(lhs.ident.toString())
             }
             is LHSArrayElemNode -> {
                 if (!globalSymbolTable.containsNodeGlobal(lhs.arrayElem.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY REFERENCED BEFORE ASSIGNMENT")
                     semantic = true
-                    null
                 } else if (getExprType(lhs.arrayElem.expr[0]) != Type(INT)) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER")
                     semantic = true
-                    null
                 } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString()) == Type(STRING)) {
                     println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED")
                     semantic = true
-                    null
-                } else {
-                    globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getBaseType()
                 }
+                globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getBaseType()
             }
             else -> {
                 getPairElemType((lhs as LHSPairElemNode).pairElem)
@@ -179,7 +172,7 @@ STATEMENTS
             return
         }
         val firstType = getExprType(exprs[0])
-        for (i in 0..exprs.size - 1) {
+        for (i in exprs.indices) {
             // If the type cannot be found, something is wrong with the element
             if (getExprType(exprs[i]) == null) {
                 println("SEMANTIC ERROR --- Invalid array element")
@@ -247,10 +240,12 @@ STATEMENTS
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
 
         val lhsType = getLHSType(lhs)
+
+        cond = true
         val rhsType = getRHSType(rhs)
+        cond = false
 
         if (lhsType != rhsType) {
-            println("This is the error flagging")
             println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT")
             semantic = true
         }
@@ -295,7 +290,7 @@ STATEMENTS
     override fun visitFree(ctx: FreeContext): Node {
         val freedExpr = visit(ctx.expr()) as ExprNode
         val freeType = getExprType(freedExpr)
-        if (freeType != Type(PAIR)) {
+        if (freeType == null || !freeType.getPair()) {
             println("SEMANTIC ERROR DETECTED --- CAN ONLY FREE A PAIR")
             semantic = true
         }
@@ -387,10 +382,12 @@ STATEMENTS
             globalSymbolTable.addNode(ident.toString(), Type(type.type))
         }
 
-        val lhs_type = Type(type.type)
-        val rhs_type = getRHSType(rhs)
+        val lhsType = type.type
+        cond = true
+        val rhsType = getRHSType(rhs)
+        cond = false
 
-        if (lhs_type != rhs_type) {
+        if (lhsType != rhsType) {
             println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION")
             semantic = true
 
@@ -509,18 +506,15 @@ TYPES
                 if (getExprType(expr.expr[0]) != Type(INT)) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER")
                     semantic = true
-                    null
                 } else if (!globalSymbolTable.containsNodeGlobal(expr.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY DOES NOT EXIST")
                     semantic = true
-                    null
+
                 } else if (globalSymbolTable.getNodeGlobal(expr.ident.toString()) == Type(STRING)) {
                     println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED")
                     semantic = true
-                    null
-                } else {
-                    globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
                 }
+                globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
             }
             is UnaryOpNode -> {
                 if (cond) {
