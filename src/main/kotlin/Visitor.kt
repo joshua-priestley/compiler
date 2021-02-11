@@ -246,9 +246,11 @@ STATEMENTS
         val rhsType = getRHSType(rhs)
         cond = false
 
-        if (lhsType != rhsType && !(lhsType!!.getArray() && rhsType == Type(EMPTY_ARR))) {
-            println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT Line: " + ctx.getStart().line)
-            semantic = true
+        if (lhsType != null) {
+            if (lhsType != rhsType && !(lhsType.getArray() && rhsType == Type(EMPTY_ARR))) {
+                println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT Line: " + ctx.getStart().line)
+                semantic = true
+            }
         }
 
         return AssignNode(lhs, rhs)
