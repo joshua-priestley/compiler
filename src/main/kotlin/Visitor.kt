@@ -273,7 +273,7 @@ STATEMENTS
             }
         }
 
-        if (!(type == Type(INT) || type == Type(CHR))) {
+        if (!(type == Type(INT) || type == Type(CHAR))) {
             println("SEMANTIC ERROR DETECTED --- READ MUST GO INTO AN INT OR CHAR Line: " + ctx.getStart().line)
             semantic = true
         }
@@ -460,7 +460,7 @@ TYPES
     private fun binaryOpsRequires(operator: kotlin.Int): List<Type> {
         return when {
             operator <= 9 -> mutableListOf(Type(INT))
-            operator in 6..9 -> mutableListOf(Type(INT),Type(CHR))
+            operator in 6..9 -> mutableListOf(Type(INT),Type(CHAR))
             operator in 12..14 -> mutableListOf(Type(BOOL))
             operator in 10..11 -> mutableListOf(Type(ANY))
             operator in 12..14 -> mutableListOf(Type(BOOL))
@@ -473,7 +473,7 @@ TYPES
         return when (operator) {
             NOT -> Type(BOOL)
             LEN, ORD, MINUS -> Type(INT)
-            CHR -> Type(CHR)
+            CHR -> Type(CHAR)
             else -> Type(INVALID)
         }
     }
@@ -481,7 +481,7 @@ TYPES
     private fun unaryOpsRequires(operator: kotlin.Int): Type {
         return when (operator) {
             NOT -> Type(BOOL)
-            ORD -> Type(CHR)
+            ORD -> Type(CHAR)
             MINUS, CHR -> Type(INT)
             LEN -> Type(ARRAY)
             else -> Type(INVALID)
