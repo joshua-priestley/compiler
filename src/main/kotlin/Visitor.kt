@@ -154,7 +154,7 @@ STATEMENTS
             }
         }
         for (i in argTypes.indices) {
-            if (argTypes[i] != parameterTypes[i]) {
+            if (argTypes[i].getType() != parameterTypes[i].getType()) {
                 println("SEMANTIC ERROR DETECTED --- MISMATCHED PARAMETER TYPES")
                 semantic = true
                 return false
@@ -252,13 +252,13 @@ STATEMENTS
                 var expr2 = getExprType(rhs.expr2)
 
                 if (expr1 != null) {
-                    if (expr1.getType() == PAIR) {
-                        expr1 = Type(PAIR)
+                    if (expr1.getType() == PAIR_LITER) {
+                        expr1 = Type(PAIR_LITER)
                     }
                 }
                 if (expr2 != null) {
-                    if (expr2.getType() == PAIR) {
-                        expr2 = Type(PAIR)
+                    if (expr2.getType() == PAIR_LITER) {
+                        expr2 = Type(PAIR_LITER)
                     }
                 }
 
@@ -287,7 +287,8 @@ STATEMENTS
         val rhsType = getRHSType(rhs)
         cond = false
         if (lhsType != null) {
-            if (lhsType != rhsType && !(lhsType.getArray() && rhsType == Type(EMPTY_ARR)) && !(lhsType.getPair() && rhsType == Type(PAIR_LITER))) {
+            if (lhsType.getType() != rhsType!!.getType() && !(lhsType.getArray() && rhsType!!.getType() == Type(EMPTY_ARR).getType())
+                && !(lhsType.getPair() && rhsType!!.getType() == Type(PAIR_LITER).getType())) {
                 println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT Line: " + ctx.getStart().line)
                 semantic = true
             }
@@ -418,7 +419,8 @@ STATEMENTS
         val type = visit(ctx.type()) as TypeNode
         val ident = Ident(ctx.ident().text)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
-        if (globalSymbolTable.containsNodeLocal(ident.toString()) && !globalSymbolTable.getNodeLocal(ident.toString())!!.isFunction()) {
+        if (globalSymbolTable.containsNodeLocal(ident.toString())
+            && !globalSymbolTable.getNodeLocal(ident.toString())!!.isFunction()) {
             println("SEMANTIC ERROR DETECTED --- VARIABLE ALREADY EXISTS  Line: " + ctx.getStart().line)
             semantic = true
         } else {
@@ -430,9 +432,14 @@ STATEMENTS
         val rhsType = getRHSType(rhs)
         cond = false
 
-        if (lhsType != rhsType && !(lhsType.getArray() && rhsType == Type(EMPTY_ARR)) && !(lhsType.getPair() && rhsType == Type(PAIR_LITER))) {
-            println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION Line: " + ctx.getStart().line)
-            semantic = true
+        if(rhsType != null) {
+            if (lhsType.getType() != rhsType!!.getType()
+                && !(lhsType.getArray() && rhsType.getType() == Type(EMPTY_ARR).getType())
+                && !(lhsType.getPair() && rhsType.getType() == Type(PAIR_LITER).getType())
+            ) {
+                println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION Line: " + ctx.getStart().line)
+                semantic = true
+            }
         }
 
         return DeclarationNode(type, ident, rhs)
@@ -655,11 +662,19 @@ TYPES
             else -> BinOp.NOT_SUPPORTED
         }
 
+       // println(ctx.expr(0))
+       // println(ctx.expr(1).toString())
+
         val expr1 = visit(ctx.expr(0)) as ExprNode
         val expr2 = visit(ctx.expr(1)) as ExprNode
 
+      //  println(expr1)
+        //println(expr2)
+
         val exprType = getExprType(expr1)
-        if (exprType != getExprType(expr2)) {
+        println("Type is: $exprType")
+        println("Type 2 is: ${getExprType(expr2)}")
+        if (exprType != null && getExprType(expr2) != null && exprType.getType() != getExprType(expr2)!!.getType()) {
             println("SEMANTIC ERROR DETECTED --- BOOLEAN EXPRESSION TYPES DO NOT MATCH WITH EACHOTHER Line: " + ctx.getStart().line)
             semantic = true
         }

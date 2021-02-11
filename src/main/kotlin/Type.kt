@@ -33,7 +33,7 @@ class Type {
 
     //Constructor for pair types
     constructor(type1: Type, type2: Type) {
-        this.type = PAIR
+        this.type = PAIR_LITER
         this.pairFst = type1
         this.pairSnd = type2
         this.arrType = null
@@ -73,7 +73,7 @@ class Type {
     }
 
     fun getPair(): Boolean {
-        return (this.type == PAIR)
+        return (this.type == PAIR_LITER)
     }
 
     override fun hashCode(): Int {

@@ -119,7 +119,7 @@ class Chr(override val type : Type = Type (CHAR)) : BaseType
 class Int(override val type : Type = Type (INT)) : BaseType
 
 // Nested pair type
-class Pair(override val type: Type = Type(PAIR)) : BaseType
+class Pair(override val type: Type = Type(PAIR_LITER)) : BaseType
 
 // Array Types
 interface ArrayType : TypeNode
