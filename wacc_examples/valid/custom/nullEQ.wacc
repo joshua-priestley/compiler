@@ -1,8 +1,0 @@
-begin
-  pair(int, int) p = null ;
-  if (p == null) then
-    bool x = p == null
-  else
-    println 2
-  fi
-end
