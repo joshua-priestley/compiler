@@ -259,22 +259,22 @@ STATEMENTS
 
     override fun visitRead(ctx: ReadContext): Node {
         val lhsNode = visit(ctx.assign_lhs()) as AssignLHSNode
-        var type: Type? = null
-        println(lhsNode)
-        if (lhsNode is LHSPairElemNode) {
-            type = getPairElemType(lhsNode.pairElem)
-        } else {
-            if (lhsNode !is AssignLHSIdentNode) {
-                println("SEMANTIC ERROR DETECTED --- MUST READ INTO VARIABLE")
-                semantic = true
+        val type = when(lhsNode) {
+            is LHSPairElemNode -> getPairElemType(lhsNode.pairElem)
+            is LHSArrayElemNode -> getExprType(lhsNode.arrayElem)
+            else -> {
+                if (lhsNode !is AssignLHSIdentNode) {
+                    println("SEMANTIC ERROR DETECTED --- MUST READ INTO VARIABLE")
+                    semantic = true
+                }
+                if (!globalSymbolTable.containsNodeGlobal((lhsNode as AssignLHSIdentNode).ident.toString())) {
+                    println("SEMANTIC ERROR DETECTED --- VARIABLE DOES NOT EXIST")
+                    semantic = true
+                }
+                globalSymbolTable.getNodeGlobal(lhsNode.ident.toString())
             }
-            if (!globalSymbolTable.containsNodeGlobal((lhsNode as AssignLHSIdentNode).ident.toString())) {
-                println("SEMANTIC ERROR DETECTED --- VARIABLE DOES NOT EXIST")
-                semantic = true
-            }
-            type = globalSymbolTable.getNodeGlobal(lhsNode.ident.toString())
         }
-        //TODO add check to ignore case where a pair elem is null - this is a runtime error
+        //TODO add check to ignore case where a pair elem is null? - this is a runtime error
         if (!(type == Type(Int()) || type == Type(Chr()))) {
             println("SEMANTIC ERROR DETECTED --- READ MUST GO INTO AN INT OR CHAR")
             semantic = true
