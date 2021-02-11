@@ -64,8 +64,8 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
             }
         }
 
-        functionSymbolTable.addNode("\$RET", type.type)
-        functionSymbolTable.addNode(ident.toString(), type.type)
+        functionSymbolTable.addNode("\$RET", type.type.setFunction(true))
+        functionSymbolTable.addNode(ident.toString(), type.type.setFunction(true))
 
         functionParameters[ident.toString()] = parameterTypes
 
@@ -401,7 +401,7 @@ STATEMENTS
         val type = visit(ctx.type()) as TypeNode
         val ident = Ident(ctx.ident().text)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
-        if (globalSymbolTable.containsNodeLocal(ident.toString()) && !globalSymbolTable.getNodeGlobal(ident.toString())!!.isFunction()) {
+        if (globalSymbolTable.containsNodeLocal(ident.toString()) && !globalSymbolTable.getNodeLocal(ident.toString())!!.isFunction()) {
             println("SEMANTIC ERROR DETECTED --- VARIABLE ALREADY EXISTS  Line: " + ctx.getStart().line)
             semantic = true
         } else {
@@ -560,7 +560,6 @@ TYPES
                         semantic = true
                         null
                     }
-                    //binaryOpsRequires(expr.operator.value)
                 }
             }
             else -> {
