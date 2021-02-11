@@ -175,7 +175,7 @@ STATEMENTS
     private fun getRHSType(rhs: AssignRHSNode): Type? {
         return when (rhs) {
             is RHSExprNode -> {
-                null
+                getExprType(rhs.expr)
             }
             is RHSCallNode -> {
                 if (!globalSymbolTable.containsNodeGlobal(rhs.ident.toString())) {
@@ -261,6 +261,11 @@ STATEMENTS
 
     override fun visitFree(ctx: FreeContext): Node {
         val freedExpr = visit(ctx.expr()) as ExprNode
+        val freeType = getExprType(freedExpr)
+        if (freeType != Type(PAIR)) {
+            println("SEMANTIC ERROR DETECTED --- CAN ONLY FREE A PAIR")
+            semantic = true
+        }
         return FreeNode(freedExpr)
     }
 
