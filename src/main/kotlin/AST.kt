@@ -1,3 +1,4 @@
+import antlr.WACCParser.*
 import kotlin.Int
 
 interface Node
@@ -104,23 +105,27 @@ data class SndExpr(val expr: ExprNode) : PairElemNode
 /*
  * Types
  */
-interface TypeNode : Node
+interface TypeNode : Node {
+    val type : Type
+}
 
 // Base Types
-interface BaseType : TypeNode
-class Str() : BaseType
-class Bool() : BaseType
-class Chr() : BaseType
-class Int() : BaseType
+interface BaseType : TypeNode {
+}
+
+class Str(override val type : Type = Type(STRING)) : BaseType
+class Bool(override val type : Type = Type(BOOL)) : BaseType
+class Chr(override val type : Type = Type (CHAR)) : BaseType
+class Int(override val type : Type = Type (INT)) : BaseType
 
 // Nested pair type
-class Pair() : BaseType
+class Pair(override val type: Type = Type(PAIR)) : BaseType
 
 // Array Types
 interface ArrayType : TypeNode
-data class ArrayNode(val type: TypeNode) : ArrayType
+class ArrayNode(val typeNode: TypeNode, override val type : Type = Type(typeNode.type)) : ArrayType
 
 //Pair Types
-data class PairTypeNode(val type1: PairElemTypeNode, val type2: PairElemTypeNode) : TypeNode
-data class PairElemTypeNode(val type: TypeNode) : TypeNode
+data class PairTypeNode(val type1: PairElemTypeNode, val type2: PairElemTypeNode, override val type : Type = Type(type1.type, type2.type)) : TypeNode
+data class PairElemTypeNode(val typeNode: TypeNode, override val type: Type = typeNode.type) : TypeNode
 

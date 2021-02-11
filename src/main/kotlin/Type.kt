@@ -13,46 +13,13 @@ class Type {
     private var arrType: Type?
     private var function: Boolean = false
 
-    constructor(typeNode: TypeNode) {
-        when(typeNode) {
-            is BaseType -> {
-                this.type = when (typeNode) {
-                    is Str -> {
-                        STRING
-                    }
-                    is Bool -> {
-                        BOOL
-                    }
-                    is Chr -> {
-                        CHR
-                    }
-                    else -> {
-                        INT
-                    }
-                }
-                this.pairFst = null
-                this.pairSnd = null
-                this.arrType = null
-            }
-            is PairTypeNode -> {
-                this.type = PAIR
-                this.pairFst = Type(typeNode.type1.type)
-                this.pairSnd = Type(typeNode.type2.type)
-                this.arrType = null
-            }
-            is ArrayNode -> {
-                this.type = ARRAY
-                this.pairFst = null
-                this.pairSnd = null
-                this.arrType = Type(typeNode.type)
-            }
-            else -> {
-                this.type = -1
-                this.pairFst = null
-                this.pairSnd = null
-                this.arrType = null
-            }
-        }
+
+    //Constructor for singleton types
+    constructor(type: Int) {
+        this.type = type
+        this.pairFst = null
+        this.pairSnd = null
+        this.arrType = null
     }
 
     //Constructor for arrayTypes
@@ -71,13 +38,7 @@ class Type {
         this.arrType = null
     }
 
-    //Constructor for singleton types
-    constructor(type: Int) {
-        this.type = type
-        this.pairFst = null
-        this.pairSnd = null
-        this.arrType = null
-    }
+
 
     fun setFunction(function: Boolean): Type {
         this.function = function
