@@ -151,7 +151,6 @@ STATEMENTS
                 }
             }
             is LHSArrayElemNode -> {
-                println("ARRAY ELEM")
                 if (!globalSymbolTable.containsNodeGlobal(lhs.arrayElem.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY REFERENCED BEFORE ASSIGNMENT")
                     semantic = true
@@ -165,7 +164,7 @@ STATEMENTS
                     semantic = true
                     null
                 } else {
-                    globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())
+                    globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getBaseType()
                 }
             }
             else -> {
@@ -250,6 +249,7 @@ STATEMENTS
         val rhsType = getRHSType(rhs)
 
         if (lhsType != rhsType) {
+            println("This is the error flagging")
             println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT")
             semantic = true
         }
