@@ -248,8 +248,20 @@ STATEMENTS
             }
             else -> {
                 // RHSNewPairElemNode
-                val expr1 = getExprType((rhs as RHSNewPairNode).expr1)
-                val expr2 = getExprType(rhs.expr2)
+                var expr1 = getExprType((rhs as RHSNewPairNode).expr1)
+                var expr2 = getExprType(rhs.expr2)
+
+                if (expr1 != null) {
+                    if (expr1.getType() == PAIR) {
+                        expr1 = Type(PAIR)
+                    }
+                }
+                if (expr2 != null) {
+                    if (expr2.getType() == PAIR) {
+                        expr2 = Type(PAIR)
+                    }
+                }
+
                 if (expr1 == null) {
                     println("SEMANTIC ERROR DETECTED --- NEWPAIR EXPRESSION 1 IS FALSE")
                     semantic = true
