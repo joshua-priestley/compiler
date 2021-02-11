@@ -1,6 +1,7 @@
 import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
 import Type
+import kotlin.math.exp
 
 class Visitor(private val semanticListener: SemanticErrorHandler,
               private val syntaxListener: WACCErrorListener,
@@ -246,7 +247,7 @@ STATEMENTS
         cond = false
 
         if (lhsType != rhsType) {
-            println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT")
+            println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT Line: " + ctx.getStart().line)
             semantic = true
         }
 
@@ -260,11 +261,11 @@ STATEMENTS
             is LHSArrayElemNode -> getExprType(lhsNode.arrayElem)
             else -> {
                 if (lhsNode !is AssignLHSIdentNode) {
-                    println("SEMANTIC ERROR DETECTED --- MUST READ INTO VARIABLE")
+                    println("SEMANTIC ERROR DETECTED --- MUST READ INTO VARIABLE Line: " + ctx.getStart().line)
                     semantic = true
                 }
                 if (!globalSymbolTable.containsNodeGlobal((lhsNode as AssignLHSIdentNode).ident.toString())) {
-                    println("SEMANTIC ERROR DETECTED --- VARIABLE DOES NOT EXIST")
+                    println("SEMANTIC ERROR DETECTED --- VARIABLE DOES NOT EXIST Line: " + ctx.getStart().line)
                     semantic = true
                 }
                 globalSymbolTable.getNodeGlobal(lhsNode.ident.toString())
@@ -272,7 +273,7 @@ STATEMENTS
         }
 
         if (!(type == Type(INT) || type == Type(CHR))) {
-            println("SEMANTIC ERROR DETECTED --- READ MUST GO INTO AN INT OR CHAR")
+            println("SEMANTIC ERROR DETECTED --- READ MUST GO INTO AN INT OR CHAR Line: " + ctx.getStart().line)
             semantic = true
         }
         return ReadNode(lhsNode)
@@ -281,7 +282,7 @@ STATEMENTS
     override fun visitExit(ctx: ExitContext): Node {
         val expr = visit(ctx.expr()) as ExprNode
         if (getExprType(expr) != Type(INT)) {
-            println("SEMANTIC ERROR DETECTED --- EXIT CODE MUST BE INT")
+            println("SEMANTIC ERROR DETECTED --- EXIT CODE MUST BE INT Line: " + ctx.getStart().line)
             semantic = true
         }
         return ExitNode(expr)
@@ -291,7 +292,7 @@ STATEMENTS
         val freedExpr = visit(ctx.expr()) as ExprNode
         val freeType = getExprType(freedExpr)
         if (freeType == null || !freeType.getPair()) {
-            println("SEMANTIC ERROR DETECTED --- CAN ONLY FREE A PAIR")
+            println("SEMANTIC ERROR DETECTED --- CAN ONLY FREE A PAIR Line: " + ctx.getStart().line)
             semantic = true
         }
         return FreeNode(freedExpr)
@@ -299,13 +300,13 @@ STATEMENTS
 
     override fun visitReturn(ctx: ReturnContext): Node {
         if (globalSymbolTable.parentT == null) {
-            println("SEMANTIC ERROR DETECTED --- RETURNING FROM GLOBAL")
+            println("SEMANTIC ERROR DETECTED --- RETURNING FROM GLOBAL Line: " + ctx.getStart().line)
             semantic = true
         }
         val expr = visit(ctx.expr()) as ExprNode
         val type = getExprType(expr)
         if (type != globalSymbolTable.getNodeLocal("\$RET")) {
-            println("SEMANTIC ERROR DETECTED --- RETURN TYPES NOT EQUAL")
+            println("SEMANTIC ERROR DETECTED --- RETURN TYPES NOT EQUAL Line: " + ctx.getStart().line)
             semantic = true
         }
         return ReturnNode(expr)
@@ -338,7 +339,7 @@ STATEMENTS
         cond = true
         val condExpr = visit(ctx.expr()) as ExprNode
         if (getExprType(condExpr) != Type(BOOL)) {
-            println("SEMANTIC ERROR DETECTED --- IF STATEMENT CONDITION NOT BOOLEAN")
+            println("SEMANTIC ERROR DETECTED --- IF STATEMENT CONDITION NOT BOOLEAN Line: " + ctx.getStart().line)
             semantic = true
         }
         cond = false
@@ -351,7 +352,7 @@ STATEMENTS
         cond = true
         val condExpr = visit(ctx.expr()) as ExprNode
         if (getExprType(condExpr) != Type(BOOL)) {
-            println("SEMANTIC ERROR DETECTED --- WHILE CONDITION NOT BOOLEAN")
+            println("SEMANTIC ERROR DETECTED --- WHILE CONDITION NOT BOOLEAN Line: " + ctx.getStart().line)
             semantic = true
         }
         cond = false
@@ -376,7 +377,7 @@ STATEMENTS
         val ident = Ident(ctx.ident().text)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
         if (globalSymbolTable.containsNodeLocal(ident.toString())) {
-            println("SEMANTIC ERROR DETECTED --- VARIABLE ALREADY EXISTS")
+            println("SEMANTIC ERROR DETECTED --- VARIABLE ALREADY EXISTS  Line: " + ctx.getStart().line)
             semantic = true
         } else {
             globalSymbolTable.addNode(ident.toString(), Type(type.type))
@@ -388,7 +389,7 @@ STATEMENTS
         cond = false
 
         if (lhsType != rhsType) {
-            println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION")
+            println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION Line: " + ctx.getStart().line)
             semantic = true
 
         }
@@ -527,7 +528,13 @@ TYPES
                 if (cond) {
                     binaryOpsProduces(expr.operator.value)
                 } else {
-                    null
+                    if (binaryOpsRequires(expr.operator.value).contains(getExprType(expr.expr1))){
+                        getExprType(expr.expr1)
+                    } else {
+                        println("SEMANTIC ERROR DETECTED -- INCORRECT TYPE FOR BINARY OPERATOR")
+                        semantic = true
+                        null
+                    }
                     //binaryOpsRequires(expr.operator.value)
                 }
             }
@@ -546,7 +553,7 @@ TYPES
             else -> {
                 val value = ctx.text.toLong()
                 if (value !in Integer.MIN_VALUE..Integer.MAX_VALUE) {
-                    syntaxListener.addSyntaxError(ctx, "int value must be between -2147483648 and 2147483647")
+                    syntaxListener.addSyntaxError(ctx, "int value must be between -2147483648 and 2147483647 Line: " + ctx.getStart().line)
                 }
                 IntLiterNode(ctx.text)
             }
@@ -613,11 +620,11 @@ TYPES
 
         val exprType = getExprType(expr1)
         if (exprType != getExprType(expr2)) {
-            println("SEMANTIC ERROR DETECTED --- BOOLEAN EXPRESSION TYPES DO NOT MATCH WITH EACHOTHER")
+            println("SEMANTIC ERROR DETECTED --- BOOLEAN EXPRESSION TYPES DO NOT MATCH WITH EACHOTHER Line: " + ctx.getStart().line)
             semantic = true
         }
         if (!binaryOpsRequires(op.value).contains(exprType) && !binaryOpsRequires(op.value).contains(Type(ANY))) {
-            println("SEMANTIC ERROR DETECTED --- WRONG TYPE FOR THIS BIN OP")
+            println("SEMANTIC ERROR DETECTED --- WRONG TYPE FOR THIS BIN OP Line: " + ctx.getStart().line)
             semantic = true
         }
 
