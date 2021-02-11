@@ -117,10 +117,25 @@ STATEMENTS
         }
     }
 
+    private fun checkParameters(rhs: RHSCallNode): Boolean {
+        if (rhs.argList == null) {
+            return true
+        }
+        val argTypes = mutableListOf<Type>()
+        for (arg in rhs.argList) {
+            val type = getExprType(arg)
+            if (type == null) {
+                return false
+            } else {
+                argTypes.add(type)
+            }
+        }
+        return false
+    }
+
     private fun getLHSType(lhs: AssignLHSNode): Type? {
         return when (lhs) {
             is AssignLHSIdentNode -> {
-                println(lhs)
                 if (!globalSymbolTable.containsNodeGlobal(lhs.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- VARIABLE REFERENCED BEFORE ASSIGNMENT")
                     semantic = true
@@ -129,8 +144,7 @@ STATEMENTS
                     println("SEMANTIC ERROR DETECTED --- CANNOT ASSIGN A FUNCTION")
                     semantic = true
                     null
-                }
-                else {
+                } else {
                     globalSymbolTable.getNodeGlobal(lhs.ident.toString())
                 }
             }
@@ -166,6 +180,10 @@ STATEMENTS
             is RHSCallNode -> {
                 if (!globalSymbolTable.containsNodeGlobal(rhs.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- FUNCTION REFERENCED BEFORE ASSIGNMENT")
+                    semantic = true
+                    null
+                } else if (checkParameters(rhs)) {
+                    println("SEMANTIC ERROR DETECTED --- ERROR WITH PARAMETERS")
                     semantic = true
                     null
                 } else {
@@ -215,7 +233,21 @@ STATEMENTS
     }
 
     override fun visitRead(ctx: ReadContext): Node {
-        return ReadNode(visit(ctx.assign_lhs()) as AssignLHSNode)
+        val lhsNode = visit(ctx.assign_lhs()) as AssignLHSNode
+        if (lhsNode::class != AssignLHSIdentNode::class) {
+            println("SEMANTIC ERROR DETECTED --- MUST READ INTO VARIABLE")
+            semantic = true
+        }
+        if (!globalSymbolTable.containsNodeGlobal((lhsNode as AssignLHSIdentNode).ident.toString())) {
+            println("SEMANTIC ERROR DETECTED --- VARIABLE DOES NOT EXIST")
+            semantic = true
+        }
+        val type = globalSymbolTable.getNodeGlobal(lhsNode.ident.toString())
+        if (!(type == Type(Int()) || type == Type(Chr()))) {
+            println("SEMANTIC ERROR DETECTED --- READ MUST GO INTO AN INT OR CHAR")
+            semantic = true
+        }
+        return ReadNode(lhsNode)
     }
 
     override fun visitExit(ctx: ExitContext): Node {
@@ -240,8 +272,14 @@ STATEMENTS
         return ReturnNode(visit(ctx.expr()) as ExprNode)
     }
 
+    private fun checkPrint(expr: ExprNode) {
+
+    }
+
     override fun visitPrintln(ctx: PrintlnContext): Node {
-        return PrintlnNode(visit(ctx.expr()) as ExprNode)
+        val expr = visit(ctx.expr()) as ExprNode
+        checkPrint(expr)
+        return PrintlnNode(expr)
     }
 
     override fun visitSkip(ctx: SkipContext): Node {
@@ -249,17 +287,29 @@ STATEMENTS
     }
 
     override fun visitPrint(ctx: PrintContext): Node {
-        return PrintNode(visit(ctx.expr()) as ExprNode)
+        val expr = visit(ctx.expr()) as ExprNode
+        checkPrint(expr)
+        return PrintNode(expr)
     }
 
     override fun visitIf(ctx: IfContext): Node {
-        return IfElseNode(visit(ctx.expr()) as ExprNode,
+        val condExpr = visit(ctx.expr()) as ExprNode
+        if (getExprType(condExpr, true) != Type(Bool())) {
+            println("SEMANTIC ERROR DETECTED --- IF STATEMENT CONDITION NOT BOOLEAN")
+            semantic = true
+        }
+        return IfElseNode(condExpr,
                 visit(ctx.stat(0)) as StatementNode,
                 visit(ctx.stat((1))) as StatementNode)
     }
 
     override fun visitWhile(ctx: WhileContext): Node {
-        return WhileNode(visit(ctx.expr()) as ExprNode,
+        val condExpr = visit(ctx.expr()) as ExprNode
+        if (getExprType(condExpr, true) != Type(Bool())) {
+            println("SEMANTIC ERROR DETECTED --- WHILE CONDITION NOT BOOLEAN")
+            semantic = true
+        }
+        return WhileNode(condExpr,
                 visit(ctx.stat()) as StatementNode)
     }
 
@@ -275,7 +325,7 @@ STATEMENTS
         val type = visit(ctx.type()) as TypeNode
         val ident = Ident(ctx.ident().text)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
-        if (globalSymbolTable.containsNodeGlobal(ident.toString())) {
+        if (globalSymbolTable.containsNodeLocal(ident.toString())) {
             println("SEMANTIC ERROR DETECTED --- VARIABLE ALREADY EXISTS")
             semantic = true
         } else {
@@ -344,7 +394,7 @@ TYPES
     EXPRESSIONS
      */
     //Get the type of a binary operator
-    private fun binaryOps(operator: kotlin.Int): Type {
+    private fun binaryOpsProduces(operator: kotlin.Int): Type {
         return when {
             //Tokens 1-5 are int operators
             operator <= 5 -> Type(INT)
@@ -354,8 +404,17 @@ TYPES
         }
     }
 
+    private fun binaryOpsRequires(operator: kotlin.Int): Type {
+        return when {
+            operator <= 9 -> Type(INT)
+            operator in 12..14 -> Type(BOOL)
+            operator in 10..11 -> Type(ANY)
+            else -> Type(INVALID)
+        }
+    }
+
     //Get the type of a unary operator
-    private fun unaryOps(operator: kotlin.Int): Type {
+    private fun unaryOpsProduces(operator: kotlin.Int): Type {
         return when (operator) {
             NOT -> Type(BOOL)
             LEN, ORD, MINUS -> Type(INT)
@@ -364,7 +423,17 @@ TYPES
         }
     }
 
-    private fun getExprType(expr: ExprNode): Type? {
+    private fun unaryOpsRequires(operator: kotlin.Int): Type {
+        return when (operator) {
+            NOT -> Type(BOOL)
+            ORD -> Type(CHAR)
+            MINUS, CHR -> Type(INT)
+            LEN -> Type(ARRAY)
+            else -> Type(INVALID)
+        }
+    }
+
+    private fun getExprType(expr: ExprNode, using: Boolean = false): Type? {
         return when (expr) {
             is IntLiterNode -> Type(Int())
             is StrLiterNode -> Type(Str())
@@ -381,7 +450,7 @@ TYPES
             }
             is ArrayElem -> {
                 println("ARRAY ELEM")
-                if (getExprType(expr.expr[0]) != Type(Int())) {
+                if (getExprType(expr.expr[0], using) != Type(Int())) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER")
                     semantic = true
                     null
@@ -398,10 +467,18 @@ TYPES
                 }
             }
             is UnaryOpNode -> {
-                unaryOps(expr.operator.value)
+                if (using) {
+                    unaryOpsProduces(expr.operator.value)
+                } else {
+                    unaryOpsRequires(expr.operator.value)
+                }
             }
             is BinaryOpNode -> {
-                binaryOps(expr.operator.value)
+                if (using) {
+                    binaryOpsProduces(expr.operator.value)
+                } else {
+                    binaryOpsRequires(expr.operator.value)
+                }
             }
             else -> {
                 // PairLiterNode
@@ -489,7 +566,7 @@ TYPES
             println("SEMANTIC ERROR DETECTED --- BOOLEAN EXPRESSION TYPES DO NOT MATCH WITH EACHOTHER")
             semantic = true
         }
-        if (exprType != binaryOps(op.value)) {
+        if (exprType != binaryOpsRequires(op.value) && binaryOpsRequires(op.value) != Type(ANY)) {
             println("SEMANTIC ERROR DETECTED --- WRONG TYPE FOR THIS BIN OP")
             semantic = true
         }

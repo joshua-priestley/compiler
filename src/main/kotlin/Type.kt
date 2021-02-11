@@ -3,6 +3,7 @@ import kotlin.Int
 
 const val INVALID = -1
 const val ARRAY = -2
+const val ANY = -3
 
 class Type {
 
@@ -20,7 +21,7 @@ class Type {
                         STRING
                     }
                     is Bool -> {
-                        BOOL_LITER
+                        BOOL
                     }
                     is Chr -> {
                         CHR
