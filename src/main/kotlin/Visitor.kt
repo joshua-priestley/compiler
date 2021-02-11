@@ -35,6 +35,15 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
             } else {
                 globalSymbolTable.addNode(ident.toString(), type.type.setFunction(true))
             }
+
+            val parameterTypes = mutableListOf<Type>()
+            if (func.param_list() != null) {
+                for (i in 0..func.param_list().childCount step 2) {
+                    val p = visit(func.param_list().getChild(i)) as Param
+                    parameterTypes.add(p.type.type)
+                }
+            }
+            functionParameters[ident.toString()] = parameterTypes
         }
     }
 
@@ -128,7 +137,7 @@ STATEMENTS
 
     private fun checkParameters(rhs: RHSCallNode): Boolean {
         val parameterTypes = functionParameters[rhs.ident.toString()]
-        if (rhs.argList == null && parameterTypes == null) {
+        if (rhs.argList == null && parameterTypes!!.isEmpty()) {
             return true
         } else if (rhs.argList!!.size != parameterTypes!!.size) {
             println("SEMANTIC ERROR DETECTED --- NUMBER OF ARGUMENTS DOES NOT MATCH")
