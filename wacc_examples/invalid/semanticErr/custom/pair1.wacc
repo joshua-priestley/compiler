@@ -7,6 +7,8 @@
 # Program:
 
 begin
-  pair(int, int) x = newpair(1, 2) ;
-  int y = fst 1
+  begin
+    new stuff...
+  end
+  other stuff...
 end

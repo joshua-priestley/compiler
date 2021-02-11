@@ -173,8 +173,11 @@ STATEMENTS
     }
 
     private fun checkElemsSameType(exprs: List<ExprNode>) {
+        if (exprs.isEmpty()) {
+            return
+        }
         val firstType = getExprType(exprs[0])
-        for (i in 0..exprs.size-1) {
+        for (i in 0..exprs.size - 1) {
             // If the type cannot be found, something is wrong with the element
             if (getExprType(exprs[i]) == null) {
                 println("SEMANTIC ERROR --- Invalid array element")
@@ -199,7 +202,7 @@ STATEMENTS
                     println("SEMANTIC ERROR DETECTED --- FUNCTION REFERENCED BEFORE ASSIGNMENT")
                     semantic = true
                     null
-                } else if (checkParameters(rhs)) {
+                } else if (!checkParameters(rhs)) {
                     println("SEMANTIC ERROR DETECTED --- ERROR WITH PARAMETERS")
                     semantic = true
                     null
@@ -212,7 +215,11 @@ STATEMENTS
             }
             is RHSArrayLitNode -> {
                 checkElemsSameType(rhs.exprs)
-                Type(getExprType(rhs.exprs[0])!!)
+                if (rhs.exprs.isEmpty()) {
+                    null
+                } else {
+                    Type(getExprType(rhs.exprs[0])!!)
+                }
             }
             else -> {
                 // RHSNewPairElemNode
@@ -357,9 +364,6 @@ STATEMENTS
 
         val lhs_type = Type(type)
         val rhs_type = getRHSType(rhs)
-
-        println(lhs_type)
-        println(rhs_type)
 
         if (lhs_type != rhs_type) {
             println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION")
