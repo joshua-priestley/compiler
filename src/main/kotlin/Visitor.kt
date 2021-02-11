@@ -1,5 +1,6 @@
 import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
+import Type
 
 class Visitor(private val semanticListener: SemanticErrorHandler,
               private val syntaxListener: WACCErrorListener,
@@ -29,7 +30,7 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
                 println("SEMANTIC ERROR DETECTED --- FUNCTION ALREADY EXISTS")
                 semantic = true
             } else {
-                globalSymbolTable.addNode(ident.toString(), Type(type).setFunction(true))
+                globalSymbolTable.addNode(ident.toString(), type.type.setFunction(true))
             }
         }
     }
@@ -45,11 +46,11 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
             for (i in 0..ctx.param_list().childCount step 2) {
                 val p = visit(ctx.param_list().getChild(i)) as Param
                 parameterNodes.add(p)
-                functionSymbolTable.addNode(p.ident.name, Type(p.type))
+                functionSymbolTable.addNode(p.ident.name, p.type.type)
             }
         }
 
-        functionSymbolTable.addNode(ident.toString(), Type(type))
+        functionSymbolTable.addNode(ident.toString(), type.type)
 
         globalSymbolTable = functionSymbolTable
 
@@ -154,11 +155,11 @@ STATEMENTS
                     println("SEMANTIC ERROR DETECTED --- ARRAY REFERENCED BEFORE ASSIGNMENT")
                     semantic = true
                     null
-                } else if (getExprType(lhs.arrayElem.expr[0]) != Type(Int())) {
+                } else if (getExprType(lhs.arrayElem.expr[0]) != Type(INT)) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER")
                     semantic = true
                     null
-                } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString()) == Type(Str())) {
+                } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString()) == Type(STRING)) {
                     println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED")
                     semantic = true
                     null
@@ -268,7 +269,7 @@ STATEMENTS
             semantic = true
         }
         val type = globalSymbolTable.getNodeGlobal(lhsNode.ident.toString())
-        if (!(type == Type(Int()) || type == Type(Chr()))) {
+        if (!(type == Type(INT) || type == Type(CHR))) {
             println("SEMANTIC ERROR DETECTED --- READ MUST GO INTO AN INT OR CHAR")
             semantic = true
         }
@@ -277,7 +278,7 @@ STATEMENTS
 
     override fun visitExit(ctx: ExitContext): Node {
         val expr = visit(ctx.expr()) as ExprNode
-        if (getExprType(expr) != Type(Int())) {
+        if (getExprType(expr) != Type(INT)) {
             println("SEMANTIC ERROR DETECTED --- EXIT CODE MUST BE INT")
             semantic = true
         }
@@ -324,7 +325,7 @@ STATEMENTS
 
     override fun visitIf(ctx: IfContext): Node {
         val condExpr = visit(ctx.expr()) as ExprNode
-        if (getExprType(condExpr, true) != Type(Bool())) {
+        if (getExprType(condExpr, true) != Type(BOOL)) {
             println("SEMANTIC ERROR DETECTED --- IF STATEMENT CONDITION NOT BOOLEAN")
             semantic = true
         }
@@ -335,7 +336,7 @@ STATEMENTS
 
     override fun visitWhile(ctx: WhileContext): Node {
         val condExpr = visit(ctx.expr()) as ExprNode
-        if (getExprType(condExpr, true) != Type(Bool())) {
+        if (getExprType(condExpr, true) != Type(BOOL)) {
             println("SEMANTIC ERROR DETECTED --- WHILE CONDITION NOT BOOLEAN")
             semantic = true
         }
@@ -359,10 +360,10 @@ STATEMENTS
             println("SEMANTIC ERROR DETECTED --- VARIABLE ALREADY EXISTS")
             semantic = true
         } else {
-            globalSymbolTable.addNode(ident.toString(), Type(type))
+            globalSymbolTable.addNode(ident.toString(), Type(type.type))
         }
 
-        val lhs_type = Type(type)
+        val lhs_type = Type(type.type)
         val rhs_type = getRHSType(rhs)
 
         if (lhs_type != rhs_type) {
@@ -389,7 +390,7 @@ TYPES
         return visitChildren(ctx)
     }
 
-    override fun visitBaseT(ctx: BaseTContext): Node {
+    fun visitBaseT(ctx: BaseTContext): Node {
         return when {
             ctx.INT() != null -> Int()
             ctx.BOOL() != null -> Bool()
@@ -399,7 +400,7 @@ TYPES
         };
     }
 
-    override fun visitArray_type(ctx: Array_typeContext): Node {
+    fun visitArray_type(ctx: Array_typeContext): Node {
         return ArrayNode(visit(ctx.type()) as TypeNode)
     }
 
@@ -433,12 +434,12 @@ TYPES
         }
     }
 
-    private fun binaryOpsRequires(operator: kotlin.Int): Type {
+    private fun binaryOpsRequires(operator: kotlin.Int): List<Type> {
         return when {
-            operator <= 9 -> Type(INT)
-            operator in 12..14 -> Type(BOOL)
-            operator in 10..11 -> Type(ANY)
-            else -> Type(INVALID)
+            operator <= 9 -> mutableListOf(Type(INT))
+            operator in 12..14 -> mutableListOf(Type(BOOL))
+            operator in 10..11 -> mutableListOf(Type(ANY))
+            else -> mutableListOf(Type(INVALID))
         }
     }
 
@@ -464,10 +465,10 @@ TYPES
 
     private fun getExprType(expr: ExprNode, using: Boolean = false): Type? {
         return when (expr) {
-            is IntLiterNode -> Type(Int())
-            is StrLiterNode -> Type(Str())
-            is BoolLiterNode -> Type(Bool())
-            is CharLiterNode -> Type(Chr())
+            is IntLiterNode -> Type(INT)
+            is StrLiterNode -> Type(STRING)
+            is BoolLiterNode -> Type(BOOL)
+            is CharLiterNode -> Type(CHR)
             is Ident -> {
                 if (!globalSymbolTable.containsNodeGlobal(expr.toString())) {
                     println("SEMANTIC ERROR DETECTED --- VARIABLE DOES NOT EXIST")
@@ -477,9 +478,10 @@ TYPES
                     globalSymbolTable.getNodeGlobal(expr.toString())
                 }
             }
+
             is ArrayElem -> {
                 println("ARRAY ELEM")
-                if (getExprType(expr.expr[0], using) != Type(Int())) {
+                if (getExprType(expr.expr[0], using) != Type(INT)) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER")
                     semantic = true
                     null
@@ -487,7 +489,7 @@ TYPES
                     println("SEMANTIC ERROR DETECTED --- ARRAY DOES NOT EXIST")
                     semantic = true
                     null
-                } else if (globalSymbolTable.getNodeGlobal(expr.ident.toString()) == Type(Str())) {
+                } else if (globalSymbolTable.getNodeGlobal(expr.ident.toString()) == Type(STRING)) {
                     println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED")
                     semantic = true
                     null
@@ -506,7 +508,8 @@ TYPES
                 if (using) {
                     binaryOpsProduces(expr.operator.value)
                 } else {
-                    binaryOpsRequires(expr.operator.value)
+                    null
+                    //binaryOpsRequires(expr.operator.value)
                 }
             }
             else -> {
@@ -595,7 +598,7 @@ TYPES
             println("SEMANTIC ERROR DETECTED --- BOOLEAN EXPRESSION TYPES DO NOT MATCH WITH EACHOTHER")
             semantic = true
         }
-        if (exprType != binaryOpsRequires(op.value) && binaryOpsRequires(op.value) != Type(ANY)) {
+        if (!binaryOpsRequires(op.value).contains(exprType) && !binaryOpsRequires(op.value).contains(Type(ANY))) {
             println("SEMANTIC ERROR DETECTED --- WRONG TYPE FOR THIS BIN OP")
             semantic = true
         }
