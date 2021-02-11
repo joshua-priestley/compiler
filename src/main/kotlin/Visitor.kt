@@ -231,9 +231,7 @@ STATEMENTS
                 }
             }
             is RHSPairElemNode -> {
-                val p = getPairElemType(rhs.pairElem)
-                println("P is " + p)
-                p
+                getPairElemType(rhs.pairElem)
             }
             is RHSArrayLitNode -> {
                 checkElemsSameType(rhs.exprs)
