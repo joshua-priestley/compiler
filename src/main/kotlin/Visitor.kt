@@ -458,10 +458,10 @@ TYPES
 
     private fun binaryOpsRequires(operator: kotlin.Int): List<Type> {
         return when {
-            operator <= 9 -> mutableListOf(Type(INT))
+            operator < 6 -> mutableListOf(Type(INT))
             operator in 6..9 -> mutableListOf(Type(INT),Type(CHAR))
-            operator in 12..14 -> mutableListOf(Type(BOOL))
             operator in 10..11 -> mutableListOf(Type(ANY))
+            operator in 12..14 -> mutableListOf(Type(BOOL))
             else -> mutableListOf(Type(INVALID))
         }
     }
@@ -491,7 +491,7 @@ TYPES
             is IntLiterNode -> Type(INT)
             is StrLiterNode -> Type(STRING)
             is BoolLiterNode -> Type(BOOL)
-            is CharLiterNode -> Type(CHR)
+            is CharLiterNode -> Type(CHAR)
             is Ident -> {
                 if (!globalSymbolTable.containsNodeGlobal(expr.toString())) {
                     println("SEMANTIC ERROR DETECTED --- VARIABLE DOES NOT EXIST")
@@ -503,7 +503,6 @@ TYPES
             }
 
             is ArrayElem -> {
-                println("ARRAY ELEM")
                 if (getExprType(expr.expr[0]) != Type(INT)) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER")
                     semantic = true
