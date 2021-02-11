@@ -474,7 +474,7 @@ TYPES
 
     private fun binaryOpsRequires(operator: kotlin.Int): List<Type> {
         return when {
-            operator <= 9 -> mutableListOf(Type(INT))
+            operator < 6 -> mutableListOf(Type(INT))
             operator in 6..9 -> mutableListOf(Type(INT),Type(CHAR))
             operator in 12..14 -> mutableListOf(Type(BOOL))
             operator in 10..11 -> mutableListOf(Type(ANY))
