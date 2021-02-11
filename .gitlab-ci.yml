@@ -1,5 +1,3 @@
-image: gradle:4.7.0-jdk8-alpine
-
 stages:
   - compile
   - test
