@@ -234,15 +234,13 @@ TYPES
     }
 
     override fun visitBaseT(ctx: BaseTContext): Node {
-        val ret = when {
-            ctx.INT() != null -> Str()
+        return when {
+            ctx.INT() != null -> Int()
             ctx.BOOL() != null -> Bool()
             ctx.CHAR() != null -> Chr()
             ctx.STRING() != null -> Str()
             else -> TODO()
-        }
-
-        return ret;
+        };
     }
 
     override fun visitArray_type(ctx: Array_typeContext): Node {

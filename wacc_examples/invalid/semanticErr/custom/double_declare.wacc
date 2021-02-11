@@ -9,6 +9,7 @@
 # Program:
 
 begin
+  int[] z = [1] ;
   int x = 3 ;
   int y = 4 ;
   int x = 2
