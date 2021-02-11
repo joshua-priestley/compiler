@@ -212,7 +212,7 @@ STATEMENTS
             is RHSArrayLitNode -> {
                 checkElemsSameType(rhs.exprs)
                 if (rhs.exprs.isEmpty()) {
-                    null
+                    Type(EMPTY_ARR)
                 } else {
                     Type(getExprType(rhs.exprs[0])!!)
                 }
@@ -245,9 +245,11 @@ STATEMENTS
         cond = true
         val rhsType = getRHSType(rhs)
         cond = false
-        if (lhsType != rhsType) {
-            println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT Line: " + ctx.getStart().line)
-            semantic = true
+        if (lhsType != null) {
+            if (lhsType != rhsType && !(lhsType.getArray() && rhsType == Type(EMPTY_ARR))) {
+                println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT Line: " + ctx.getStart().line)
+                semantic = true
+            }
         }
 
         return AssignNode(lhs, rhs)
@@ -387,7 +389,7 @@ STATEMENTS
         val rhsType = getRHSType(rhs)
         cond = false
 
-        if (lhsType != rhsType) {
+        if (lhsType != rhsType && !(lhsType.getArray() && rhsType == Type(EMPTY_ARR))) {
             println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION Line: " + ctx.getStart().line)
             semantic = true
 
@@ -461,6 +463,7 @@ TYPES
             operator in 6..9 -> mutableListOf(Type(INT),Type(CHR))
             operator in 12..14 -> mutableListOf(Type(BOOL))
             operator in 10..11 -> mutableListOf(Type(ANY))
+            operator in 12..14 -> mutableListOf(Type(BOOL))
             else -> mutableListOf(Type(INVALID))
         }
     }
@@ -490,7 +493,7 @@ TYPES
             is IntLiterNode -> Type(INT)
             is StrLiterNode -> Type(STRING)
             is BoolLiterNode -> Type(BOOL)
-            is CharLiterNode -> Type(CHR)
+            is CharLiterNode -> Type(CHAR)
             is Ident -> {
                 if (!globalSymbolTable.containsNodeGlobal(expr.toString())) {
                     println("SEMANTIC ERROR DETECTED --- VARIABLE DOES NOT EXIST")
@@ -502,7 +505,6 @@ TYPES
             }
 
             is ArrayElem -> {
-                println("ARRAY ELEM")
                 if (getExprType(expr.expr[0]) != Type(INT)) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER")
                     semantic = true

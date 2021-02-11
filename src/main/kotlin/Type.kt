@@ -38,8 +38,6 @@ class Type {
         this.arrType = null
     }
 
-
-
     fun setFunction(function: Boolean): Type {
         this.function = function
         return this
