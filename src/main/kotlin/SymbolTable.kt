@@ -22,7 +22,11 @@ class SymbolTable(var parentT: SymbolTable?) {
         table[name] = type
     }
 
-    fun getNode(name: String): Type? {
+    fun getNodeLocal(name: String): Type? {
+        return table[name]
+    }
+
+    fun getNodeGlobal(name: String): Type? {
         // Check the symbol table and each parent's table for an entry match
         var currTable: SymbolTable? = this
         while (currTable != null) {
@@ -49,7 +53,11 @@ class SymbolTable(var parentT: SymbolTable?) {
         }
     }
 
-    fun containsNode(name: String): Boolean {
+    fun containsNodeLocal(name: String): Boolean {
+        return table.containsKey(name)
+    }
+
+    fun containsNodeGlobal(name: String): Boolean {
         // Same as getting a node but just returning true or false
         var currTable: SymbolTable? = this
         while (currTable != null) {
@@ -61,5 +69,11 @@ class SymbolTable(var parentT: SymbolTable?) {
             currTable = currTable.parentT
         }
         return false
+    }
+
+    fun printTableEntries() {
+        for (key in table.keys) {
+            println(key + ": " + table[key].toString())
+        }
     }
 }

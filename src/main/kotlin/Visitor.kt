@@ -10,10 +10,14 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
     override fun visitProgram(ctx: ProgramContext): Node {
         addAllFunctions(ctx.func())
 
+        println("Added Functions:")
+        globalSymbolTable.printTableEntries()
         val functionNodes = mutableListOf<FunctionNode>()
         ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
         val stat = visit(ctx.stat()) as StatementNode
 
+        println("Added eveything else")
+        globalSymbolTable.printTableEntries()
         return ProgramNode(functionNodes, stat)
     }
 
@@ -21,7 +25,7 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
         for (func in funcCTXs) {
             val ident = visit(func.ident()) as Ident
             val type = visit(func.type()) as TypeNode
-            if (globalSymbolTable.containsNode(ident.toString())) {
+            if (globalSymbolTable.containsNodeLocal(ident.toString())) {
                 println("SEMANTIC ERROR DETECTED --- FUNCTION ALREADY EXISTS")
                 semantic = true
             } else {
@@ -57,7 +61,7 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
 
         globalSymbolTable = globalSymbolTable.parentT!!
 
-        if (!globalSymbolTable.containsNode(ident.name)) {
+        if (!globalSymbolTable.containsNodeLocal(ident.name)) {
             globalSymbolTable.addChildTable(functionSymbolTable)
         }
         return FunctionNode(type, ident, parameterNodes.toList(), stat)
@@ -85,21 +89,21 @@ STATEMENTS
     private fun getLHSType(lhs: AssignLHSNode): Type? {
         return when (lhs) {
             is AssignLHSIdentNode -> {
-                if (!globalSymbolTable.containsNode(lhs.ident.toString())) {
+                if (!globalSymbolTable.containsNodeGlobal(lhs.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- VARIABLE REFERENCED BEFORE ASSIGNMENT")
                     semantic = true
                     null
                 } else {
-                    globalSymbolTable.getNode(lhs.ident.toString())
+                    globalSymbolTable.getNodeGlobal(lhs.ident.toString())
                 }
             }
             is LHSArrayElemNode -> {
-                if (!globalSymbolTable.containsNode(lhs.arrayElem.ident.toString())) {
+                if (!globalSymbolTable.containsNodeGlobal(lhs.arrayElem.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY REFERENCED BEFORE ASSIGNMENT")
                     semantic = true
                     null
                 } else {
-                    globalSymbolTable.getNode(lhs.arrayElem.ident.toString())
+                    globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())
                 }
             }
             else -> {
@@ -111,12 +115,12 @@ STATEMENTS
     private fun getRHSType(rhs: AssignRHSNode): Type? {
         return when (rhs) {
             is RHSCallNode -> {
-                if (!globalSymbolTable.containsNode(rhs.ident.toString())) {
+                if (!globalSymbolTable.containsNodeGlobal(rhs.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- FUNCTION REFERENCED BEFORE ASSIGNMENT")
                     semantic = true
                     null
                 } else {
-                    globalSymbolTable.getNode(rhs.ident.toString())
+                    globalSymbolTable.getNodeGlobal(rhs.ident.toString())
                 }
             }
             else -> {
@@ -194,7 +198,7 @@ STATEMENTS
         val type = visit(ctx.type()) as TypeNode
         val ident = Ident(ctx.ident().text)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
-        if (globalSymbolTable.containsNode(ident.toString())) {
+        if (globalSymbolTable.containsNodeGlobal(ident.toString())) {
             println("SEMANTIC ERROR DETECTED --- VARIABLE ALREADY EXISTS")
             semantic = true
         } else {
