@@ -7,6 +7,7 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
               private val syntaxListener: WACCErrorListener,
               private var globalSymbolTable: SymbolTable) : WACCParserBaseVisitor<Node>() {
 
+    private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
     var semantic = false
     var cond = false
 
@@ -44,16 +45,20 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
         val type = visit(ctx.type()) as TypeNode
 
         val parameterNodes = mutableListOf<Param>()
+        val parameterTypes = mutableListOf<Type>()
         if (ctx.param_list() != null) {
             for (i in 0..ctx.param_list().childCount step 2) {
                 val p = visit(ctx.param_list().getChild(i)) as Param
                 parameterNodes.add(p)
                 functionSymbolTable.addNode(p.ident.toString(), p.type.type)
+                parameterTypes.add(p.type.type)
             }
         }
 
         functionSymbolTable.addNode("\$RET", type.type)
         functionSymbolTable.addNode(ident.toString(), type.type)
+
+        functionParameters[ident.toString()] = parameterTypes
 
         globalSymbolTable = functionSymbolTable
 
@@ -122,8 +127,13 @@ STATEMENTS
     }
 
     private fun checkParameters(rhs: RHSCallNode): Boolean {
-        if (rhs.argList == null) {
+        val parameterTypes = functionParameters[rhs.ident.toString()]
+        if (rhs.argList == null && parameterTypes == null) {
             return true
+        } else if (rhs.argList!!.size != parameterTypes!!.size) {
+            println("SEMANTIC ERROR DETECTED --- NUMBER OF ARGUMENTS DOES NOT MATCH")
+            semantic = true
+            return false
         }
         val argTypes = mutableListOf<Type>()
         for (arg in rhs.argList) {
@@ -134,7 +144,14 @@ STATEMENTS
                 argTypes.add(type)
             }
         }
-        return false
+        for (i in argTypes.indices) {
+            if (argTypes[i] != parameterTypes[i]) {
+                println("SEMANTIC ERROR DETECTED --- MISMATCHED PARAMETER TYPES")
+                semantic = true
+                return false
+            }
+        }
+        return true
     }
 
     private fun getLHSType(lhs: AssignLHSNode): Type? {
@@ -199,8 +216,6 @@ STATEMENTS
                     semantic = true
                     null
                 } else if (!checkParameters(rhs)) {
-                    println("SEMANTIC ERROR DETECTED --- ERROR WITH PARAMETERS")
-                    semantic = true
                     null
                 } else {
                     globalSymbolTable.getNodeGlobal(rhs.ident.toString())
