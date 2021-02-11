@@ -49,6 +49,7 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
             }
         }
 
+        functionSymbolTable.addNode("\$RET", Type(type))
         functionSymbolTable.addNode(ident.toString(), Type(type))
 
         globalSymbolTable = functionSymbolTable
@@ -297,7 +298,13 @@ STATEMENTS
             println("SEMANTIC ERROR DETECTED --- RETURNING FROM GLOBAL")
             semantic = true
         }
-        return ReturnNode(visit(ctx.expr()) as ExprNode)
+        val expr = visit(ctx.expr()) as ExprNode
+        val type = getExprType(expr)
+        if (type != globalSymbolTable.getNodeLocal("\$RET")) {
+            println("SEMANTIC ERROR DETECTED --- RETURN TYPES NOT EQUAL")
+            semantic = true
+        }
+        return ReturnNode(expr)
     }
 
     private fun checkPrint(expr: ExprNode) {
@@ -345,7 +352,11 @@ STATEMENTS
     }
 
     override fun visitBegin(ctx: BeginContext): Node {
-        return BeginEndNode(visit(ctx.stat()) as StatementNode)
+        val scopeSymbolTable = SymbolTable(globalSymbolTable)
+        globalSymbolTable = scopeSymbolTable
+        val stat = visit(ctx.stat()) as StatementNode
+        globalSymbolTable = globalSymbolTable.parentT!!
+        return BeginEndNode(stat)
     }
 
     override fun visitSequence(ctx: SequenceContext): Node {
