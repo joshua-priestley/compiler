@@ -403,7 +403,7 @@ STATEMENTS
         val type = visit(ctx.type()) as TypeNode
         val ident = Ident(ctx.ident().text)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
-        if (globalSymbolTable.containsNodeLocal(ident.toString())) {
+        if (globalSymbolTable.containsNodeLocal(ident.toString()) && !globalSymbolTable.getNodeGlobal(ident.toString())!!.isFunction()) {
             println("SEMANTIC ERROR DETECTED --- VARIABLE ALREADY EXISTS  Line: " + ctx.getStart().line)
             semantic = true
         } else {
