@@ -296,7 +296,7 @@ STATEMENTS
     override fun visitFree(ctx: FreeContext): Node {
         val freedExpr = visit(ctx.expr()) as ExprNode
         val freeType = getExprType(freedExpr)
-        if (freeType != Type(PAIR)) {
+        if (freeType == null || !freeType.getPair()) {
             println("SEMANTIC ERROR DETECTED --- CAN ONLY FREE A PAIR")
             semantic = true
         }
