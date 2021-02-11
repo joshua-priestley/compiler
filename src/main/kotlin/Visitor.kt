@@ -6,6 +6,7 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
               private var globalSymbolTable: SymbolTable) : WACCParserBaseVisitor<Node>() {
 
     var semantic = false
+    var cond = false
 
     override fun visitProgram(ctx: ProgramContext): Node {
         addAllFunctions(ctx.func())
@@ -331,22 +332,26 @@ STATEMENTS
     }
 
     override fun visitIf(ctx: IfContext): Node {
+        cond = true
         val condExpr = visit(ctx.expr()) as ExprNode
-        if (getExprType(condExpr, true) != Type(Bool())) {
+        if (getExprType(condExpr) != Type(Bool())) {
             println("SEMANTIC ERROR DETECTED --- IF STATEMENT CONDITION NOT BOOLEAN")
             semantic = true
         }
+        cond = false
         return IfElseNode(condExpr,
                 visit(ctx.stat(0)) as StatementNode,
                 visit(ctx.stat((1))) as StatementNode)
     }
 
     override fun visitWhile(ctx: WhileContext): Node {
+        cond = true
         val condExpr = visit(ctx.expr()) as ExprNode
-        if (getExprType(condExpr, true) != Type(Bool())) {
+        if (getExprType(condExpr) != Type(Bool())) {
             println("SEMANTIC ERROR DETECTED --- WHILE CONDITION NOT BOOLEAN")
             semantic = true
         }
+        cond = false
         return WhileNode(condExpr,
                 visit(ctx.stat()) as StatementNode)
     }
@@ -474,7 +479,7 @@ TYPES
         }
     }
 
-    private fun getExprType(expr: ExprNode, using: Boolean = false): Type? {
+    private fun getExprType(expr: ExprNode): Type? {
         return when (expr) {
             is IntLiterNode -> Type(Int())
             is StrLiterNode -> Type(Str())
@@ -490,8 +495,7 @@ TYPES
                 }
             }
             is ArrayElem -> {
-                println("ARRAY ELEM")
-                if (getExprType(expr.expr[0], using) != Type(Int())) {
+                if (getExprType(expr.expr[0]) != Type(Int())) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER")
                     semantic = true
                     null
@@ -508,14 +512,14 @@ TYPES
                 }
             }
             is UnaryOpNode -> {
-                if (using) {
+                if (cond) {
                     unaryOpsProduces(expr.operator.value)
                 } else {
                     unaryOpsRequires(expr.operator.value)
                 }
             }
             is BinaryOpNode -> {
-                if (using) {
+                if (cond) {
                     binaryOpsProduces(expr.operator.value)
                 } else {
                     binaryOpsRequires(expr.operator.value)
@@ -602,7 +606,6 @@ TYPES
         val expr2 = visit(ctx.expr(1)) as ExprNode
 
         val exprType = getExprType(expr1)
-
         if (exprType != getExprType(expr2)) {
             println("SEMANTIC ERROR DETECTED --- BOOLEAN EXPRESSION TYPES DO NOT MATCH WITH EACHOTHER")
             semantic = true
