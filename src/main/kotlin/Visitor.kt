@@ -508,8 +508,8 @@ TYPES
         return when {
             operator < 6 -> mutableListOf(Type(INT))
             operator in 6..9 -> mutableListOf(Type(INT), Type(CHAR))
-            operator in 12..14 -> mutableListOf(Type(BOOL))
             operator in 10..11 -> mutableListOf(Type(ANY))
+            operator in 12..14 -> mutableListOf(Type(BOOL))
             operator in 12..14 -> mutableListOf(Type(BOOL))
             else -> mutableListOf(Type(INVALID))
         }
@@ -576,7 +576,8 @@ TYPES
                 if (cond) {
                     binaryOpsProduces(expr.operator.value)
                 } else {
-                    if (binaryOpsRequires(expr.operator.value).contains(getExprType(expr.expr1))) {
+                    val requires = binaryOpsRequires(expr.operator.value)
+                    if (requires.contains(getExprType(expr.expr1)) || requires.contains(Type(ANY))) {
                         getExprType(expr.expr1)
                     } else {
                         println("SEMANTIC ERROR DETECTED -- INCORRECT TYPE FOR BINARY OPERATOR")
@@ -672,9 +673,10 @@ TYPES
         //println(expr2)
 
         val exprType = getExprType(expr1)
-        println("Type is: $exprType")
-        println("Type 2 is: ${getExprType(expr2)}")
+
         if (exprType != null && getExprType(expr2) != null && exprType.getType() != getExprType(expr2)!!.getType()) {
+            println("Type is: $exprType")
+            println("Type 2 is: ${getExprType(expr2)}")
             println("SEMANTIC ERROR DETECTED --- BOOLEAN EXPRESSION TYPES DO NOT MATCH WITH EACHOTHER Line: " + ctx.getStart().line)
             semantic = true
         }
