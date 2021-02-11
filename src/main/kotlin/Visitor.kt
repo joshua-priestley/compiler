@@ -172,6 +172,23 @@ STATEMENTS
         }
     }
 
+    private fun checkElemsSameType(exprs: List<ExprNode>) {
+        val firstType = getExprType(exprs[0])
+        for (i in 0..exprs.size-1) {
+            // If the type cannot be found, something is wrong with the element
+            if (getExprType(exprs[i]) == null) {
+                println("SEMANTIC ERROR --- Invalid array element")
+                semantic = true
+                break
+                // If the elements type does not match the first then there is an error
+            } else if (getExprType(exprs[i]) != firstType) {
+                println("SEMANTIC ERROR --- Array elements have differing types")
+                semantic = true
+                break
+            }
+        }
+    }
+
     private fun getRHSType(rhs: AssignRHSNode): Type? {
         return when (rhs) {
             is RHSExprNode -> {
@@ -194,7 +211,8 @@ STATEMENTS
                 getPairElemType(rhs.pairElem)
             }
             is RHSArrayLitNode -> {
-                null
+                checkElemsSameType(rhs.exprs)
+                Type(getExprType(rhs.exprs[0])!!)
             }
             else -> {
                 // RHSNewPairElemNode
@@ -209,7 +227,7 @@ STATEMENTS
                     semantic = true
                     null
                 } else {
-                    Type(Type(expr1), Type(expr2))
+                    Type(expr1, expr2)
                 }
             }
         }
@@ -340,11 +358,13 @@ STATEMENTS
         val lhs_type = Type(type)
         val rhs_type = getRHSType(rhs)
 
-        if (rhs_type != null) {
-            if (lhs_type != rhs_type) {
-                println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION")
-                semantic = true
-            }
+        println(lhs_type)
+        println(rhs_type)
+
+        if (lhs_type != rhs_type) {
+            println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION")
+            semantic = true
+
         }
 
         return DeclarationNode(type, ident, rhs)
