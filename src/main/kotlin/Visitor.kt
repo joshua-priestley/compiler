@@ -411,7 +411,7 @@ TYPES
         return visitChildren(ctx)
     }
 
-    fun visitBaseT(ctx: BaseTContext): Node {
+    override fun visitBaseT(ctx: BaseTContext): Node {
         return when {
             ctx.INT() != null -> Int()
             ctx.BOOL() != null -> Bool()
@@ -421,7 +421,7 @@ TYPES
         };
     }
 
-    fun visitArray_type(ctx: Array_typeContext): Node {
+    override fun visitArray_type(ctx: Array_typeContext): Node {
         return ArrayNode(visit(ctx.type()) as TypeNode)
     }
 
