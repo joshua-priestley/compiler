@@ -1,8 +1,13 @@
-image: gradle:4.7.0-jdk8-alpine
+image: java:8-jdk
 
 stages:
   - compile
   - test
+
+cache:
+  paths:
+    - .gradle/wrapper
+    - .gradle/caches
 
 compile:
   stage: compile
