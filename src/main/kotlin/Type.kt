@@ -60,13 +60,13 @@ class Type {
     }
 
     //Get the type of the fst of a pair
-    fun getPairFst(): Type {
-        return pairFst ?: Type(INVALID)
+    fun getPairFst(): Type? {
+        return pairFst
     }
 
     //Get the type of the snd of a pair
-    fun getPairSnd(): Type {
-        return pairSnd ?: Type(INVALID)
+    fun getPairSnd(): Type? {
+        return pairSnd
     }
 
     fun getArray(): Boolean {
@@ -99,6 +99,8 @@ class Type {
                 //Check pair types
                 compare.getPair() && getPair() -> compare.getPairFst() == getPairFst() && compare.getPairSnd() == getPairSnd()
 
+                compare.getPair() && getPair() -> ((compare.getPairFst() == null && compare.getPairSnd() == null )||(getPairFst() == null && getPairSnd() == null))
+
                 //Check basic types
                 compare.getType() == getType() -> true
 
@@ -117,11 +119,12 @@ class Type {
         if (getPair()) {
             //Return PAIR(<FstType>,<SndType>)
             sb.append(symbolName)
+            if (!(getPairFst() == null && getPairSnd() == null)){
             sb.append('(')
             sb.append(getPairFst().toString())
             sb.append(',')
             sb.append(getPairSnd().toString())
-            sb.append(')')
+            sb.append(')')}
             return sb.toString()
         }
         if (getArray()) {
