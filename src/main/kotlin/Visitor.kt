@@ -141,31 +141,24 @@ STATEMENTS
                 if (!globalSymbolTable.containsNodeGlobal(lhs.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- VARIABLE REFERENCED BEFORE ASSIGNMENT")
                     semantic = true
-                    null
                 } else if (globalSymbolTable.getNodeGlobal(lhs.ident.toString())!!.isFunction()) {
                     println("SEMANTIC ERROR DETECTED --- CANNOT ASSIGN A FUNCTION")
                     semantic = true
-                    null
-                } else {
-                    globalSymbolTable.getNodeGlobal(lhs.ident.toString())
                 }
+                globalSymbolTable.getNodeGlobal(lhs.ident.toString())
             }
             is LHSArrayElemNode -> {
                 if (!globalSymbolTable.containsNodeGlobal(lhs.arrayElem.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY REFERENCED BEFORE ASSIGNMENT")
                     semantic = true
-                    null
                 } else if (getExprType(lhs.arrayElem.expr[0]) != Type(Int())) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER")
                     semantic = true
-                    null
                 } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString()) == Type(Str())) {
                     println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED")
                     semantic = true
-                    null
-                } else {
-                    globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getBaseType()
                 }
+                globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getBaseType()
             }
             else -> {
                 getPairElemType((lhs as LHSPairElemNode).pairElem)
@@ -509,18 +502,14 @@ TYPES
                 if (getExprType(expr.expr[0]) != Type(Int())) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER")
                     semantic = true
-                    null
                 } else if (!globalSymbolTable.containsNodeGlobal(expr.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY DOES NOT EXIST")
                     semantic = true
-                    null
                 } else if (globalSymbolTable.getNodeGlobal(expr.ident.toString()) == Type(Str())) {
                     println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED")
                     semantic = true
-                    null
-                } else {
-                    globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
                 }
+                globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
             }
             is UnaryOpNode -> {
                 if (cond) {

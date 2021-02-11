@@ -12,7 +12,7 @@ compile:
 test:
   stage: test
   script:
-    - ./gradlew test
+    - ./gradlew test -i
   artifacts:
     when: always
     reports:
