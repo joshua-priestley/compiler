@@ -212,7 +212,7 @@ STATEMENTS
             is RHSArrayLitNode -> {
                 checkElemsSameType(rhs.exprs)
                 if (rhs.exprs.isEmpty()) {
-                    null
+                    Type(EMPTY_ARR)
                 } else {
                     Type(getExprType(rhs.exprs[0])!!)
                 }
@@ -246,7 +246,7 @@ STATEMENTS
         val rhsType = getRHSType(rhs)
         cond = false
 
-        if (lhsType != rhsType) {
+        if (lhsType != rhsType && !(lhsType!!.getArray() && rhsType == Type(EMPTY_ARR))) {
             println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT Line: " + ctx.getStart().line)
             semantic = true
         }
@@ -388,7 +388,7 @@ STATEMENTS
         val rhsType = getRHSType(rhs)
         cond = false
 
-        if (lhsType != rhsType) {
+        if (lhsType != rhsType && !(lhsType.getArray() && rhsType == Type(EMPTY_ARR))) {
             println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION Line: " + ctx.getStart().line)
             semantic = true
 
