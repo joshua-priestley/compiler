@@ -173,7 +173,7 @@ STATEMENTS
                 } else if (getExprType(lhs.arrayElem.expr[0]) != Type(INT)) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER")
                     semantic = true
-                } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString()) == Type(STRING)) {
+                } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getType() == STRING) {
                     println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED")
                     semantic = true
                 }
@@ -527,7 +527,7 @@ TYPES
                     println("SEMANTIC ERROR DETECTED --- ARRAY DOES NOT EXIST")
                     semantic = true
 
-                } else if (globalSymbolTable.getNodeGlobal(expr.ident.toString()) == Type(STRING)) {
+                } else if (globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getType() == STRING) {
                     println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED")
                     semantic = true
                 }
