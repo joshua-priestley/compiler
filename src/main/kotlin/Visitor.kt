@@ -611,6 +611,12 @@ TYPES
             semantic = true
         }
         if (exprType != binaryOpsRequires(op.value) && binaryOpsRequires(op.value) != Type(ANY)) {
+            // TODO: WASNT SURE ABOUT HOW TO MAKE THIS NEATER? CLEAN IT UP LATER :D
+            if(exprType == Type(Chr()) && (op == BinOp.LT || op == BinOp.LTE || op == BinOp.GT || op == BinOp.GTE)) {
+                return BinaryOpNode(op, expr1, expr2)
+            }
+            println(exprType)
+            println(op.value)
             println("SEMANTIC ERROR DETECTED --- WRONG TYPE FOR THIS BIN OP")
             semantic = true
         }
