@@ -355,7 +355,7 @@ STATEMENTS
     }
 
     private fun checkPrint(expr: ExprNode) {
-        if (expr is Ident && !globalSymbolTable.containsNodeLocal(expr.toString())) {
+        if (expr is Ident && !globalSymbolTable.containsNodeGlobal(expr.toString())) {
             println("SEMANTIC ERROR DETECTED --- CANNOT PRINT A NON EXISTENT VARIABLE")
             semantic = true
         }
@@ -433,7 +433,6 @@ STATEMENTS
         if (lhsType != rhsType && !(lhsType.getArray() && rhsType == Type(EMPTY_ARR)) && !(lhsType.getPair() && rhsType == Type(PAIR_LITER))) {
             println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION Line: " + ctx.getStart().line)
             semantic = true
-
         }
 
         return DeclarationNode(type, ident, rhs)
