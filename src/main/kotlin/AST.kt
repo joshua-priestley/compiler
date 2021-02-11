@@ -115,7 +115,7 @@ interface BaseType : TypeNode {
 
 class Str(override val type : Type = Type(STRING)) : BaseType
 class Bool(override val type : Type = Type(BOOL)) : BaseType
-class Chr(override val type : Type = Type (CHAR)) : BaseType
+class Chr(override val type : Type = Type (CHR)) : BaseType
 class Int(override val type : Type = Type (INT)) : BaseType
 
 // Nested pair type

@@ -245,7 +245,6 @@ STATEMENTS
         cond = true
         val rhsType = getRHSType(rhs)
         cond = false
-
         if (lhsType != rhsType) {
             println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT Line: " + ctx.getStart().line)
             semantic = true
@@ -459,7 +458,7 @@ TYPES
     private fun binaryOpsRequires(operator: kotlin.Int): List<Type> {
         return when {
             operator <= 9 -> mutableListOf(Type(INT))
-            operator in 6..9 -> mutableListOf(Type(INT),Type(CHAR))
+            operator in 6..9 -> mutableListOf(Type(INT),Type(CHR))
             operator in 12..14 -> mutableListOf(Type(BOOL))
             operator in 10..11 -> mutableListOf(Type(ANY))
             else -> mutableListOf(Type(INVALID))
@@ -471,7 +470,7 @@ TYPES
         return when (operator) {
             NOT -> Type(BOOL)
             LEN, ORD, MINUS -> Type(INT)
-            CHR -> Type(CHAR)
+            CHR -> Type(CHR)
             else -> Type(INVALID)
         }
     }
@@ -479,7 +478,7 @@ TYPES
     private fun unaryOpsRequires(operator: kotlin.Int): Type {
         return when (operator) {
             NOT -> Type(BOOL)
-            ORD -> Type(CHAR)
+            ORD -> Type(CHR)
             MINUS, CHR -> Type(INT)
             LEN -> Type(ARRAY)
             else -> Type(INVALID)
