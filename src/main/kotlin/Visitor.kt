@@ -238,7 +238,12 @@ STATEMENTS
                 if (rhs.exprs.isEmpty()) {
                     Type(EMPTY_ARR)
                 } else {
-                    Type(getExprType(rhs.exprs[0])!!)
+                    val type = getExprType(rhs.exprs[0])
+                    if (type == null) {
+                        null
+                    } else {
+                        Type(type)
+                    }
                 }
             }
             else -> {
@@ -281,7 +286,7 @@ STATEMENTS
 
     override fun visitRead(ctx: ReadContext): Node {
         val lhsNode = visit(ctx.assign_lhs()) as AssignLHSNode
-        val type = when(lhsNode) {
+        val type = when (lhsNode) {
             is LHSPairElemNode -> getPairElemType(lhsNode.pairElem)
             is LHSArrayElemNode -> getExprType(lhsNode.arrayElem)
             else -> {
@@ -484,7 +489,7 @@ TYPES
     private fun binaryOpsRequires(operator: kotlin.Int): List<Type> {
         return when {
             operator < 6 -> mutableListOf(Type(INT))
-            operator in 6..9 -> mutableListOf(Type(INT),Type(CHAR))
+            operator in 6..9 -> mutableListOf(Type(INT), Type(CHAR))
             operator in 12..14 -> mutableListOf(Type(BOOL))
             operator in 10..11 -> mutableListOf(Type(ANY))
             operator in 12..14 -> mutableListOf(Type(BOOL))
@@ -553,7 +558,7 @@ TYPES
                 if (cond) {
                     binaryOpsProduces(expr.operator.value)
                 } else {
-                    if (binaryOpsRequires(expr.operator.value).contains(getExprType(expr.expr1))){
+                    if (binaryOpsRequires(expr.operator.value).contains(getExprType(expr.expr1))) {
                         getExprType(expr.expr1)
                     } else {
                         println("SEMANTIC ERROR DETECTED -- INCORRECT TYPE FOR BINARY OPERATOR")
