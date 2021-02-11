@@ -10,6 +10,7 @@ class Type {
     private val pairFst: Type?
     private val pairSnd: Type?
     private var arrType: Type?
+    private var function: Boolean = false
 
     constructor(typeNode: TypeNode) {
         when(typeNode) {
@@ -75,6 +76,15 @@ class Type {
         this.pairFst = null
         this.pairSnd = null
         this.arrType = null
+    }
+
+    fun setFunction(function: Boolean): Type {
+        this.function = function
+        return this
+    }
+
+    fun isFunction(): Boolean {
+        return this.function
     }
 
     //Get the base type of an array

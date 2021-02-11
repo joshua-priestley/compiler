@@ -29,7 +29,7 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
                 println("SEMANTIC ERROR DETECTED --- FUNCTION ALREADY EXISTS")
                 semantic = true
             } else {
-                globalSymbolTable.addNode(ident.toString(), Type(type))
+                globalSymbolTable.addNode(ident.toString(), Type(type).setFunction(true))
             }
         }
     }
@@ -120,11 +120,17 @@ STATEMENTS
     private fun getLHSType(lhs: AssignLHSNode): Type? {
         return when (lhs) {
             is AssignLHSIdentNode -> {
+                println(lhs)
                 if (!globalSymbolTable.containsNodeGlobal(lhs.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- VARIABLE REFERENCED BEFORE ASSIGNMENT")
                     semantic = true
                     null
-                } else {
+                } else if (globalSymbolTable.getNodeGlobal(lhs.ident.toString())!!.isFunction()) {
+                    println("SEMANTIC ERROR DETECTED --- CANNOT ASSIGN A FUNCTION")
+                    semantic = true
+                    null
+                }
+                else {
                     globalSymbolTable.getNodeGlobal(lhs.ident.toString())
                 }
             }
