@@ -261,15 +261,22 @@ STATEMENTS
 
     override fun visitRead(ctx: ReadContext): Node {
         val lhsNode = visit(ctx.assign_lhs()) as AssignLHSNode
-        if (lhsNode::class != AssignLHSIdentNode::class) {
-            println("SEMANTIC ERROR DETECTED --- MUST READ INTO VARIABLE")
-            semantic = true
+        val type = when(lhsNode) {
+            is LHSPairElemNode -> getPairElemType(lhsNode.pairElem)
+            is LHSArrayElemNode -> getExprType(lhsNode.arrayElem)
+            else -> {
+                if (lhsNode !is AssignLHSIdentNode) {
+                    println("SEMANTIC ERROR DETECTED --- MUST READ INTO VARIABLE")
+                    semantic = true
+                }
+                if (!globalSymbolTable.containsNodeGlobal((lhsNode as AssignLHSIdentNode).ident.toString())) {
+                    println("SEMANTIC ERROR DETECTED --- VARIABLE DOES NOT EXIST")
+                    semantic = true
+                }
+                globalSymbolTable.getNodeGlobal(lhsNode.ident.toString())
+            }
         }
-        if (!globalSymbolTable.containsNodeGlobal((lhsNode as AssignLHSIdentNode).ident.toString())) {
-            println("SEMANTIC ERROR DETECTED --- VARIABLE DOES NOT EXIST")
-            semantic = true
-        }
-        val type = globalSymbolTable.getNodeGlobal(lhsNode.ident.toString())
+        //TODO add check to ignore case where a pair elem is null? - this is a runtime error
         if (!(type == Type(Int()) || type == Type(Chr()))) {
             println("SEMANTIC ERROR DETECTED --- READ MUST GO INTO AN INT OR CHAR")
             semantic = true
@@ -615,6 +622,12 @@ TYPES
             semantic = true
         }
         if (exprType != binaryOpsRequires(op.value) && binaryOpsRequires(op.value) != Type(ANY)) {
+            // TODO: WASNT SURE ABOUT HOW TO MAKE THIS NEATER? CLEAN IT UP LATER :D
+            if(exprType == Type(Chr()) && (op == BinOp.LT || op == BinOp.LTE || op == BinOp.GT || op == BinOp.GTE)) {
+                return BinaryOpNode(op, expr1, expr2)
+            }
+            println(exprType)
+            println(op.value)
             println("SEMANTIC ERROR DETECTED --- WRONG TYPE FOR THIS BIN OP")
             semantic = true
         }
