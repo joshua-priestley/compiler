@@ -4,11 +4,6 @@ stages:
   - compile
   - test
 
-cache:
-  paths:
-    - .gradle/wrapper
-    - .gradle/caches
-
 compile:
   stage: compile
   script:
