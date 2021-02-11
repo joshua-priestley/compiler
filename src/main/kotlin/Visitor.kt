@@ -380,7 +380,7 @@ STATEMENTS
             println("SEMANTIC ERROR DETECTED --- VARIABLE ALREADY EXISTS  Line: " + ctx.getStart().line)
             semantic = true
         } else {
-            globalSymbolTable.addNode(ident.toString(), Type(type.type))
+            globalSymbolTable.addNode(ident.toString(), type.type)
         }
 
         val lhsType = type.type
