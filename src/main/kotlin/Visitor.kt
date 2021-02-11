@@ -154,7 +154,7 @@ STATEMENTS
             }
         }
         for (i in argTypes.indices) {
-            if (argTypes[i] != parameterTypes[i]) {
+            if (argTypes[i] != parameterTypes[i] && !checkPairs(parameterTypes[i], argTypes[i])) {
                 println("SEMANTIC ERROR DETECTED --- MISMATCHED PARAMETER TYPES")
                 semantic = true
                 return false
@@ -452,6 +452,9 @@ STATEMENTS
     }
 
     private fun checkPairs(lhs: Type, rhs: Type): Boolean {
+        if (lhs != Type(PAIR)) {
+            return true
+        }
         val lhsEqual = lhs.getPairFst() == rhs.getPairFst()
         val rhsEqual = lhs.getPairSnd() == rhs.getPairSnd()
         val rhsFstPL = rhs.getPairFst() == Type(PAIR_LITER)
