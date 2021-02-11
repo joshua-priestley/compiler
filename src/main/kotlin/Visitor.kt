@@ -244,7 +244,7 @@ STATEMENTS
             else -> {
                 // RHSNewPairElemNode
                 val expr1 = getExprType((rhs as RHSNewPairNode).expr1)
-                val expr2 = getExprType(rhs.expr1)
+                val expr2 = getExprType(rhs.expr2)
                 if (expr1 == null) {
                     println("SEMANTIC ERROR DETECTED --- NEWPAIR EXPRESSION 1 IS FALSE")
                     semantic = true
