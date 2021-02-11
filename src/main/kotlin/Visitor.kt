@@ -182,11 +182,7 @@ STATEMENTS
                 } else if (getExprType(lhs.arrayElem.expr[0]) != Type(INT)) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER")
                     semantic = true
-<<<<<<< HEAD
-                } else if (else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getType() == STRING) {
-=======
                 } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getType() == STRING) {
->>>>>>> be6843d67f60d9b644f2b07a8ecb8939338361f9
                     println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED")
                     semantic = true
                 }
