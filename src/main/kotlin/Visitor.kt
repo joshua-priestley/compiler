@@ -418,7 +418,7 @@ STATEMENTS
         val rhsType = getRHSType(rhs)
         cond = false
 
-        if (lhsType != rhsType && !(lhsType.getArray() && rhsType == Type(EMPTY_ARR))) {
+        if (lhsType != rhsType && !(lhsType.getArray() && rhsType == Type(EMPTY_ARR)) && !(lhsType.getPair() && rhsType == Type(PAIR_LITER))) {
             println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION Line: " + ctx.getStart().line)
             semantic = true
 
@@ -569,7 +569,7 @@ TYPES
             }
             else -> {
                 // PairLiterNode
-                null
+                Type(PAIR_LITER)
             }
         }
     }

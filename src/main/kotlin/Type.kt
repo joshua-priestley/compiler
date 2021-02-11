@@ -5,6 +5,7 @@ const val INVALID = -1
 const val ARRAY = -2
 const val ANY = -3
 const val EMPTY_ARR = -4
+const val PAIR_LITER = -5
 class Type {
 
     private val type: Int
