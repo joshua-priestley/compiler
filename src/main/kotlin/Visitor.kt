@@ -117,7 +117,7 @@ STATEMENTS
                 semantic = true
                 null
             } else {
-                globalSymbolTable.getNodeGlobal(expr.toString())
+                globalSymbolTable.getNodeGlobal(expr.toString())!!.getPairFst()
             }
         } else {
             expr = (pairElem as SndExpr).expr
@@ -130,7 +130,7 @@ STATEMENTS
                 semantic = true
                 null
             } else {
-                globalSymbolTable.getNodeGlobal(expr.toString())
+                globalSymbolTable.getNodeGlobal(expr.toString())!!.getPairSnd()
             }
         }
     }
@@ -231,7 +231,9 @@ STATEMENTS
                 }
             }
             is RHSPairElemNode -> {
-                getPairElemType(rhs.pairElem)
+                val p = getPairElemType(rhs.pairElem)
+                println("P is " + p)
+                p
             }
             is RHSArrayLitNode -> {
                 checkElemsSameType(rhs.exprs)
