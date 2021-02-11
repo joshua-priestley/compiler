@@ -1,1 +1,2 @@
-valid/runtimeErr/arrayOutOfBounds
+invalid/semanticErr
+valid
