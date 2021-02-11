@@ -77,27 +77,6 @@ class Type {
         this.arrType = null
     }
 
-    //Get the type of a binary operator
-    fun binaryOps(operator: Int): Type {
-        return when {
-            //Tokens 1-5 are int operators
-            operator <= 5 -> Type(INT)
-            //Tokens 6-13 are bool operators
-            operator in 6..13 -> Type(BOOL)
-            else -> Type(INVALID)
-        }
-    }
-
-    //Get the type of a unary operator
-    fun UnaryOps(operator: Int): Type {
-        return when (operator) {
-            NOT -> Type(BOOL)
-            LEN, ORD, MINUS -> Type(INT)
-            CHR -> Type(CHAR)
-            else -> Type(INVALID)
-        }
-    }
-
     //Get the base type of an array
     fun getBaseType(): Type {
         return this.arrType ?: Type(INVALID)

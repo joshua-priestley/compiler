@@ -1,0 +1,14 @@
+# tries to create a function that already exists
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+  pair(int, int) x = newpair(1, 2) ;
+  int y = fst 1
+end
