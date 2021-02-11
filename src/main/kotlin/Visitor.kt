@@ -145,6 +145,9 @@ STATEMENTS
 
     private fun getRHSType(rhs: AssignRHSNode): Type? {
         return when (rhs) {
+            is RHSExprNode -> {
+                null
+            }
             is RHSCallNode -> {
                 if (!globalSymbolTable.containsNodeGlobal(rhs.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- FUNCTION REFERENCED BEFORE ASSIGNMENT")
@@ -167,11 +170,11 @@ STATEMENTS
         val lhs = visit(ctx.assign_lhs()) as AssignLHSNode
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
 
-        val lhs_type = getLHSType(lhs)
-        val rhs_type = getRHSType(rhs)
+        val lhsType = getLHSType(lhs)
+        val rhsType = getRHSType(rhs)
 
-        if (rhs_type != null) {
-            if (lhs_type != rhs_type) {
+        if (rhsType != null) {
+            if (lhsType != rhsType) {
                 println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT")
                 semantic = true
             }

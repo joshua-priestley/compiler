@@ -19,7 +19,7 @@ class Type {
                         STRING
                     }
                     is Bool -> {
-                        STRING
+                        BOOL_LITER
                     }
                     is Chr -> {
                         CHR
