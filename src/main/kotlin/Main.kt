@@ -46,7 +46,7 @@ class Compiler(val inputFile: String) {
             return 100
         }
 
-        println(tree.toStringTree(parser))
+        //println(tree.toStringTree(parser))
 
         println("--------")
         val semanticErrorHandler = SemanticErrorHandler()

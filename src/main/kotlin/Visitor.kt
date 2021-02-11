@@ -346,8 +346,17 @@ STATEMENTS
             semantic = true
         }
         val expr = visit(ctx.expr()) as ExprNode
-        val type = getExprType(expr)
-        if (type != globalSymbolTable.getNodeLocal("\$RET")) {
+        cond = true
+        var type = getExprType(expr)
+        cond = false
+        var funcType = globalSymbolTable.getNodeLocal("\$RET")
+        if (type == Type(PAIR_LITER)) {
+            if (funcType!!.getPair()) {
+                type = Type(PAIR)
+            }
+            funcType = Type(PAIR)
+        }
+        if (type != funcType) {
             println("SEMANTIC ERROR DETECTED --- RETURN TYPES NOT EQUAL Line: " + ctx.getStart().line)
             semantic = true
         }
@@ -431,11 +440,21 @@ STATEMENTS
         cond = false
 
         if (lhsType != rhsType && !(lhsType.getArray() && rhsType == Type(EMPTY_ARR)) && !(lhsType.getPair() && rhsType == Type(PAIR_LITER))) {
-            println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION Line: " + ctx.getStart().line)
-            semantic = true
+            if (lhsType != Type(PAIR) && rhsType != Type(PAIR) && !checkPairs(lhsType, rhsType!!)) {
+                println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION Line: " + ctx.getStart().line)
+                semantic = true
+            }
         }
 
         return DeclarationNode(type, ident, rhs)
+    }
+
+    private fun checkPairs(lhs: Type, rhs: Type): Boolean {
+        val lhsEqual = lhs.getPairFst() == rhs.getPairFst()
+        val rhsEqual = lhs.getPairSnd() == rhs.getPairSnd()
+        val rhsFstPL = rhs.getPairFst() == Type(PAIR_LITER)
+        val rhsSndPL = rhs.getPairSnd() == Type(PAIR_LITER)
+        return (lhsEqual && rhsEqual) || (lhsEqual && rhsSndPL) || (rhsFstPL && rhsEqual) || (rhsFstPL && rhsSndPL)
     }
 
 /*
@@ -572,7 +591,7 @@ TYPES
                     if (binaryOpsRequires(expr.operator.value).contains(getExprType(expr.expr1))) {
                         getExprType(expr.expr1)
                     } else {
-                        println("SEMANTIC ERROR DETECTED -- INCORRECT TYPE FOR BINARY OPERATOR")
+                        println("SEMANTIC ERROR DETECTED --- INCORRECT TYPE FOR BINARY OPERATOR")
                         semantic = true
                         null
                     }
@@ -658,12 +677,16 @@ TYPES
         val expr1 = visit(ctx.expr(0)) as ExprNode
         val expr2 = visit(ctx.expr(1)) as ExprNode
 
-        val exprType = getExprType(expr1)
-        if (exprType != getExprType(expr2)) {
-            println("SEMANTIC ERROR DETECTED --- BOOLEAN EXPRESSION TYPES DO NOT MATCH WITH EACHOTHER Line: " + ctx.getStart().line)
-            semantic = true
+        val exprType1 = getExprType(expr1)
+        val exprType2 = getExprType(expr2)
+
+        if (exprType1 != exprType2) {
+            if (exprType2 != Type(PAIR_LITER)) {
+                println("SEMANTIC ERROR DETECTED --- BOOLEAN EXPRESSION TYPES DO NOT MATCH WITH EACHOTHER Line: " + ctx.getStart().line)
+                semantic = true
+            }
         }
-        if (!binaryOpsRequires(op.value).contains(exprType) && !binaryOpsRequires(op.value).contains(Type(ANY))) {
+        if (!binaryOpsRequires(op.value).contains(exprType1) && !binaryOpsRequires(op.value).contains(Type(ANY))) {
             println("SEMANTIC ERROR DETECTED --- WRONG TYPE FOR THIS BIN OP Line: " + ctx.getStart().line)
             semantic = true
         }
