@@ -247,11 +247,9 @@ STATEMENTS
         val lhsType = getLHSType(lhs)
         val rhsType = getRHSType(rhs)
 
-        if (rhsType != null) {
-            if (lhsType != rhsType) {
-                println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT")
-                semantic = true
-            }
+        if (lhsType != rhsType) {
+            println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT")
+            semantic = true
         }
 
         return AssignNode(lhs, rhs)
@@ -303,7 +301,10 @@ STATEMENTS
     }
 
     private fun checkPrint(expr: ExprNode) {
-
+        if (expr is Ident && !globalSymbolTable.containsNodeLocal(expr.toString())) {
+            println("SEMANTIC ERROR DETECTED --- CANNOT PRINT A NON EXISTENT VARIABLE")
+            semantic = true
+        }
     }
 
     override fun visitPrintln(ctx: PrintlnContext): Node {
