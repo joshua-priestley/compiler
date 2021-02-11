@@ -4,7 +4,7 @@ import kotlin.Int
 const val INVALID = -1
 const val ARRAY = -2
 const val ANY = -3
-
+const val EMPTY_ARR = -4
 class Type {
 
     private val type: Int
