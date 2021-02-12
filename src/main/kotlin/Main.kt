@@ -1,19 +1,23 @@
 package compiler
 
+import SemanticErrorHandler
 import SymbolTable
 import Visitor
 import WACCErrorListener
 import org.antlr.v4.runtime.*
-import org.antlr.v4.runtime.tree.*
 import antlr.*
 
 import kotlin.system.exitProcess
 import java.io.File
+import java.lang.IllegalArgumentException
 
 //TODO: do proper visibilities
 
 fun main(args: Array<String>) {
-    //TODO: args/file validation?
+    if(args.size != 1) {
+        throw IllegalArgumentException("Wrong number of arguments: expected: 1, actual: {$args.size}")
+    }
+
     val compiler = Compiler(args[0])
     val result = compiler.compile()
     exitProcess(result)
@@ -21,8 +25,13 @@ fun main(args: Array<String>) {
 
 class Compiler(val inputFile: String) {
     //TODO: rethink return types to handle syntax vs semantic fail, error messages etc...
-    fun check(): Boolean {
+    fun check(): Int {
         val file = File(inputFile)
+
+        if(!file.exists() || !file.isFile) {
+            throw IllegalArgumentException("Cannot find input file at ${file.absolutePath}")
+        }
+
         val input = CharStreams.fromPath(file.toPath())
         val lexer = WACCLexer(input)
         val tokens = CommonTokenStream(lexer)
@@ -31,32 +40,33 @@ class Compiler(val inputFile: String) {
         val listener = WACCErrorListener()
         parser.addErrorListener(listener)
         val tree = parser.program()
-        if(!listener.errorList.isEmpty()) {
 
-            System.out.println("----- Syntactic Errors Detected -----")
-
-            listener.errorList.forEach {
-                println(it)
-            }
-
-            println("${listener.errorList.size} parser errors detected. No further compilation attempted.")
-            return true;
+        if (listener.hasSyntaxErrors()) {
+            listener.printSyntaxErrors()
+            return 100
         }
-        println(tree.toStringTree(parser))
+
+        //println(tree.toStringTree(parser))
 
         println("--------")
-        val visitor = Visitor();
+        val semanticErrorHandler = SemanticErrorHandler()
+        val symbolTable = SymbolTable(null)
+        val visitor = Visitor(semanticErrorHandler, listener, symbolTable);
         println(visitor.visit(tree).toString())
+        println("--------")
 
-        return true
+        if (listener.hasSyntaxErrors()) {
+            listener.printSyntaxErrors()
+            return 100
+        }
+        if (visitor.semantic) {
+            return 200
+        }
+
+        return 0
     }
 
     fun compile(): Int {
-        val result = check()
-        return if (result) {
-            0
-        } else {
-            100;
-        }
+        return check()
     }
 }

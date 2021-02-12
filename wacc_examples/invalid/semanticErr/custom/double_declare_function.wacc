@@ -1,0 +1,22 @@
+# tries to create a function that already exists
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+  int r1(int x) is
+    return 42
+  end
+
+  int r1(int y) is
+    return 44
+  end
+
+  int x = 0 ;
+  x = call r1(8)
+end

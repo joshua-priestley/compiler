@@ -1,0 +1,16 @@
+# tries to create a variable that already exists
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+  int[] z = [1] ;
+  int x = 3 ;
+  int y = 4 ;
+  int x = 2
+end

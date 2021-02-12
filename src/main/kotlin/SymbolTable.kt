@@ -1,10 +1,19 @@
+// Class to store the symbol table with a reference to the parent symbol table
 class SymbolTable(var parentT: SymbolTable?) {
-    private val table: LinkedHashMap<String, Node> = linkedMapOf()
+    // Table to store all variables and functions available
+    val table: LinkedHashMap<String, Type> = linkedMapOf()
+
+    // List of the other children tables (of functions)
     private val childrenTables: MutableList<SymbolTable> = mutableListOf()
 
     init {
         parentT?.addChildTable(this)
     }
+
+    fun clearTable(){
+        table.clear()
+    }
+
 
     fun addChildTable(child: SymbolTable) {
         childrenTables.add(child)
@@ -14,29 +23,62 @@ class SymbolTable(var parentT: SymbolTable?) {
         this.parentT = parentT
     }
 
-    fun addNode(name: String, node: Node) {
-        table[name] = node
+    fun addNode(name: String, type: Type) {
+        table[name] = type
     }
 
-    fun getNode(name: String): Node? {
+    fun getNodeLocal(name: String): Type? {
+        return table[name]
+    }
+
+    fun getNodeGlobal(name: String): Type? {
+        // Check the symbol table and each parent's table for an entry match
         var currTable: SymbolTable? = this
         while (currTable != null) {
-            val node = table[name]
-            if (node != null) {
-                return node
+            val type = currTable.table[name]
+            if (type != null) {
+                return type
             }
 
             currTable = currTable.parentT
         }
-
+        // If we reach here then no match was found
         return null
     }
 
-    fun getGlobalTable(): SymbolTable {
-        var currTable = this
-        while (currTable.parentT != null) {
-            currTable = currTable.parentT!!
+    fun removeNode(name: String) {
+        // Same idea as adding a node
+        var currTable: SymbolTable? = this
+        while (currTable != null) {
+            if (currTable.table.containsKey(name)) {
+                currTable.table.remove(name)
+                return
+            }
+            currTable = currTable.parentT
         }
-        return currTable
+    }
+
+    fun containsNodeLocal(name: String): Boolean {
+        return table.containsKey(name)
+    }
+
+    fun containsNodeGlobal(name: String): Boolean {
+        // Same as getting a node but just returning true or false
+        var currTable: SymbolTable? = this
+        while (currTable != null) {
+            val type = currTable.table[name]
+            if (type != null) {
+                return true
+            }
+
+            currTable = currTable.parentT
+        }
+        return false
+    }
+
+    fun printTableEntries() {
+        for (key in table.keys) {
+            println(key + ": " + table[key].toString())
+        }
     }
 }

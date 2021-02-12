@@ -1,22 +1,33 @@
 import antlr.WACCParser.*
-import javax.swing.plaf.nimbus.State
+import kotlin.Int
 
 interface Node
 
 /*
  * Programs
  */
-data class ProgramNode(val funcs: List<FunctionNode>, val stat: StatementNode, val globalSymbolTable: SymbolTable) : Node
+data class ProgramNode(val funcs: List<FunctionNode>, val stat: StatementNode) : Node
 
 /*
  * Functions
  */
-data class FunctionNode(val type: TypeNode, val ident: Ident, val params: List<Param>, val stat: StatementNode, val functionSymbolTable: SymbolTable) : Node
+data class FunctionNode(val type: TypeNode, val ident: Ident, val params: List<Param>, val stat: StatementNode) : Node
 
 /*
  * Statements
  */
-interface StatementNode : Node
+interface StatementNode : Node {
+    fun valid(): Boolean {
+        if(this is IfElseNode) {
+            return this.then.valid() && this.else_.valid()
+        } else if(this is SequenceNode) {
+            return this.stat2.valid()
+        } else if(this is ExitNode || this is ReturnNode) {
+            return true;
+        }
+        return false;
+    }
+}
 
 class SkipNode : StatementNode
 data class DeclarationNode(val type: TypeNode, val ident: Ident, val value: AssignRHSNode) : StatementNode
@@ -64,14 +75,14 @@ data class ArgList(val args: List<ExprNode>) : ExprNode
 /*
  * Operators
  */
-enum class UnOp {
-    NOT, MINUS, LEN, ORD, CHR, NOT_SUPPORTED
+enum class UnOp(val value: Int) {
+    NOT(14), MINUS(2), LEN(15), ORD(16), CHR(17), NOT_SUPPORTED(-1)
 }
 
 //TODO does making this a node mean its no longer an AST?
 //think about how to do binary operater precedence more
-enum class BinOp : Node {
-    MUL, DIV, MOD, PLUS, MINUS, GT, GTE, LT, LTE, EQ, NEQ, AND, OR, NOT_SUPPORTED
+enum class BinOp(val value: Int) : Node {
+    MUL(3), DIV(4), MOD(5), PLUS(1), MINUS(2), GT(6), GTE(7), LT(8), LTE(9), EQ(10), NEQ(11), AND(12), OR(13), NOT_SUPPORTED(-1)
 }
 
 /*
@@ -94,23 +105,27 @@ data class SndExpr(val expr: ExprNode) : PairElemNode
 /*
  * Types
  */
-interface TypeNode : Node
+interface TypeNode : Node {
+    val type : Type
+}
 
 // Base Types
-interface BaseType : TypeNode
-class Str() : BaseType
-class Bool() : BaseType
-class Chr() : BaseType
-class Int() : BaseType
+interface BaseType : TypeNode {
+}
+
+class Str(override val type : Type = Type(STRING)) : BaseType
+class Bool(override val type : Type = Type(BOOL)) : BaseType
+class Chr(override val type : Type = Type (CHAR)) : BaseType
+class Int(override val type : Type = Type (INT)) : BaseType
 
 // Nested pair type
-class Pair() : BaseType
+class Pair(override val type: Type = Type(PAIR_LITER)) : BaseType
 
 // Array Types
 interface ArrayType : TypeNode
-data class ArrayNode(val type: TypeNode) : ArrayType
+class ArrayNode(val typeNode: TypeNode, override val type : Type = Type(typeNode.type)) : ArrayType
 
 //Pair Types
-data class PairTypeNode(val type1: PairElemTypeNode, val type2: PairElemTypeNode) : TypeNode
-data class PairElemTypeNode(val type: TypeNode) : TypeNode
+data class PairTypeNode(val type1: PairElemTypeNode, val type2: PairElemTypeNode, override val type : Type = Type(type1.type, type2.type)) : TypeNode
+data class PairElemTypeNode(val typeNode: TypeNode, override val type: Type = typeNode.type) : TypeNode
 

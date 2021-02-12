@@ -1,0 +1,15 @@
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+  bool smth() is
+    return true
+  end
+  int[] x = [1, 2, 3] ;
+  x[1] = call smth()
+end
