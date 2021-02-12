@@ -21,6 +21,7 @@ fun main(args: Array<String>) {
     }
 
     val compiler = Compiler(args[0])
+
     exitProcess(compiler.compile())
 }
 
@@ -58,6 +59,7 @@ class Compiler(val inputFile: String)  {
             return SEMANTIC_ERROR
         }
 
+        println("Successfully finished compilation with exit code 0.")
         return OK
     }
 }
