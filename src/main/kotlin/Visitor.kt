@@ -353,6 +353,7 @@ STATEMENTS
         cond = false
         val expected = globalSymbolTable.getNodeGlobal("\$RET")
 
+        println("typ: $type, expexted: $expected, expr: $expr")
         if (type != expected) {
 
             println("SEMANTIC ERROR DETECTED --- RETURN TYPES NOT EQUAL Line: " + ctx.getStart().line)
