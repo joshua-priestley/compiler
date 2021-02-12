@@ -9,10 +9,28 @@ compile:
   script:
     - ./gradlew assemble
 
-test:
+test-syntax:
   stage: test
   script:
-    - ./gradlew test -i
+    - ./gradlew test -i -Dtest.type=syntax
+  artifacts:
+    when: always
+    reports:
+      junit: build/test-results/test/**/TEST-*.xml
+
+test-semantic:
+  stage: test
+  script:
+    - ./gradlew test -i -Dtest.type=semantic
+  artifacts:
+    when: always
+    reports:
+      junit: build/test-results/test/**/TEST-*.xml
+
+test-valid:
+  stage: test
+  script:
+    - ./gradlew test -i -Dtest.type=valid
   artifacts:
     when: always
     reports:
