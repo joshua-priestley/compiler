@@ -80,7 +80,7 @@ enum class UnOp(val value: Int) {
 //think about how to do binary operator precedence more
 enum class BinOp(val value: Int) : Node {
     MUL(3), DIV(4), MOD(5), PLUS(1), MINUS(2), GT(6), GTE(7), LT(8), LTE(9), EQ(10), NEQ(11), AND(12), OR(13), NOT_SUPPORTED(
-        -1
+            -1
     )
 }
 
@@ -125,9 +125,9 @@ class ArrayNode(private val typeNode: TypeNode, override val type: Type = Type(t
 
 //Pair Types
 data class PairTypeNode(
-    val type1: PairElemTypeNode,
-    val type2: PairElemTypeNode,
-    override val type: Type = Type(type1.type, type2.type)
+        val type1: PairElemTypeNode,
+        val type2: PairElemTypeNode,
+        override val type: Type = Type(type1.type, type2.type)
 ) : TypeNode
 
 data class PairElemTypeNode(val typeNode: TypeNode, override val type: Type = typeNode.type) : TypeNode

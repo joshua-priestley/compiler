@@ -1,4 +1,5 @@
 import org.antlr.v4.runtime.ParserRuleContext
+
 class SemanticErrorHandler {
     private val errorList: MutableSet<String> = mutableSetOf()
 
@@ -114,7 +115,7 @@ class SemanticErrorHandler {
 
 
     //Build a full error message given the message, line, and char of the error
-    private fun addErrorMessage(msg: String, location : String) {
+    private fun addErrorMessage(msg: String, location: String) {
         errorList.add("Semantic Error at $location: $msg")
     }
 
