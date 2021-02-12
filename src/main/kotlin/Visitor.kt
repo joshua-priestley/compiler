@@ -11,10 +11,7 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
     private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
     var semantic = false
     var cond = false
-    var inIf = false
-    var inElse = false
-    private val ifTable = SymbolTable(globalSymbolTable)
-    private val elseTable = SymbolTable(globalSymbolTable)
+
     override fun visitProgram(ctx: ProgramContext): Node {
         addAllFunctions(ctx.func())
 
@@ -52,10 +49,6 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
     }
 
     override fun visitFunc(ctx: FuncContext): Node {
-        val oldIf = inIf
-        val oldElse = inElse
-        inIf = false
-        inElse = false
         val functionSymbolTable = SymbolTable(globalSymbolTable)
 
         val ident = visit(ctx.ident()) as Ident
@@ -89,8 +82,6 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
         if (!globalSymbolTable.containsNodeLocal(ident.name)) {
             globalSymbolTable.addChildTable(functionSymbolTable)
         }
-        inIf = oldIf
-        inElse = oldElse
         return FunctionNode(type, ident, parameterNodes.toList(), stat)
     }
 
@@ -115,23 +106,18 @@ STATEMENTS
 
     private fun getPairElemType(pairElem: PairElemNode): Type? {
         val expr: ExprNode
-        val table : SymbolTable = when {
-            inIf -> ifTable
-            inElse -> elseTable
-            else -> globalSymbolTable
-        }
         return if (pairElem::class == FstExpr::class) {
             expr = (pairElem as FstExpr).expr
             if (expr::class != Ident::class) {
                 println("SEMANTIC ERROR DETECTED --- FST EXPRESSION MUST BE AN IDENT")
                 semantic = true
                 null
-            } else if (!table.containsNodeGlobal((expr as Ident).toString())) {
+            } else if (!globalSymbolTable.containsNodeGlobal((expr as Ident).toString())) {
                 println("SEMANTIC ERROR DETECTED --- PAIR DOES NOT EXIST")
                 semantic = true
                 null
             } else {
-                table.getNodeGlobal(expr.toString())!!.getPairFst()
+                globalSymbolTable.getNodeGlobal(expr.toString())!!.getPairFst()
             }
         } else {
             expr = (pairElem as SndExpr).expr
@@ -139,12 +125,12 @@ STATEMENTS
                 println("SEMANTIC ERROR DETECTED --- SND EXPRESSION MUST BE AN IDENT")
                 semantic = true
                 null
-            } else if (!table.containsNodeGlobal((expr as Ident).toString())) {
+            } else if (!globalSymbolTable.containsNodeGlobal((expr as Ident).toString())) {
                 println("SEMANTIC ERROR DETECTED --- PAIR DOES NOT EXIST")
                 semantic = true
                 null
             } else {
-                table.getNodeGlobal(expr.toString())!!.getPairSnd()
+                globalSymbolTable.getNodeGlobal(expr.toString())!!.getPairSnd()
             }
         }
     }
@@ -178,34 +164,29 @@ STATEMENTS
     }
 
     private fun getLHSType(lhs: AssignLHSNode, ctx : Assign_lhsContext): Type? {
-        val table : SymbolTable = when {
-            inIf -> ifTable
-            inElse -> elseTable
-            else -> globalSymbolTable
-        }
         return when (lhs) {
             is AssignLHSIdentNode -> {
-                if (!table.containsNodeGlobal(lhs.ident.toString())) {
+                if (!globalSymbolTable.containsNodeGlobal(lhs.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- VARIABLE REFERENCED BEFORE ASSIGNMENT Line: " + ctx.getStart().line + " " + lhs.ident.toString())
                     semantic = true
-                } else if (table.getNodeGlobal(lhs.ident.toString())!!.isFunction()) {
+                } else if (globalSymbolTable.getNodeGlobal(lhs.ident.toString())!!.isFunction()) {
                     println("SEMANTIC ERROR DETECTED --- CANNOT ASSIGN A FUNCTION Line: " + ctx.getStart().line)
                     semantic = true
                 }
-                table.getNodeGlobal(lhs.ident.toString())
+                globalSymbolTable.getNodeGlobal(lhs.ident.toString())
             }
             is LHSArrayElemNode -> {
-                if (!table.containsNodeGlobal(lhs.arrayElem.ident.toString())) {
+                if (!globalSymbolTable.containsNodeGlobal(lhs.arrayElem.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY REFERENCED BEFORE ASSIGNMENT Line: " + ctx.getStart().line)
                     semantic = true
                 } else if (getExprType(lhs.arrayElem.expr[0],null) != Type(INT)) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER Line: " + ctx.getStart().line)
                     semantic = true
-                } else if (table.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getType() == STRING) {
+                } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getType() == STRING) {
                     println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED Line: " + ctx.getStart().line)
                     semantic = true
                 }
-                table.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getBaseType()
+                globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getBaseType()
             }
             else -> {
                 getPairElemType((lhs as LHSPairElemNode).pairElem)
@@ -234,24 +215,19 @@ STATEMENTS
     }
 
     private fun getRHSType(rhs: AssignRHSNode): Type? {
-        val table : SymbolTable = when {
-            inIf -> ifTable
-            inElse -> elseTable
-            else -> globalSymbolTable
-        }
         return when (rhs) {
             is RHSExprNode -> {
                 getExprType(rhs.expr,null)
             }
             is RHSCallNode -> {
-                if (!table.containsNodeGlobal(rhs.ident.toString())) {
+                if (!globalSymbolTable.containsNodeGlobal(rhs.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- FUNCTION REFERENCED BEFORE ASSIGNMENT")
                     semantic = true
                     null
                 } else if (!checkParameters(rhs)) {
                     null
                 } else {
-                    table.getNodeGlobal(rhs.ident.toString())
+                    globalSymbolTable.getNodeGlobal(rhs.ident.toString())
                 }
             }
             is RHSPairElemNode -> {
@@ -322,11 +298,6 @@ STATEMENTS
     }
 
     override fun visitRead(ctx: ReadContext): Node {
-        val table : SymbolTable = when {
-            inIf -> ifTable
-            inElse -> elseTable
-            else -> globalSymbolTable
-        }
         val lhsNode = visit(ctx.assign_lhs()) as AssignLHSNode
         val type = when (lhsNode) {
             is LHSPairElemNode -> getPairElemType(lhsNode.pairElem)
@@ -336,11 +307,11 @@ STATEMENTS
                     println("SEMANTIC ERROR DETECTED --- MUST READ INTO VARIABLE Line: " + ctx.getStart().line)
                     semantic = true
                 }
-                if (!table.containsNodeGlobal((lhsNode as AssignLHSIdentNode).ident.toString())) {
+                if (!globalSymbolTable.containsNodeGlobal((lhsNode as AssignLHSIdentNode).ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- VARIABLE DOES NOT EXIST Line: " + ctx.getStart().line + " " + lhsNode.ident.toString())
                     semantic = true
                 }
-                table.getNodeGlobal(lhsNode.ident.toString())
+                globalSymbolTable.getNodeGlobal(lhsNode.ident.toString())
             }
         }
 
@@ -391,12 +362,7 @@ STATEMENTS
     }
 
     private fun checkPrint(expr: ExprNode) {
-        val table : SymbolTable = when {
-            inIf -> ifTable
-            inElse -> elseTable
-            else -> globalSymbolTable
-        }
-        if (expr is Ident && !table.containsNodeGlobal(expr.toString())) {
+        if (expr is Ident && !globalSymbolTable.containsNodeGlobal(expr.toString())) {
             println("SEMANTIC ERROR DETECTED --- CANNOT PRINT A NON EXISTENT VARIABLE")
             semantic = true
         }
@@ -425,21 +391,18 @@ STATEMENTS
             println("SEMANTIC ERROR DETECTED --- IF STATEMENT CONDITION NOT BOOLEAN Line: " + ctx.getStart().line)
             semantic = true
         }
-
-        inElse = false
-        inIf = true
-        ifTable.parentT = globalSymbolTable
-        val stat1 = visit(ctx.stat(0)) as StatementNode
-        inIf = false
-
-        inElse = true
-        elseTable.parentT = globalSymbolTable
-        val stat2 = visit(ctx.stat(1)) as StatementNode
-        inElse = false
-        ifTable.clearTable()
-        elseTable.clearTable()
-        inIf = false
         cond = false
+
+        val ifSymbolTable = SymbolTable(globalSymbolTable)
+        globalSymbolTable = ifSymbolTable
+        val stat1 = visit(ctx.stat(0)) as StatementNode
+        globalSymbolTable = globalSymbolTable.parentT!!
+
+        val elseSymbolTable = SymbolTable(globalSymbolTable)
+        globalSymbolTable = elseSymbolTable
+        val stat2 = visit(ctx.stat(1)) as StatementNode
+        globalSymbolTable = globalSymbolTable.parentT!!
+
         return IfElseNode(condExpr, stat1, stat2)
     }
 
@@ -478,17 +441,12 @@ STATEMENTS
         val ident = Ident(ctx.ident().text)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
         val table : SymbolTable
-        when{
-            inIf -> table = ifTable
-            inElse -> table = elseTable
-            else -> table = globalSymbolTable
-        }
-        if (!cond && globalSymbolTable.containsNodeLocal(ident.toString()) && table.containsNodeLocal(ident.toString())
+        if (!cond && globalSymbolTable.containsNodeLocal(ident.toString()) && globalSymbolTable.containsNodeLocal(ident.toString())
             && !globalSymbolTable.getNodeLocal(ident.toString())!!.isFunction()) {
             println("SEMANTIC ERROR DETECTED --- VARIABLE ALREADY EXISTS  Line: " + ctx.getStart().line)
             semantic = true
         } else {
-            table.addNode(ident.toString(), type.type)
+            globalSymbolTable.addNode(ident.toString(), type.type)
         }
 
         val lhsType = type.type
@@ -600,24 +558,19 @@ TYPES
     }
 
     private fun getExprType(expr: ExprNode, ctx: ExprContext?): Type? {
-        val table : SymbolTable = when {
-            inIf -> ifTable
-            inElse -> elseTable
-            else -> globalSymbolTable
-        }
         return when (expr) {
             is IntLiterNode -> Type(INT)
             is StrLiterNode -> Type(STRING)
             is BoolLiterNode -> Type(BOOL)
             is CharLiterNode -> Type(CHAR)
             is Ident -> {
-                if (!table.containsNodeGlobal(expr.toString())) {
+                if (!globalSymbolTable.containsNodeGlobal(expr.toString())) {
 
                     println("SEMANTIC ERROR DETECTED --- VARIABLE DOES NOT EXIST Line: " + ctx!!.getStart().line + " " + expr.toString())
                     semantic = true
                     null
                 } else {
-                    table.getNodeGlobal(expr.toString())
+                    globalSymbolTable.getNodeGlobal(expr.toString())
                 }
             }
 
@@ -625,15 +578,15 @@ TYPES
                 if (getExprType(expr.expr[0],ctx) != Type(INT)) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER Line: " + ctx!!.getStart().line)
                     semantic = true
-                } else if (!table.containsNodeGlobal(expr.ident.toString())) {
+                } else if (!globalSymbolTable.containsNodeGlobal(expr.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY DOES NOT EXIST")
                     semantic = true
 
-                } else if (table.getNodeGlobal(expr.ident.toString())!!.getType() == STRING) {
+                } else if (globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getType() == STRING) {
                     println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED")
                     semantic = true
                 }
-                table.getNodeGlobal(expr.ident.toString())!!.getBaseType()
+                globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
             }
             is UnaryOpNode -> {
                 if (cond) {
