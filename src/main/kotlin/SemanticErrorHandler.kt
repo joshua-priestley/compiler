@@ -31,9 +31,25 @@ class SemanticErrorHandler {
     }
 
     //Error message for an undefined variable
-    fun undefinedVariable(ident: String, ctx: ParserRuleContext) {
-        val msg = "Variable $ident is not defined in this scope"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line, ctx.getStart().charPositionInLine)
+    fun undefinedVariable(type: String, ident: String) {
+        val line = errorLine()
+        val char = errorChar()
+        val msg = "$type $ident is not defined in this scope"
+        val fullMsg = buildErrorMessage(msg,line,char)
+
+        errorList.add(fullMsg)
+    }
+
+    fun mismatchedArgs(expected: String, actual: String, ctx: ParserRuleContext) {
+        val msg = "Number of function arguments does not match (expected: $expected, actual: $actual)"
+        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+
+        errorList.add(fullMsg)
+    }
+
+    fun mismatchedParamTypes(expected: String, actual: String, ctx: ParserRuleContext) {
+        val msg = "Mismatched paramater types (expected: $expected, actual: $actual)"
+        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
@@ -117,8 +133,8 @@ class SemanticErrorHandler {
         errorList.add(fullMsg)
     }
 
-    fun arrayIndex(ctx: ParserRuleContext) {
-        val msg = "Array index is not an integer"
+    fun arrayIndex(index: String, expected: String, actual: String, ctx: ParserRuleContext) {
+        val msg = "Array index at $index is invalid (expected: $expected, actual: $actual)"
         val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)

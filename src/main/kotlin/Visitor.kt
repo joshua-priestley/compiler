@@ -1,6 +1,7 @@
 import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
 import Type
+import org.antlr.v4.runtime.Parser
 import org.antlr.v4.runtime.ParserRuleContext
 import javax.swing.plaf.nimbus.State
 import kotlin.math.exp
@@ -105,7 +106,7 @@ PARAMETERS
 STATEMENTS
  */
 
-    private fun getPairElemType(pairElem: PairElemNode): Type? {
+    private fun getPairElemType(pairElem: PairElemNode, ctx: ParserRuleContext): Type? {
         val expr: ExprNode
         return if (pairElem::class == FstExpr::class) {
             expr = (pairElem as FstExpr).expr
@@ -114,8 +115,7 @@ STATEMENTS
                 semantic = true
                 null
             } else if (!globalSymbolTable.containsNodeGlobal((expr as Ident).toString())) {
-                println("SEMANTIC ERROR DETECTED --- PAIR DOES NOT EXIST")
-                semantic = true
+                semanticListener.undefinedType(expr.name, ctx)
                 null
             } else {
                 globalSymbolTable.getNodeGlobal(expr.toString())!!.getPairFst()
@@ -136,13 +136,12 @@ STATEMENTS
         }
     }
 
-    private fun checkParameters(rhs: RHSCallNode): Boolean {
+    private fun checkParameters(rhs: RHSCallNode, ctx: ParserRuleContext): Boolean {
         val parameterTypes = functionParameters[rhs.ident.toString()]
         if (rhs.argList == null && parameterTypes!!.isEmpty()) {
             return true
         } else if (rhs.argList!!.size != parameterTypes!!.size) {
-            println("SEMANTIC ERROR DETECTED --- NUMBER OF ARGUMENTS DOES NOT MATCH")
-            semantic = true
+            semanticListener.mismatchedArgs(parameterTypes.size.toString(), rhs.argList.size.toString(), ctx)
             return false
         }
         val argTypes = mutableListOf<Type>()
@@ -156,8 +155,7 @@ STATEMENTS
         }
         for (i in argTypes.indices) {
             if (argTypes[i].getType() != parameterTypes[i].getType()) {
-                println("SEMANTIC ERROR DETECTED --- MISMATCHED PARAMETER TYPES")
-                semantic = true
+                semanticListener.mismatchedParamTypes(argTypes[i].getType().toString(), parameterTypes[i].getType().toString(), ctx)
                 return false
             }
         }
@@ -181,7 +179,7 @@ STATEMENTS
                     println("SEMANTIC ERROR DETECTED --- ARRAY REFERENCED BEFORE ASSIGNMENT Line: " + ctx.getStart().line)
                     semantic = true
                 } else if (getExprType(lhs.arrayElem.expr[0],null) != Type(INT)) {
-                    semanticListener.arrayIndex(ctx)
+                    semanticListener.arrayIndex("0", "INT", getExprType(lhs.arrayElem.expr[0],null).toString(), ctx)
                     semantic = true
                 } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getType() == STRING) {
                     println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED Line: " + ctx.getStart().line)
@@ -190,12 +188,12 @@ STATEMENTS
                 globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getBaseType()
             }
             else -> {
-                getPairElemType((lhs as LHSPairElemNode).pairElem)
+                getPairElemType((lhs as LHSPairElemNode).pairElem, ctx)
             }
         }
     }
 
-    private fun checkElemsSameType(exprs: List<ExprNode>) {
+    private fun checkElemsSameType(exprs: List<ExprNode>, ctx: ParserRuleContext) {
         if (exprs.isEmpty()) {
             return
         }
@@ -203,8 +201,7 @@ STATEMENTS
         for (i in exprs.indices) {
             // If the type cannot be found, something is wrong with the element
             if (getExprType(exprs[i],null) == null) {
-                println("SEMANTIC ERROR --- Invalid array element")
-                semantic = true
+                semanticListener.arrayIndex(i.toString(), getExprType(exprs[i],null).toString(), "NULL", ctx)
                 break
                 // If the elements type does not match the first then there is an error
             } else if (getExprType(exprs[i],null) != firstType) {
@@ -224,17 +221,17 @@ STATEMENTS
                 if (!globalSymbolTable.containsNodeGlobal(rhs.ident.toString())) {
                     semanticListener.funRefBeforeAss(rhs.ident.name, ctx)
                     null
-                } else if (!checkParameters(rhs)) {
+                } else if (!checkParameters(rhs, ctx)) {
                     null
                 } else {
                     globalSymbolTable.getNodeGlobal(rhs.ident.toString())
                 }
             }
             is RHSPairElemNode -> {
-                getPairElemType(rhs.pairElem)
+                getPairElemType(rhs.pairElem, ctx)
             }
             is RHSArrayLitNode -> {
-                checkElemsSameType(rhs.exprs)
+                checkElemsSameType(rhs.exprs, ctx)
                 if (rhs.exprs.isEmpty()) {
                     Type(EMPTY_ARR)
                 } else {
@@ -300,7 +297,7 @@ STATEMENTS
     override fun visitRead(ctx: ReadContext): Node {
         val lhsNode = visit(ctx.assign_lhs()) as AssignLHSNode
         val type = when (lhsNode) {
-            is LHSPairElemNode -> getPairElemType(lhsNode.pairElem)
+            is LHSPairElemNode -> getPairElemType(lhsNode.pairElem, ctx)
             is LHSArrayElemNode -> getExprType(lhsNode.arrayElem,null)
             else -> {
                 if (lhsNode !is AssignLHSIdentNode) {
@@ -308,7 +305,7 @@ STATEMENTS
                     semantic = true
                 }
                 if (!globalSymbolTable.containsNodeGlobal((lhsNode as AssignLHSIdentNode).ident.toString())) {
-                    semanticListener.undefinedVariable(lhsNode.ident.name, ctx)
+                    semanticListener.undefinedType(lhsNode.ident.name, ctx)
                     semantic = true
                 }
                 globalSymbolTable.getNodeGlobal(lhsNode.ident.toString())
@@ -362,7 +359,7 @@ STATEMENTS
 
     private fun checkPrint(expr: ExprNode, ctx: ParserRuleContext) {
         if (expr is Ident && !globalSymbolTable.containsNodeGlobal(expr.toString())) {
-            semanticListener.undefinedVariable(expr.name, ctx)
+            semanticListener.undefinedType(expr.name, ctx)
             semantic = true
         }
     }
@@ -573,10 +570,10 @@ TYPES
 
             is ArrayElem -> {
                 if (getExprType(expr.expr[0],ctx) != Type(INT)) {
-                    semanticListener.arrayIndex(ctx!!)
+                    semanticListener.arrayIndex("0", getExprType(expr.expr[0], ctx).toString(), "INT", ctx!!)
                     semantic = true
                 } else if (!globalSymbolTable.containsNodeGlobal(expr.ident.toString())) {
-                    semanticListener.undefinedVariable(expr.ident.name, ctx!!)
+                    semanticListener.undefinedType(expr.ident.name, ctx!!)
                     semantic = true
 
                 } else if (globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getType() == STRING) {
