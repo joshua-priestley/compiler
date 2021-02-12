@@ -10,7 +10,7 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
     private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
     var semantic = false
     var cond = false
-
+    var inIf = false
     override fun visitProgram(ctx: ProgramContext): Node {
         addAllFunctions(ctx.func())
 
@@ -346,9 +346,13 @@ STATEMENTS
             println("SEMANTIC ERROR DETECTED --- RETURNING FROM GLOBAL Line: " + ctx.getStart().line)
             semantic = true
         }
+
         val expr = visit(ctx.expr()) as ExprNode
+        cond = true
         val type = getExprType(expr)
-        if (type != globalSymbolTable.getNodeLocal("\$RET")) {
+        cond = false
+        val retType = globalSymbolTable.getNodeLocal("\$RET")
+        if (type != retType && !(retType!!.getType() == PAIR_LITER && type!!.getType() == PAIR_LITER)) {
             println("SEMANTIC ERROR DETECTED --- RETURN TYPES NOT EQUAL Line: " + ctx.getStart().line)
             semantic = true
         }
@@ -379,11 +383,13 @@ STATEMENTS
     }
 
     override fun visitIf(ctx: IfContext): Node {
+        inIf = true
         cond = true
         val condExpr = visit(ctx.expr()) as ExprNode
         if (getExprType(condExpr) != Type(BOOL)) {
             println("SEMANTIC ERROR DETECTED --- IF STATEMENT CONDITION NOT BOOLEAN Line: " + ctx.getStart().line)
             semantic = true
+            inIf = false
         }
         cond = false
         return IfElseNode(condExpr,
@@ -681,6 +687,8 @@ TYPES
             semantic = true
         }
         if (!binaryOpsRequires(op.value).contains(exprType) && !binaryOpsRequires(op.value).contains(Type(ANY))) {
+            println(binaryOpsRequires(op.value))
+            println(exprType)
             println("SEMANTIC ERROR DETECTED --- WRONG TYPE FOR THIS BIN OP Line: " + ctx.getStart().line)
             semantic = true
         }
