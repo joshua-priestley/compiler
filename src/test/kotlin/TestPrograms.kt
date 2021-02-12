@@ -38,15 +38,6 @@ class TestPrograms {
                         .filter { ".wacc" in it.path }.toSortedSet()
             }.flatten()
 
-    private val testSyntaxFiles = File("./wacc_examples/invalid/syntaxErr").walk()
-                .filter { ".wacc" in it.path }.toSortedSet()
-
-    private val testSemanticFiles = File("./wacc_examples/invalid/semanticErr").walk()
-        .filter { ".wacc" in it.path }.toSortedSet()
-
-    private val testValidFiles = File("./wacc_examples/valid").walk()
-        .filter { ".wacc" in it.path }.toSortedSet()
-
     private fun runTest(inputFile: File) {
         println(inputFile.canonicalPath)
         val compiler = Compiler(inputFile.canonicalPath)
@@ -64,14 +55,12 @@ class TestPrograms {
     //note running through intellij will not show the file testnames - make in terminal and view the test report
     @TestFactory
     fun createTests(): List<DynamicTest> {
-        if(System.getProperty("test.type").equals("syntax")) {
-            return testSyntaxFiles.map { f -> DynamicTest.dynamicTest(f.name) { runTest(f) } }
-        } else if(System.getProperty("test.type") == "semantic") {
-            return testSemanticFiles.map { f -> DynamicTest.dynamicTest(f.name) { runTest(f) } }
-        } else if(System.getProperty("test.type") == "valid") {
-            return testValidFiles.map { f -> DynamicTest.dynamicTest(f.name) { runTest(f) } }
-        } else {
-            return testFiles.map { f -> DynamicTest.dynamicTest(f.name) { runTest(f) } }
+        val files = when (System.getProperty("test.type")) {
+            "syntax" -> testFiles.filter {it.canonicalPath.contains("syntaxErr")}
+            "semantic" -> testFiles.filter {it.canonicalPath.contains("semanticErr")}
+            "valid" -> testFiles.filter {it.canonicalPath.contains("valid")}
+            else -> testFiles
         }
+        return files.map {f -> DynamicTest.dynamicTest(f.name) { runTest(f) } }
     }
 }
