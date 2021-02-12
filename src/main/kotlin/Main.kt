@@ -14,7 +14,7 @@ import java.lang.IllegalArgumentException
 //TODO: do proper visibilities
 
 fun main(args: Array<String>) {
-    if(args.size != 1) {
+    if (args.size != 1) {
         throw IllegalArgumentException("Wrong number of arguments: expected: 1, actual: {$args.size}")
     }
 
@@ -28,7 +28,7 @@ class Compiler(val inputFile: String) {
     fun check(): Int {
         val file = File(inputFile)
 
-        if(!file.exists() || !file.isFile) {
+        if (!file.exists() || !file.isFile) {
             throw IllegalArgumentException("Cannot find input file at ${file.absolutePath}")
         }
 

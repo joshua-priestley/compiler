@@ -10,41 +10,42 @@ class SemanticErrorHandler {
 
     fun fstSndMustBePair(ctx: ParserRuleContext) {
         val msg = "When calling fst or snd, must be a variable"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
-        errorList.add(fullMsg)    }
+        errorList.add(fullMsg)
+    }
 
     fun mismatchedArgs(expected: String, actual: String, ctx: ParserRuleContext) {
         val msg = "Number of function arguments does not match (expected: $expected, actual: $actual)"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
 
     fun mismatchedParamTypes(expected: String, actual: String, ctx: ParserRuleContext) {
         val msg = "Mismatched paramater types (expected: $expected, actual: $actual)"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
 
     fun funRefBeforeAss(expr: String, ctx: ParserRuleContext) {
         val msg = "Function referenced before assignment at $expr"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
 
     fun newPairFalse(pairIndex: String, ctx: ParserRuleContext) {
         val msg = "newpair expression $pairIndex is false"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
 
     fun incompatibleExitCode(expr: String, actual: String, ctx: ParserRuleContext) {
         val msg = "Incompatible exit code at $expr (expected: INT, actual: $actual)"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
@@ -52,21 +53,21 @@ class SemanticErrorHandler {
     //Error message for redefining variable within same scope
     fun redefinedVariable(ident: String, ctx: ParserRuleContext) {
         val msg = "\"$ident\" is already defined in this scope"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
 
     fun assigningFunction(ident: String, ctx: ParserRuleContext) {
         val msg = "\"$ident\" is a function, cannot assign a function a value"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
 
     fun undefinedType(ident: String, ctx: ParserRuleContext) {
         val msg = "\"$ident\" is not defined in this scope"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
@@ -74,56 +75,56 @@ class SemanticErrorHandler {
     //Error message for incompatible types in an expression
     fun incompatibleTypeDecl(expr: String, expected: String, actual: String, ctx: ParserRuleContext) {
         val msg = "Incompatible type declaration at $expr (expected: $expected, actual: $actual)"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
 
     fun incompatibleTypeAss(expected: String, actual: String, ctx: ParserRuleContext) {
         val msg = "Incompatible type assignment (expected: $expected, actual: $actual)"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
 
     fun incompatibleTypeReturn(expected: String, actual: String, ctx: ParserRuleContext) {
         val msg = "Incompatible return type (expected: $expected, actual: $actual)"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
 
     fun incompatibleTypeFree(actual: String, ctx: ParserRuleContext) {
         val msg = "Incompatible return type (expected: Pair, actual: $actual)"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
 
     fun arrayDifferingTypes(ctx: ParserRuleContext) {
         val msg = "Array has differing element types"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
 
     fun readNotVariable(ctx: ParserRuleContext) {
         val msg = "Read must be stored in a variable"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
 
     fun readTypeError(actual: String, ctx: ParserRuleContext) {
         val msg = "Incompatible type assignment at READ (expected: {INT, CHAR}, actual: $actual)"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
 
     fun arrayIndex(index: String, expected: String, actual: String, ctx: ParserRuleContext) {
         val msg = "Array index at $index is invalid (expected: $expected, actual: $actual)"
-        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
@@ -150,7 +151,7 @@ class SemanticErrorHandler {
     }
 
     //Error message for returning from global scope
-    fun returnFromGlobal(ctx: ParserRuleContext){
+    fun returnFromGlobal(ctx: ParserRuleContext) {
         val msg = "Cannot return from the global scope."
         val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
@@ -159,7 +160,7 @@ class SemanticErrorHandler {
 
 
     //Build a full error message given the message, line, and char of the error
-    private fun buildErrorMessage(msg : String, line : Int, char : Int) : String{
+    private fun buildErrorMessage(msg: String, line: Int, char: Int): String {
         return "Semantic Error at $line:$char: $msg"
     }
 

@@ -10,7 +10,7 @@ class SymbolTable(var parentT: SymbolTable?) {
         parentT?.addChildTable(this)
     }
 
-    fun clearTable(){
+    fun clearTable() {
         table.clear()
     }
 

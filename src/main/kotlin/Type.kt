@@ -6,6 +6,7 @@ const val ARRAY = -2
 const val ANY = -3
 const val EMPTY_ARR = -4
 const val PAIR_LITER = -5
+
 class Type {
 
     private val type: Int
@@ -90,7 +91,8 @@ class Type {
             return when {
                 //Char array and string are equivalent
                 getArray() && !getBaseType().getArray() && getBaseType().getType() == CHAR && compare.getType() == STRING -> true
-                compare.getArray() && compare.getBaseType().getType() == CHAR && !compare.getBaseType().getArray() && getType() == STRING -> true
+                compare.getArray() && compare.getBaseType().getType() == CHAR && !compare.getBaseType()
+                    .getArray() && getType() == STRING -> true
 
                 //Check array base types
                 compare.getArray() && getArray() -> compare.getBaseType() == getBaseType()
@@ -100,7 +102,7 @@ class Type {
                 //Check pair types
                 compare.getPair() && getPair() -> compare.getPairFst() == getPairFst() && compare.getPairSnd() == getPairSnd()
 
-                compare.getPair() && getPair() -> ((compare.getPairFst() == null && compare.getPairSnd() == null )||(getPairFst() == null && getPairSnd() == null))
+                compare.getPair() && getPair() -> ((compare.getPairFst() == null && compare.getPairSnd() == null) || (getPairFst() == null && getPairSnd() == null))
 
                 //Check basic types
                 compare.getType() == getType() -> true
@@ -123,12 +125,13 @@ class Type {
         if (getPair()) {
             //Return PAIR(<FstType>,<SndType>)
             sb.append(symbolName)
-            if (!(getPairFst() == null && getPairSnd() == null)){
-            sb.append('(')
-            sb.append(getPairFst().toString())
-            sb.append(',')
-            sb.append(getPairSnd().toString())
-            sb.append(')')}
+            if (!(getPairFst() == null && getPairSnd() == null)) {
+                sb.append('(')
+                sb.append(getPairFst().toString())
+                sb.append(',')
+                sb.append(getPairSnd().toString())
+                sb.append(')')
+            }
             return sb.toString()
         }
         if (getArray()) {
