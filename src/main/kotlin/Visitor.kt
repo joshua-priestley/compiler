@@ -166,23 +166,23 @@ STATEMENTS
         return when (lhs) {
             is AssignLHSIdentNode -> {
                 if (!globalSymbolTable.containsNodeGlobal(lhs.ident.toString())) {
-                    println("SEMANTIC ERROR DETECTED --- VARIABLE REFERENCED BEFORE ASSIGNMENT Line: " + ctx.getStart().line + " " + lhs.ident.toString())
+                    semanticListener.undefinedType(lhs.ident.name, ctx)
                     semantic = true
                 } else if (globalSymbolTable.getNodeGlobal(lhs.ident.toString())!!.isFunction()) {
-                    println("SEMANTIC ERROR DETECTED --- CANNOT ASSIGN A FUNCTION Line: " + ctx.getStart().line)
+                    semanticListener.assigningFunction(lhs.ident.name, ctx)
                     semantic = true
                 }
                 globalSymbolTable.getNodeGlobal(lhs.ident.toString())
             }
             is LHSArrayElemNode -> {
                 if (!globalSymbolTable.containsNodeGlobal(lhs.arrayElem.ident.toString())) {
-                    println("SEMANTIC ERROR DETECTED --- ARRAY REFERENCED BEFORE ASSIGNMENT Line: " + ctx.getStart().line)
+                    semanticListener.undefinedType(lhs.arrayElem.ident.name, ctx)
                     semantic = true
                 } else if (getExprType(lhs.arrayElem.expr[0],null) != Type(INT)) {
                     semanticListener.arrayIndex("0", "INT", getExprType(lhs.arrayElem.expr[0],null).toString(), ctx)
                     semantic = true
                 } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getType() == STRING) {
-                    println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED Line: " + ctx.getStart().line)
+                    semanticListener.indexStrings(ctx)
                     semantic = true
                 }
                 globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getBaseType()
@@ -453,7 +453,6 @@ STATEMENTS
                 && !(lhsType.getArray() && rhsType.getType() == Type(EMPTY_ARR).getType())
                 && !(lhsType.getPair() && rhsType.getType() == Type(PAIR_LITER).getType())
             ) {
-                //println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION Line: " + ctx.getStart().line)
                 semanticListener.incompatibleTypeDecl(ident.toString(), lhsType.toString(), rhs.toString(), ctx)
                 semantic = true
             }

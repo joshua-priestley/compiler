@@ -83,6 +83,13 @@ class SemanticErrorHandler {
         errorList.add(fullMsg)
     }
 
+    fun assigningFunction(ident: String, ctx: ParserRuleContext) {
+        val msg = "\"$ident\" is a function, cannot assign a function a value"
+        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+
+        errorList.add(fullMsg)
+    }
+
     fun undefinedType(ident: String, ctx: ParserRuleContext) {
         val msg = "\"$ident\" is not defined in this scope"
         val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
