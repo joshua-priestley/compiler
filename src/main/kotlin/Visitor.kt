@@ -512,7 +512,7 @@ TYPES
             ctx.BOOL() != null -> Bool()
             ctx.CHAR() != null -> Chr()
             else -> Str()
-        };
+        }
     }
 
     override fun visitArray_type(ctx: Array_typeContext): Node {

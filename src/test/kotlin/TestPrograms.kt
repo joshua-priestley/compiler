@@ -3,7 +3,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.DynamicTest
-import org.junit.jupiter.api.Test
 import java.io.File
 
 //TODO clean up/rethink how to control which tests are run in a more elegant way
@@ -26,20 +25,20 @@ class TestPrograms {
         println(a.compiler_out)
     }
      */
-    val testDirsPath = "./src/test/kotlin/testDirs"
-    val examplesPath = "./wacc_examples/"
+    private val testDirsPath = "./src/test/kotlin/testDirs"
+    private val examplesPath = "./wacc_examples/"
 
     //all directories specified in the testDirs file
-    val allTestDirs = File(testDirsPath).readLines()
+    private val allTestDirs = File(testDirsPath).readLines()
 
     //all files in directories in allTestDirs (recursive)
-    val testFiles = allTestDirs
+    private val testFiles = allTestDirs
             .map { dir ->
                 File(examplesPath + dir).walk()
                         .filter { ".wacc" in it.path }.toSortedSet()
             }.flatten()
 
-    fun runTest(inputFile: File) {
+    private fun runTest(inputFile: File) {
         println(inputFile.canonicalPath)
         val compiler = Compiler(inputFile.canonicalPath)
 
