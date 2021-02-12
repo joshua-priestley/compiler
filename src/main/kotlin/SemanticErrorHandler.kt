@@ -1,3 +1,4 @@
+import antlr.WACCParser
 import org.antlr.v4.runtime.ParserRuleContext
 import kotlin.Int
 import kotlin.system.exitProcess
@@ -30,11 +31,9 @@ class SemanticErrorHandler {
     }
 
     //Error message for an undefined variable
-    fun undefinedVariable(ident: String) {
-        val line = errorLine()
-        val char = errorChar()
+    fun undefinedVariable(ident: String, ctx: ParserRuleContext) {
         val msg = "Variable $ident is not defined in this scope"
-        val fullMsg = buildErrorMessage(msg,line,char)
+        val fullMsg = buildErrorMessage(msg,ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
@@ -90,6 +89,27 @@ class SemanticErrorHandler {
         errorList.add(fullMsg)
     }
 
+    fun incompatibleTypeReturn(expected: String, actual: String, ctx: ParserRuleContext) {
+        val msg = "Incompatible return type (expected: $expected, actual: $actual)"
+        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+
+        errorList.add(fullMsg)
+    }
+
+    fun incompatibleTypeFree(actual: String, ctx: ParserRuleContext) {
+        val msg = "Incompatible return type (expected: Pair, actual: $actual)"
+        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+
+        errorList.add(fullMsg)
+    }
+
+    fun readNotVariable(ctx: ParserRuleContext) {
+        val msg = "Read must be stored in a variable"
+        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+
+        errorList.add(fullMsg)
+    }
+
     fun readTypeError(actual: String, ctx: ParserRuleContext) {
         val msg = "Incompatible type assignment at READ (expected: {INT, CHAR}, actual: $actual)"
         val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
@@ -104,12 +124,31 @@ class SemanticErrorHandler {
         errorList.add(fullMsg)
     }
 
+    fun binaryOpType(ctx: ParserRuleContext) {
+        val msg = "Incompatible types for binary operator"
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
+
+        errorList.add(fullMsg)
+    }
+
+    fun indexStrings(ctx: ParserRuleContext) {
+        val msg = "Strings cannot be indexed"
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
+
+        errorList.add(fullMsg)
+    }
+
+    fun conditionalBoolean(ctx: ParserRuleContext) {
+        val msg = "Conditional expression must be of type boolean"
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
+
+        errorList.add(fullMsg)
+    }
+
     //Error message for returning from global scope
-    fun returnFromGlobal(){
-        val line = errorLine()
-        val char = errorChar()
+    fun returnFromGlobal(ctx: ParserRuleContext){
         val msg = "Cannot return from the global scope."
-        val fullMsg = buildErrorMessage(msg,line,char)
+        val fullMsg = buildErrorMessage(msg, ctx.getStart().line, ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)
     }
