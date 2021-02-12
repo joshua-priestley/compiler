@@ -1,6 +1,7 @@
 import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
 import org.antlr.v4.runtime.ParserRuleContext
+import javax.naming.Context
 
 class Visitor(
     private val semanticListener: SemanticErrorHandler,
@@ -156,7 +157,7 @@ STATEMENTS
         // Get the type of each argument
         val argTypes = mutableListOf<Type>()
         for (arg in rhs.argList) {
-            val type = getExprType(arg, null)
+            val type = getExprType(arg, ctx)
             if (type == null) {
                 return false
             } else {
@@ -194,8 +195,8 @@ STATEMENTS
                 // Check the array exists, the type is valid and the index is an integer
                 if (!globalSymbolTable.containsNodeGlobal(lhs.arrayElem.ident.toString())) {
                     semanticListener.undefinedType(lhs.arrayElem.ident.name, ctx)
-                } else if (getExprType(lhs.arrayElem.expr[0], null) != Type(INT)) {
-                    semanticListener.arrayIndex("0", "INT", getExprType(lhs.arrayElem.expr[0], null).toString(), ctx)
+                } else if (getExprType(lhs.arrayElem.expr[0], ctx) != Type(INT)) {
+                    semanticListener.arrayIndex("0", "INT", getExprType(lhs.arrayElem.expr[0], ctx).toString(), ctx)
                 } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getType() == STRING) {
                     semanticListener.indexStrings(ctx)
                 }
@@ -215,14 +216,14 @@ STATEMENTS
             return
         }
         // Get the first type as a reference type to compare all the others to
-        val firstType = getExprType(exprs[0], null)
+        val firstType = getExprType(exprs[0], ctx)
         for (i in exprs.indices) {
             // If the type cannot be found, something is wrong with the element
-            if (getExprType(exprs[i], null) == null) {
-                semanticListener.arrayIndex(i.toString(), getExprType(exprs[i], null).toString(), "NULL", ctx)
+            if (getExprType(exprs[i], ctx) == null) {
+                semanticListener.arrayIndex(i.toString(), getExprType(exprs[i], ctx).toString(), "NULL", ctx)
                 break
                 // If the elements type does not match the first then there is an error
-            } else if (getExprType(exprs[i], null) != firstType) {
+            } else if (getExprType(exprs[i], ctx) != firstType) {
                 semanticListener.arrayDifferingTypes(ctx)
                 break
             }
@@ -233,7 +234,7 @@ STATEMENTS
     private fun getRHSType(rhs: AssignRHSNode, ctx: ParserRuleContext): Type? {
         return when (rhs) {
             is RHSExprNode -> {
-                getExprType(rhs.expr, null)
+                getExprType(rhs.expr, ctx)
             }
             is RHSCallNode -> {
                 // Check the function exists and that the parameters are correct
@@ -256,7 +257,7 @@ STATEMENTS
                     Type(EMPTY_ARR)
                 } else {
                     // Check the index is not null
-                    val type = getExprType(rhs.exprs[0], null)
+                    val type = getExprType(rhs.exprs[0], ctx)
                     if (type == null) {
                         null
                     } else {
@@ -267,8 +268,8 @@ STATEMENTS
             else -> {
                 // RHSNewPairElemNode
                 val pair = rhs as RHSNewPairNode
-                var expr1 = getExprType(pair.expr1, null)
-                var expr2 = getExprType(rhs.expr2, null)
+                var expr1 = getExprType(pair.expr1, ctx)
+                var expr2 = getExprType(rhs.expr2, ctx)
 
                 if (expr1 != null) {
                     if (expr1.getType() == PAIR_LITER) {
@@ -322,7 +323,7 @@ STATEMENTS
         val lhsNode = visit(ctx.assign_lhs()) as AssignLHSNode
         val type = when (lhsNode) {
             is LHSPairElemNode -> getPairElemType(lhsNode.pairElem, ctx)
-            is LHSArrayElemNode -> getExprType(lhsNode.arrayElem, null)
+            is LHSArrayElemNode -> getExprType(lhsNode.arrayElem, ctx)
             else -> {
                 if (lhsNode !is AssignLHSIdentNode) {
                     // The read value must go into a variable
@@ -585,7 +586,7 @@ TYPES
     }
 
     // Check is possible version of an expression and return its type
-    private fun getExprType(expr: ExprNode, ctx: ExprContext?): Type? {
+    private fun getExprType(expr: ExprNode, ctx: ParserRuleContext?): Type? {
         return when (expr) {
             is IntLiterNode -> Type(INT)
             is StrLiterNode -> Type(STRING)
