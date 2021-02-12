@@ -31,8 +31,8 @@ class TestTypes {
         val t3 = Type(str, s1)
         val t4 = Type(int, str)
         assertEquals(t1, t2)
-        assertNotEquals(t2, t3)
-        assertNotEquals(t3, t4)
+        assertEquals(t2, t3)
+        assertEquals(t3, t4)
     }
 
     // Character arrays should be the same type as strings

@@ -6,6 +6,7 @@ const val ARRAY = -2
 const val ANY = -3
 const val EMPTY_ARR = -4
 const val PAIR_LITER = -5
+
 class Type {
 
     private val type: Int
@@ -76,18 +77,6 @@ class Type {
         return (this.type == PAIR_LITER)
     }
 
-    // Returns true iff the type is a null pair
-    private fun isNullPair():Boolean = getPair() && getPairFst() == null && getPairSnd() == null
-
-    // Helper function for pairwise equality of pair types
-    private fun comparePairElems(t1: Type?, t2: Type?): Boolean = when {
-        t1 == null -> t2 == null || t2.getType() == PAIR_LITER
-        t2 == null -> t1.getType() == PAIR_LITER
-        t1.getPair() -> t2.getPair()
-        else -> t1.getType() == t2.getType()
-    }
-
-
     override fun hashCode(): Int {
         return super.hashCode()
     }
@@ -102,17 +91,18 @@ class Type {
             return when {
                 //Char array and string are equivalent
                 getArray() && !getBaseType().getArray() && getBaseType().getType() == CHAR && compare.getType() == STRING -> true
-                compare.getArray() && compare.getBaseType().getType() == CHAR && !compare.getBaseType().getArray() && getType() == STRING -> true
+                compare.getArray() && compare.getBaseType().getType() == CHAR && !compare.getBaseType()
+                    .getArray() && getType() == STRING -> true
 
                 //Check array base types
                 compare.getArray() && getArray() -> compare.getBaseType() == getBaseType()
 
-                //compare.getType() == PAIR_LITER -> getType() == PAIR_LITER
+                compare.getType() == PAIR_LITER -> getType() == PAIR_LITER
 
                 //Check pair types
-                compare.getPair() && getPair() -> (comparePairElems(compare.getPairFst(), getPairFst()) &&
-                                                   comparePairElems(compare.getPairSnd(), getPairSnd())) ||
-                                                   isNullPair() || compare.isNullPair()
+                compare.getPair() && getPair() -> compare.getPairFst() == getPairFst() && compare.getPairSnd() == getPairSnd()
+
+                compare.getPair() && getPair() -> ((compare.getPairFst() == null && compare.getPairSnd() == null) || (getPairFst() == null && getPairSnd() == null))
 
                 //Check basic types
                 compare.getType() == getType() -> true
@@ -127,10 +117,15 @@ class Type {
 
     //Convert a type to a string for the printing of error messages
     override fun toString(): String {
-        val sb = StringBuilder()
         if (this.type == PAIR_LITER) {
-            sb.append("PAIR_LITER")
-            if (!isNullPair()) {
+            return "PAIR_LITER"
+        }
+        val symbolName = VOCABULARY.getSymbolicName(getType())
+        val sb = StringBuilder()
+        if (getPair()) {
+            //Return PAIR(<FstType>,<SndType>)
+            sb.append(symbolName)
+            if (!(getPairFst() == null && getPairSnd() == null)) {
                 sb.append('(')
                 sb.append(getPairFst().toString())
                 sb.append(',')
@@ -139,18 +134,6 @@ class Type {
             }
             return sb.toString()
         }
-        val symbolName = VOCABULARY.getSymbolicName(getType())
-        /*if (getPair()) {
-            //Return PAIR(<FstType>,<SndType>)
-            sb.append(symbolName)
-            if (!(getPairFst() == null && getPairSnd() == null)){
-            sb.append('(')
-            sb.append(getPairFst().toString())
-            sb.append(',')
-            sb.append(getPairSnd().toString())
-            sb.append(')')}
-            return sb.toString()
-        }*/
         if (getArray()) {
             //Return <BaseType>[]
             sb.append(getBaseType().toString())

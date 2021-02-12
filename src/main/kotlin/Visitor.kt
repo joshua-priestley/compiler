@@ -1,42 +1,45 @@
 import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
-import Type
-import javax.swing.plaf.nimbus.State
-import kotlin.math.exp
+import org.antlr.v4.runtime.ParserRuleContext
 
-class Visitor(private val semanticListener: SemanticErrorHandler,
-              private val syntaxListener: WACCErrorListener,
-              private var globalSymbolTable: SymbolTable) : WACCParserBaseVisitor<Node>() {
+class Visitor(
+    private val semanticListener: SemanticErrorHandler,
+    private val syntaxListener: WACCErrorListener,
+    private var globalSymbolTable: SymbolTable
+) : WACCParserBaseVisitor<Node>() {
 
+    // A map to store all the functions and their parameters for semantic checking
     private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
-    var semantic = false
-    var cond = false
 
+    // A flag to know if we want the type a boolean returns or requires
+    var boolTypeResult = false
+
+    // Visits the main program to build the AST
     override fun visitProgram(ctx: ProgramContext): Node {
+        // First add all the functions to the map
         addAllFunctions(ctx.func())
 
-//        println("Added Functions:")
-//        globalSymbolTable.printTableEntries()
+        // Visit each function and the global stat
         val functionNodes = mutableListOf<FunctionNode>()
         ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
         val stat = visit(ctx.stat()) as StatementNode
 
-//        println("Added eveything else")
-//        globalSymbolTable.printTableEntries()
         return ProgramNode(functionNodes, stat)
     }
 
+    // Visits each function and adds it to the global symbol table
     private fun addAllFunctions(funcCTXs: MutableList<FuncContext>) {
         for (func in funcCTXs) {
-            val ident = visit(func.ident()) as Ident
-            val type = visit(func.type()) as TypeNode
+            val ident = visit(func.ident()) as Ident // Function name
+            val type = visit(func.type()) as TypeNode // Function return type
+            // Check if the function already exists
             if (globalSymbolTable.containsNodeLocal(ident.toString())) {
-                println("SEMANTIC ERROR DETECTED --- FUNCTION ALREADY EXISTS")
-                semantic = true
+                semanticListener.redefinedVariable(ident.name + "()", func)
             } else {
                 globalSymbolTable.addNode(ident.toString(), type.type.setFunction(true))
             }
 
+            // Add each parameter to the function's parameter list in the map
             val parameterTypes = mutableListOf<Type>()
             if (func.param_list() != null) {
                 for (i in 0..func.param_list().childCount step 2) {
@@ -48,12 +51,15 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
         }
     }
 
+    // Visit a function for the AST
     override fun visitFunc(ctx: FuncContext): Node {
+        // Create a new scope for the function
         val functionSymbolTable = SymbolTable(globalSymbolTable)
 
-        val ident = visit(ctx.ident()) as Ident
-        val type = visit(ctx.type()) as TypeNode
+        val ident = visit(ctx.ident()) as Ident // Function name
+        val type = visit(ctx.type()) as TypeNode // Return type
 
+        // Add each parameter to the function's symbol table
         val parameterNodes = mutableListOf<Param>()
         val parameterTypes = mutableListOf<Type>()
         if (ctx.param_list() != null) {
@@ -65,11 +71,12 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
             }
         }
 
+        // Add the function's return type to the table too
         functionSymbolTable.addNode("\$RET", type.type.setFunction(true))
-        functionSymbolTable.addNode(ident.toString(), type.type.setFunction(true))
 
         functionParameters[ident.toString()] = parameterTypes
 
+        // Assign the current scope to the scope of the function when building its statement node
         globalSymbolTable = functionSymbolTable
         val stat = visit(ctx.stat()) as StatementNode
         // TODO: CHANGE ERROR MESSAGE TO SMTH BETTER
@@ -77,11 +84,13 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
             syntaxListener.addSyntaxError(ctx, "return type of function invalid")
         }
 
+        // Revert back to the global scope
         globalSymbolTable = globalSymbolTable.parentT!!
 
         if (!globalSymbolTable.containsNodeLocal(ident.name)) {
             globalSymbolTable.addChildTable(functionSymbolTable)
         }
+
         return FunctionNode(type, ident, parameterNodes.toList(), stat)
     }
 
@@ -104,17 +113,17 @@ PARAMETERS
 STATEMENTS
  */
 
-    private fun getPairElemType(pairElem: PairElemNode): Type? {
+    private fun getPairElemType(pairElem: PairElemNode, ctx: ParserRuleContext): Type? {
+        // Checks that the variable used is valid and defined, otherwise a semantic error is thrown
+        // if there are no issues, it returns the type of the element
         val expr: ExprNode
         return if (pairElem::class == FstExpr::class) {
             expr = (pairElem as FstExpr).expr
             if (expr::class != Ident::class) {
-                println("SEMANTIC ERROR DETECTED --- FST EXPRESSION MUST BE AN IDENT")
-                semantic = true
+                semanticListener.fstSndMustBePair(ctx)
                 null
             } else if (!globalSymbolTable.containsNodeGlobal((expr as Ident).toString())) {
-                println("SEMANTIC ERROR DETECTED --- PAIR DOES NOT EXIST")
-                semantic = true
+                semanticListener.undefinedType(expr.name, ctx)
                 null
             } else {
                 globalSymbolTable.getNodeGlobal(expr.toString())!!.getPairFst()
@@ -122,12 +131,10 @@ STATEMENTS
         } else {
             expr = (pairElem as SndExpr).expr
             if (expr::class != Ident::class) {
-                println("SEMANTIC ERROR DETECTED --- SND EXPRESSION MUST BE AN IDENT")
-                semantic = true
+                semanticListener.fstSndMustBePair(ctx)
                 null
             } else if (!globalSymbolTable.containsNodeGlobal((expr as Ident).toString())) {
-                println("SEMANTIC ERROR DETECTED --- PAIR DOES NOT EXIST")
-                semantic = true
+                semanticListener.undefinedType(expr.name, ctx)
                 null
             } else {
                 globalSymbolTable.getNodeGlobal(expr.toString())!!.getPairSnd()
@@ -135,110 +142,121 @@ STATEMENTS
         }
     }
 
-    private fun checkParameters(rhs: RHSCallNode): Boolean {
+    private fun checkParameters(rhs: RHSCallNode, ctx: ParserRuleContext): Boolean {
+        // Checks all the arguments being passed into a function so that all the types match up
         val parameterTypes = functionParameters[rhs.ident.toString()]
         if (rhs.argList == null && parameterTypes!!.isEmpty()) {
+            // Check if there are parameters
             return true
         } else if (rhs.argList!!.size != parameterTypes!!.size) {
-            println("SEMANTIC ERROR DETECTED --- NUMBER OF ARGUMENTS DOES NOT MATCH")
-            semantic = true
+            // Check they are the same size
+            semanticListener.mismatchedArgs(parameterTypes.size.toString(), rhs.argList.size.toString(), ctx)
             return false
         }
+        // Get the type of each argument
         val argTypes = mutableListOf<Type>()
         for (arg in rhs.argList) {
-            val type = getExprType(arg,null)
+            val type = getExprType(arg, null)
             if (type == null) {
                 return false
             } else {
                 argTypes.add(type)
             }
         }
+
+        // Check each argument matches with the type of the parameter
         for (i in argTypes.indices) {
             if (argTypes[i].getType() != parameterTypes[i].getType()) {
-                println("SEMANTIC ERROR DETECTED --- MISMATCHED PARAMETER TYPES")
-                semantic = true
+                semanticListener.mismatchedParamTypes(
+                    Type(argTypes[i].getType()).toString(),
+                    Type(parameterTypes[i].getType()).toString(),
+                    ctx
+                )
                 return false
             }
         }
         return true
     }
 
-    private fun getLHSType(lhs: AssignLHSNode, ctx : Assign_lhsContext): Type? {
+    // Case to check each possibility of node
+    private fun getLHSType(lhs: AssignLHSNode, ctx: Assign_lhsContext): Type? {
         return when (lhs) {
             is AssignLHSIdentNode -> {
+                // Check the type is valid and the variable is not a function name
                 if (!globalSymbolTable.containsNodeGlobal(lhs.ident.toString())) {
-                    println("SEMANTIC ERROR DETECTED --- VARIABLE REFERENCED BEFORE ASSIGNMENT Line: " + ctx.getStart().line + " " + lhs.ident.toString())
-                    semantic = true
+                    semanticListener.undefinedType(lhs.ident.name, ctx)
                 } else if (globalSymbolTable.getNodeGlobal(lhs.ident.toString())!!.isFunction()) {
-                    println("SEMANTIC ERROR DETECTED --- CANNOT ASSIGN A FUNCTION Line: " + ctx.getStart().line)
-                    semantic = true
+                    semanticListener.assigningFunction(lhs.ident.name, ctx)
                 }
                 globalSymbolTable.getNodeGlobal(lhs.ident.toString())
             }
             is LHSArrayElemNode -> {
+                // Check the array exists, the type is valid and the index is an integer
                 if (!globalSymbolTable.containsNodeGlobal(lhs.arrayElem.ident.toString())) {
-                    println("SEMANTIC ERROR DETECTED --- ARRAY REFERENCED BEFORE ASSIGNMENT Line: " + ctx.getStart().line)
-                    semantic = true
-                } else if (getExprType(lhs.arrayElem.expr[0],null) != Type(INT)) {
-                    println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER Line: " + ctx.getStart().line)
-                    semantic = true
+                    semanticListener.undefinedType(lhs.arrayElem.ident.name, ctx)
+                } else if (getExprType(lhs.arrayElem.expr[0], null) != Type(INT)) {
+                    semanticListener.arrayIndex("0", "INT", getExprType(lhs.arrayElem.expr[0], null).toString(), ctx)
                 } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getType() == STRING) {
-                    println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED Line: " + ctx.getStart().line)
-                    semantic = true
+                    semanticListener.indexStrings(ctx)
                 }
                 globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getBaseType()
             }
             else -> {
-                getPairElemType((lhs as LHSPairElemNode).pairElem)
+                // Call the helper function to get the type of the pair elem
+                getPairElemType((lhs as LHSPairElemNode).pairElem, ctx)
             }
         }
     }
 
-    private fun checkElemsSameType(exprs: List<ExprNode>) {
+    // Checks every element in the list is the same type
+    private fun checkElemsSameType(exprs: List<ExprNode>, ctx: ParserRuleContext) {
+        // No need if empty list
         if (exprs.isEmpty()) {
             return
         }
-        val firstType = getExprType(exprs[0],null)
+        // Get the first type as a reference type to compare all the others to
+        val firstType = getExprType(exprs[0], null)
         for (i in exprs.indices) {
             // If the type cannot be found, something is wrong with the element
-            if (getExprType(exprs[i],null) == null) {
-                println("SEMANTIC ERROR --- Invalid array element")
-                semantic = true
+            if (getExprType(exprs[i], null) == null) {
+                semanticListener.arrayIndex(i.toString(), getExprType(exprs[i], null).toString(), "NULL", ctx)
                 break
                 // If the elements type does not match the first then there is an error
-            } else if (getExprType(exprs[i],null) != firstType) {
-                println("SEMANTIC ERROR --- Array elements have differing types")
-                semantic = true
+            } else if (getExprType(exprs[i], null) != firstType) {
+                semanticListener.arrayDifferingTypes(ctx)
                 break
             }
         }
     }
 
-    private fun getRHSType(rhs: AssignRHSNode): Type? {
+    // Similar idea to getLHSType
+    private fun getRHSType(rhs: AssignRHSNode, ctx: ParserRuleContext): Type? {
         return when (rhs) {
             is RHSExprNode -> {
-                getExprType(rhs.expr,null)
+                getExprType(rhs.expr, null)
             }
             is RHSCallNode -> {
+                // Check the function exists and that the parameters are correct
                 if (!globalSymbolTable.containsNodeGlobal(rhs.ident.toString())) {
-                    println("SEMANTIC ERROR DETECTED --- FUNCTION REFERENCED BEFORE ASSIGNMENT")
-                    semantic = true
+                    semanticListener.funRefBeforeAss(rhs.ident.name, ctx)
                     null
-                } else if (!checkParameters(rhs)) {
+                } else if (!checkParameters(rhs, ctx)) {
                     null
                 } else {
+                    // Return the type of the function's return
                     globalSymbolTable.getNodeGlobal(rhs.ident.toString())
                 }
             }
             is RHSPairElemNode -> {
-                getPairElemType(rhs.pairElem)
+                getPairElemType(rhs.pairElem, ctx)
             }
             is RHSArrayLitNode -> {
-                checkElemsSameType(rhs.exprs)
+                checkElemsSameType(rhs.exprs, ctx)
                 if (rhs.exprs.isEmpty()) {
                     Type(EMPTY_ARR)
                 } else {
-                    val type = getExprType(rhs.exprs[0],null)
+                    // Check the index is not null
+                    val type = getExprType(rhs.exprs[0], null)
                     if (type == null) {
                         null
                     } else {
@@ -248,8 +266,9 @@ STATEMENTS
             }
             else -> {
                 // RHSNewPairElemNode
-                var expr1 = getExprType((rhs as RHSNewPairNode).expr1,null)
-                var expr2 = getExprType(rhs.expr2,null)
+                val pair = rhs as RHSNewPairNode
+                var expr1 = getExprType(pair.expr1, null)
+                var expr2 = getExprType(rhs.expr2, null)
 
                 if (expr1 != null) {
                     if (expr1.getType() == PAIR_LITER) {
@@ -262,16 +281,16 @@ STATEMENTS
                     }
                 }
 
-                if (expr1 == null) {
-                    println("SEMANTIC ERROR DETECTED --- NEWPAIR EXPRESSION 1 IS FALSE")
-                    semantic = true
-                    null
-                } else if (expr2 == null) {
-                    println("SEMANTIC ERROR DETECTED --- NEWPAIR EXPRESSION 2 IS FALSE")
-                    semantic = true
-                    null
-                } else {
-                    Type(expr1, expr2)
+                when {
+                    expr1 == null -> {
+                        semanticListener.newPairFalse("1", ctx)
+                        null
+                    }
+                    expr2 == null -> {
+                        semanticListener.newPairFalse("2", ctx)
+                        null
+                    }
+                    else -> Type(expr1, expr2)
                 }
             }
         }
@@ -281,16 +300,17 @@ STATEMENTS
         val lhs = visit(ctx.assign_lhs()) as AssignLHSNode
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
 
-        val lhsType = getLHSType(lhs,ctx.assign_lhs())
+        val lhsType = getLHSType(lhs, ctx.assign_lhs())
 
-        cond = true
-        val rhsType = getRHSType(rhs)
-        cond = false
+        boolTypeResult = true
+        val rhsType = getRHSType(rhs, ctx)
+        boolTypeResult = false
         if (lhsType != null) {
+            // Check that the types are equal for all different cases (variable, array or pair)
             if (lhsType.getType() != rhsType!!.getType() && !(lhsType.getArray() && rhsType.getType() == Type(EMPTY_ARR).getType())
-                && !(lhsType.getPair() && rhsType.getType() == Type(PAIR_LITER).getType())) {
-                println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT Line: " + ctx.getStart().line)
-                semantic = true
+                && !(lhsType.getPair() && rhsType.getType() == Type(PAIR_LITER).getType())
+            ) {
+                semanticListener.incompatibleTypeAss(lhsType.toString(), rhsType.toString(), ctx)
             }
         }
 
@@ -298,102 +318,109 @@ STATEMENTS
     }
 
     override fun visitRead(ctx: ReadContext): Node {
+        // Get the type of the variable
         val lhsNode = visit(ctx.assign_lhs()) as AssignLHSNode
         val type = when (lhsNode) {
-            is LHSPairElemNode -> getPairElemType(lhsNode.pairElem)
-            is LHSArrayElemNode -> getExprType(lhsNode.arrayElem,null)
+            is LHSPairElemNode -> getPairElemType(lhsNode.pairElem, ctx)
+            is LHSArrayElemNode -> getExprType(lhsNode.arrayElem, null)
             else -> {
                 if (lhsNode !is AssignLHSIdentNode) {
-                    println("SEMANTIC ERROR DETECTED --- MUST READ INTO VARIABLE Line: " + ctx.getStart().line)
-                    semantic = true
+                    // The read value must go into a variable
+                    semanticListener.readNotVariable(ctx)
                 }
                 if (!globalSymbolTable.containsNodeGlobal((lhsNode as AssignLHSIdentNode).ident.toString())) {
-                    println("SEMANTIC ERROR DETECTED --- VARIABLE DOES NOT EXIST Line: " + ctx.getStart().line + " " + lhsNode.ident.toString())
-                    semantic = true
+                    semanticListener.undefinedType(lhsNode.ident.name, ctx)
                 }
                 globalSymbolTable.getNodeGlobal(lhsNode.ident.toString())
             }
         }
 
+        // Read can only be int or char
         if (!(type == Type(INT) || type == Type(CHAR))) {
-            println("SEMANTIC ERROR DETECTED --- READ MUST GO INTO AN INT OR CHAR Line: " + ctx.getStart().line)
-            semantic = true
+            semanticListener.readTypeError(type.toString(), ctx)
+
         }
         return ReadNode(lhsNode)
     }
 
     override fun visitExit(ctx: ExitContext): Node {
+        // An exit value must be an integer
         val expr = visit(ctx.expr()) as ExprNode
-        if (getExprType(expr,ctx.expr()) != Type(INT)) {
-            println("SEMANTIC ERROR DETECTED --- EXIT CODE MUST BE INT Line: " + ctx.getStart().line)
-            semantic = true
+        if (getExprType(expr, ctx.expr()) != Type(INT)) {
+            semanticListener.incompatibleExitCode(ctx.expr().text, getExprType(expr, ctx.expr()).toString(), ctx)
         }
         return ExitNode(expr)
     }
 
     override fun visitFree(ctx: FreeContext): Node {
+        // The freed variable must be a pair
         val freedExpr = visit(ctx.expr()) as ExprNode
-        val freeType = getExprType(freedExpr,ctx.expr())
+        val freeType = getExprType(freedExpr, ctx.expr())
         if (freeType == null || !freeType.getPair()) {
-            println("SEMANTIC ERROR DETECTED --- CAN ONLY FREE A PAIR Line: " + ctx.getStart().line)
-            semantic = true
+            semanticListener.incompatibleTypeFree(freeType.toString(), ctx)
         }
         return FreeNode(freedExpr)
     }
 
     override fun visitReturn(ctx: ReturnContext): Node {
+        // Check the return is inside a function, not global
         if (globalSymbolTable.parentT == null) {
-            println("SEMANTIC ERROR DETECTED --- RETURNING FROM GLOBAL Line: " + ctx.getStart().line)
-            semantic = true
+            semanticListener.returnFromGlobal(ctx)
         }
 
-        val expr = visit(ctx.expr()) as ExprNode
-        cond = true
-        val type = getExprType(expr,ctx.expr())
-        cond = false
+        // Check the expected type is equal to the function's return type
+        val exprType = visit(ctx.expr()) as ExprNode
+        boolTypeResult = true
+        val returnType = getExprType(exprType, ctx.expr())
+        boolTypeResult = false
         val expected = globalSymbolTable.getNodeGlobal("\$RET")
 
-        println("typ: $type, expexted: $expected, expr: $expr")
-        if (type != expected) {
-
-            println("SEMANTIC ERROR DETECTED --- RETURN TYPES NOT EQUAL Line: " + ctx.getStart().line)
-            semantic = true
+        if (expected != returnType) {
+            semanticListener.incompatibleTypeReturn(expected.toString(), returnType.toString(), ctx)
         }
-        return ReturnNode(expr)
+        return ReturnNode(exprType)
     }
 
-    private fun checkPrint(expr: ExprNode) {
+    // Check that if we are printing a variable, it exists
+    private fun checkPrint(expr: ExprNode, ctx: ParserRuleContext) {
         if (expr is Ident && !globalSymbolTable.containsNodeGlobal(expr.toString())) {
-            println("SEMANTIC ERROR DETECTED --- CANNOT PRINT A NON EXISTENT VARIABLE")
-            semantic = true
+            semanticListener.undefinedType(expr.name, ctx)
         }
     }
 
     override fun visitPrintln(ctx: PrintlnContext): Node {
         val expr = visit(ctx.expr()) as ExprNode
-        checkPrint(expr)
+        checkPrint(expr, ctx)
         return PrintlnNode(expr)
+    }
+
+    override fun visitPrint(ctx: PrintContext): Node {
+        val expr = visit(ctx.expr()) as ExprNode
+        checkPrint(expr, ctx)
+        return PrintNode(expr)
     }
 
     override fun visitSkip(ctx: SkipContext): Node {
         return SkipNode()
     }
 
-    override fun visitPrint(ctx: PrintContext): Node {
-        val expr = visit(ctx.expr()) as ExprNode
-        checkPrint(expr)
-        return PrintNode(expr)
+    // Gets the expression node of a conditional context
+    private fun getConditionExpression(expr: ExprContext, ctx: ParserRuleContext): ExprNode {
+        boolTypeResult = true
+        val condExpr = visit(expr) as ExprNode
+        // Checks that it is of type bool
+        if (getExprType(condExpr, expr) != Type(BOOL)) {
+            semanticListener.conditionalBoolean(ctx)
+        }
+        boolTypeResult = false
+        return condExpr
     }
 
     override fun visitIf(ctx: IfContext): Node {
-        cond = true
-        val condExpr = visit(ctx.expr()) as ExprNode
-        if (getExprType(condExpr,ctx.expr()) != Type(BOOL)) {
-            println("SEMANTIC ERROR DETECTED --- IF STATEMENT CONDITION NOT BOOLEAN Line: " + ctx.getStart().line)
-            semantic = true
-        }
-        cond = false
+        val condExpr = getConditionExpression(ctx.expr(), ctx)
 
+        // Create new scope for each branch of the conditional to make sure there are no scoping issues
+        // Then traverse down either side
         val ifSymbolTable = SymbolTable(globalSymbolTable)
         globalSymbolTable = ifSymbolTable
         val stat1 = visit(ctx.stat(0)) as StatementNode
@@ -408,14 +435,9 @@ STATEMENTS
     }
 
     override fun visitWhile(ctx: WhileContext): Node {
-        cond = true
-        val condExpr = visit(ctx.expr()) as ExprNode
-        if (getExprType(condExpr,ctx.expr()) != Type(BOOL)) {
-            println("SEMANTIC ERROR DETECTED --- WHILE CONDITION NOT BOOLEAN Line: " + ctx.getStart().line)
-            semantic = true
-        }
-        cond = false
+        val condExpr = getConditionExpression((ctx.expr()), ctx)
 
+        // Create a new scope for the loop
         val loopSymbolTable = SymbolTable(globalSymbolTable)
         globalSymbolTable = loopSymbolTable
         val stat = visit(ctx.stat()) as StatementNode
@@ -425,6 +447,7 @@ STATEMENTS
     }
 
     override fun visitBegin(ctx: BeginContext): Node {
+        // Create a new scope for each begin
         val scopeSymbolTable = SymbolTable(globalSymbolTable)
         globalSymbolTable = scopeSymbolTable
         val stat = visit(ctx.stat()) as StatementNode
@@ -436,32 +459,32 @@ STATEMENTS
         return SequenceNode(visit(ctx.stat(0)) as StatementNode, visit(ctx.stat(1)) as StatementNode)
     }
 
+    // Checks that the LHS type = RHS type and creates an AST node
     override fun visitVarDeclaration(ctx: VarDeclarationContext): Node {
-
         val type = visit(ctx.type()) as TypeNode
         val ident = Ident(ctx.ident().text)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
-        val table : SymbolTable
-        if (!cond && globalSymbolTable.containsNodeLocal(ident.toString()) && globalSymbolTable.containsNodeLocal(ident.toString())
-            && !globalSymbolTable.getNodeLocal(ident.toString())!!.isFunction()) {
-            println("SEMANTIC ERROR DETECTED --- VARIABLE ALREADY EXISTS  Line: " + ctx.getStart().line)
-            semantic = true
+        // Check that the variable named exists and is not a function
+        if (!boolTypeResult && globalSymbolTable.containsNodeLocal(ident.toString()) && globalSymbolTable.containsNodeLocal(ident.toString())
+            && !globalSymbolTable.getNodeLocal(ident.toString())!!.isFunction()
+        ) {
+            semanticListener.redefinedVariable(ident.name, ctx)
         } else {
             globalSymbolTable.addNode(ident.toString(), type.type)
         }
 
         val lhsType = type.type
-        cond = true
-        val rhsType = getRHSType(rhs)
-        cond = false
+        boolTypeResult = true
+        val rhsType = getRHSType(rhs, ctx)
+        boolTypeResult = false
 
-        if(rhsType != null) {
+        // Check each side's type is equal
+        if (rhsType != null) {
             if (lhsType.getType() != rhsType.getType()
                 && !(lhsType.getArray() && rhsType.getType() == Type(EMPTY_ARR).getType())
                 && !(lhsType.getPair() && rhsType.getType() == Type(PAIR_LITER).getType())
             ) {
-                println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION Line: " + ctx.getStart().line)
-                semantic = true
+                semanticListener.incompatibleTypeDecl(ident.name, lhsType.toString(), rhsType.toString(), ctx)
             }
         }
 
@@ -488,8 +511,7 @@ TYPES
             ctx.INT() != null -> Int()
             ctx.BOOL() != null -> Bool()
             ctx.CHAR() != null -> Chr()
-            ctx.STRING() != null -> Str()
-            else -> TODO()
+            else -> Str()
         };
     }
 
@@ -498,16 +520,17 @@ TYPES
     }
 
     override fun visitPair_type(ctx: Pair_typeContext): Node {
-        return PairTypeNode(visit(ctx.pair_elem_type(0)) as PairElemTypeNode,
-                visit(ctx.pair_elem_type(1)) as PairElemTypeNode)
+        return PairTypeNode(
+            visit(ctx.pair_elem_type(0)) as PairElemTypeNode,
+            visit(ctx.pair_elem_type(1)) as PairElemTypeNode
+        )
     }
 
     override fun visitPair_elem_type(ctx: Pair_elem_typeContext): Node {
         val type: Any = when {
             ctx.PAIR() != null -> Pair()
             ctx.array_type() != null -> visit(ctx.array_type())
-            ctx.base_type() != null -> visit(ctx.base_type())
-            else -> println("Shouldn't get here...")
+            else -> visit(ctx.base_type())
         }
         return PairElemTypeNode(type as TypeNode)
     }
@@ -516,7 +539,8 @@ TYPES
     ================================================================
     EXPRESSIONS
      */
-    //Get the type of a binary operator
+
+    // Get the type a binary operator produces
     private fun binaryOpsProduces(operator: kotlin.Int): Type {
         return when {
             //Tokens 1-5 are int operators
@@ -527,18 +551,19 @@ TYPES
         }
     }
 
+    // Get the type a binary operator requires
     private fun binaryOpsRequires(operator: kotlin.Int): List<Type> {
         return when {
             operator < 6 -> mutableListOf(Type(INT))
             operator in 6..9 -> mutableListOf(Type(INT), Type(CHAR))
-            operator in 10..11 -> mutableListOf(Type(ANY))
+            operator in 10..11 -> mutableListOf(Type(ANY)) // EQ and NEQ can take any type
             operator in 12..14 -> mutableListOf(Type(BOOL))
             operator in 12..14 -> mutableListOf(Type(BOOL))
             else -> mutableListOf(Type(INVALID))
         }
     }
 
-    //Get the type of a unary operator
+    // Get the type a unary operator produces
     private fun unaryOpsProduces(operator: kotlin.Int): Type {
         return when (operator) {
             NOT -> Type(BOOL)
@@ -548,6 +573,7 @@ TYPES
         }
     }
 
+    // Get the type a unary operator requires
     private fun unaryOpsRequires(operator: kotlin.Int): Type {
         return when (operator) {
             NOT -> Type(BOOL)
@@ -558,6 +584,7 @@ TYPES
         }
     }
 
+    // Check is possible version of an expression and return its type
     private fun getExprType(expr: ExprNode, ctx: ExprContext?): Type? {
         return when (expr) {
             is IntLiterNode -> Type(INT)
@@ -565,10 +592,9 @@ TYPES
             is BoolLiterNode -> Type(BOOL)
             is CharLiterNode -> Type(CHAR)
             is Ident -> {
+                // Check the variable exists
                 if (!globalSymbolTable.containsNodeGlobal(expr.toString())) {
-
-                    println("SEMANTIC ERROR DETECTED --- VARIABLE DOES NOT EXIST Line: " + ctx!!.getStart().line + " " + expr.toString())
-                    semantic = true
+                    semanticListener.undefinedType(expr.name, ctx!!)
                     null
                 } else {
                     globalSymbolTable.getNodeGlobal(expr.toString())
@@ -576,38 +602,34 @@ TYPES
             }
 
             is ArrayElem -> {
-                if (getExprType(expr.expr[0],ctx) != Type(INT)) {
-                    println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER Line: " + ctx!!.getStart().line)
-                    semantic = true
+                // Check the index is correct and the types match
+                if (getExprType(expr.expr[0], ctx) != Type(INT)) {
+                    semanticListener.arrayIndex("0", getExprType(expr.expr[0], ctx).toString(), "INT", ctx!!)
                 } else if (!globalSymbolTable.containsNodeGlobal(expr.ident.toString())) {
-                    println("SEMANTIC ERROR DETECTED --- ARRAY DOES NOT EXIST")
-                    semantic = true
-
+                    semanticListener.undefinedType(expr.ident.name, ctx!!)
                 } else if (globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getType() == STRING) {
-                    println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED")
-                    semantic = true
+                    // Make sure we are not trying to index a string
+                    semanticListener.indexStrings(ctx!!)
                 }
                 globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
             }
+            // Depending on the flag we either want what the operator requires or produces
             is UnaryOpNode -> {
-                if (cond) {
+                if (boolTypeResult) {
                     unaryOpsProduces(expr.operator.value)
                 } else {
                     unaryOpsRequires(expr.operator.value)
                 }
             }
             is BinaryOpNode -> {
-                if (cond) {
+                if (boolTypeResult) {
                     binaryOpsProduces(expr.operator.value)
                 } else {
                     val requires = binaryOpsRequires(expr.operator.value)
-                    if (requires.contains(getExprType(expr.expr1,ctx)) || requires.contains(Type(ANY))) {
-                        //TODO check is this actually right? an operator expr should always have the produced type right???
+                    if (requires.contains(getExprType(expr.expr1, ctx)) || requires.contains(Type(ANY))) {
                         binaryOpsProduces(expr.operator.value)
-                        //getExprType(expr.expr1)
                     } else {
-                        println("SEMANTIC ERROR DETECTED -- INCORRECT TYPE FOR BINARY OPERATOR")
-                        semantic = true
+                        semanticListener.binaryOpType(ctx!!)
                         null
                     }
                 }
@@ -626,8 +648,12 @@ TYPES
             ctx.STR_LITER() != null -> StrLiterNode(ctx.text)
             else -> {
                 val value = ctx.text.toLong()
+                // Check the integer is within the accepted range
                 if (value !in Integer.MIN_VALUE..Integer.MAX_VALUE) {
-                    syntaxListener.addSyntaxError(ctx, "int value must be between -2147483648 and 2147483647 Line: " + ctx.getStart().line)
+                    syntaxListener.addSyntaxError(
+                        ctx,
+                        "int value must be between -2147483648 and 2147483647 Line: " + ctx.getStart().line
+                    )
                 }
                 IntLiterNode(ctx.text)
             }
@@ -654,7 +680,7 @@ TYPES
 
     override fun visitArray_elem(ctx: Array_elemContext): Node {
         return ArrayElem(visit(ctx.ident()) as Ident,
-                ctx.expr().map { visit(it) as ExprNode })
+            ctx.expr().map { visit(it) as ExprNode })
     }
 
     override fun visitUnaryOp(ctx: UnaryOpContext): Node {
@@ -689,31 +715,19 @@ TYPES
             else -> BinOp.NOT_SUPPORTED
         }
 
-       // println(ctx.expr(0))
-       // println(ctx.expr(1).toString())
-
         val expr1 = visit(ctx.expr(0)) as ExprNode
         val expr2 = visit(ctx.expr(1)) as ExprNode
 
-
         val exprType = getExprType(expr1, ctx)
-        /*
-        println(expr1)
-        println(expr2)
-        println("Type is: $exprType")
-        println("Type 2 is: ${getExprType(expr2)}")
-        */
-        if (exprType != null && getExprType(expr2,ctx.expr(1)) != null && exprType.getType() != getExprType(expr2,ctx.expr(1))!!.getType()) {
-            println("Type is: $exprType")
-            println("Type 2 is: ${getExprType(expr2,ctx.expr(1))}")
-            println("SEMANTIC ERROR DETECTED --- BOOLEAN EXPRESSION TYPES DO NOT MATCH WITH EACHOTHER Line: " + ctx.getStart().line)
-            semantic = true
-        }
-        if (!binaryOpsRequires(op.value).contains(exprType) && !binaryOpsRequires(op.value).contains(Type(ANY))) {
-            println(binaryOpsRequires(op.value))
-            println(exprType)
-            println("SEMANTIC ERROR DETECTED --- WRONG TYPE FOR THIS BIN OP Line: " + ctx.getStart().line)
-            semantic = true
+
+        // Check the binary op expression types match up with what is required
+        if ((exprType != null && getExprType(expr2, ctx.expr(1)) != null && exprType.getType() != getExprType(
+                expr2,
+                ctx.expr(1)
+            )!!.getType())
+            || (!binaryOpsRequires(op.value).contains(exprType) && !binaryOpsRequires(op.value).contains(Type(ANY)))
+        ) {
+            semanticListener.binaryOpType(ctx)
         }
 
         return BinaryOpNode(op, expr1, expr2)
@@ -751,8 +765,10 @@ EXPRESSIONS
     }
 
     override fun visitAssignRhsNewpair(ctx: AssignRhsNewpairContext): Node {
-        return RHSNewPairNode(visit(ctx.expr(0)) as ExprNode,
-                visit(ctx.expr(1)) as ExprNode)
+        return RHSNewPairNode(
+            visit(ctx.expr(0)) as ExprNode,
+            visit(ctx.expr(1)) as ExprNode
+        )
     }
 
     override fun visitAssignRhsPairElem(ctx: AssignRhsPairElemContext): Node {
@@ -761,10 +777,10 @@ EXPRESSIONS
 
     override fun visitAssignRhsCall(ctx: AssignRhsCallContext): Node {
         return RHSCallNode(visit(ctx.ident()) as Ident,
-                when {
-                    ctx.arg_list() != null -> ctx.arg_list().expr().map { visit(it) as ExprNode }
-                    else -> null
-                })
+            when {
+                ctx.arg_list() != null -> ctx.arg_list().expr().map { visit(it) as ExprNode }
+                else -> null
+            })
     }
 
     override fun visitPairFst(ctx: PairFstContext): Node {
