@@ -1,8 +1,4 @@
-import antlr.WACCParser
 import org.antlr.v4.runtime.ParserRuleContext
-import kotlin.Int
-import kotlin.system.exitProcess
-
 class SemanticErrorHandler {
     private val errorList: MutableCollection<String> = mutableListOf()
 
