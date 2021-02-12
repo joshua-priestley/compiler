@@ -11,7 +11,9 @@ import kotlin.system.exitProcess
 import java.io.File
 import java.lang.IllegalArgumentException
 
-//TODO: do proper visibilities
+const val SYNTACTIC_ERROR = 100
+const val SEMANTIC_ERROR = 200
+const val OK = 0
 
 fun main(args: Array<String>) {
     if (args.size != 1) {
@@ -19,13 +21,11 @@ fun main(args: Array<String>) {
     }
 
     val compiler = Compiler(args[0])
-    val result = compiler.compile()
-    exitProcess(result)
+    exitProcess(compiler.compile())
 }
 
-class Compiler(val inputFile: String) {
-    //TODO: rethink return types to handle syntax vs semantic fail, error messages etc...
-    fun check(): Int {
+class Compiler(val inputFile: String)  {
+    fun compile(): Int {
         val file = File(inputFile)
 
         if (!file.exists() || !file.isFile) {
@@ -36,38 +36,28 @@ class Compiler(val inputFile: String) {
         val lexer = WACCLexer(input)
         val tokens = CommonTokenStream(lexer)
         val parser = WACCParser(tokens)
-        parser.removeErrorListeners() // uncomment to get rid of antlr error messages
+        parser.removeErrorListeners()
         val listener = WACCErrorListener()
         parser.addErrorListener(listener)
         val tree = parser.program()
-
-        if (listener.hasSyntaxErrors()) {
-            listener.printSyntaxErrors()
-            return 100
-        }
-
-        //println(tree.toStringTree(parser))
-
-        println("--------")
         val semanticErrorHandler = SemanticErrorHandler()
-        val symbolTable = SymbolTable(null)
-        val visitor = Visitor(semanticErrorHandler, listener, symbolTable);
-        println(visitor.visit(tree).toString())
-        println("--------")
+
+        if (!listener.hasSyntaxErrors()) {
+            val symbolTable = SymbolTable(null)
+            val visitor = Visitor(semanticErrorHandler, listener, symbolTable)
+            visitor.visit(tree)
+        }
 
         if (listener.hasSyntaxErrors()) {
             listener.printSyntaxErrors()
-            return 100
+            return SYNTACTIC_ERROR
         }
+
         if (semanticErrorHandler.hasSemanticErrors()) {
             semanticErrorHandler.printSemanticErrors()
-            return 200
+            return SEMANTIC_ERROR
         }
 
-        return 0
-    }
-
-    fun compile(): Int {
-        return check()
+        return OK
     }
 }
