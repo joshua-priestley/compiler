@@ -221,7 +221,7 @@ STATEMENTS
                 semanticListener.arrayIndex(i.toString(), getExprType(exprs[i], ctx).toString(), "NULL", ctx)
                 break
                 // If the elements type does not match the first then there is an error
-            } else if (getExprType(exprs[i], null) != firstType) {
+            } else if (getExprType(exprs[i], ctx) != firstType) {
                 semanticListener.arrayDifferingTypes(name, ctx)
                 break
             }
