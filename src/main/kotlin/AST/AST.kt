@@ -1,3 +1,5 @@
+package AST
+
 import antlr.WACCParser.*
 import kotlin.Int
 

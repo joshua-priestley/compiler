@@ -1,3 +1,5 @@
+package AST
+
 // Class to store the symbol table with a reference to the parent symbol table
 class SymbolTable(var parentT: SymbolTable?) {
 

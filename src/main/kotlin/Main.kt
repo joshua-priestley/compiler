@@ -1,9 +1,9 @@
 package compiler
 
-import SemanticErrorHandler
-import SymbolTable
-import Visitor
-import WACCErrorListener
+import ErrorHandler.SemanticErrorHandler
+import AST.SymbolTable
+import AST.ASTBuilder
+import ErrorHandler.SyntaxErrorHandler
 import org.antlr.v4.runtime.*
 import antlr.*
 
@@ -33,7 +33,7 @@ class Compiler(private val inputFile: String) {
             throw IllegalArgumentException("Cannot find input file at ${file.absolutePath}")
         }
 
-        val listener = WACCErrorListener()
+        val listener = SyntaxErrorHandler()
         val input = CharStreams.fromPath(file.toPath())
         val lexer = WACCLexer(input)
         lexer.removeErrorListeners()
@@ -47,7 +47,7 @@ class Compiler(private val inputFile: String) {
 
         if (!listener.hasSyntaxErrors()) {
             val symbolTable = SymbolTable(null)
-            val visitor = Visitor(semanticErrorHandler, listener, symbolTable)
+            val visitor = ASTBuilder(semanticErrorHandler, listener, symbolTable)
             visitor.visit(tree)
         }
 

@@ -1,14 +1,18 @@
+package AST
+
 import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
 import org.antlr.v4.runtime.ParserRuleContext
-import Type.Companion.binaryOpsProduces
-import Type.Companion.binaryOpsRequires
-import Type.Companion.unaryOpsProduces
-import Type.Companion.unaryOpsRequires
+import AST.Type.Companion.binaryOpsProduces
+import AST.Type.Companion.binaryOpsRequires
+import AST.Type.Companion.unaryOpsProduces
+import AST.Type.Companion.unaryOpsRequires
+import ErrorHandler.SemanticErrorHandler
+import ErrorHandler.SyntaxErrorHandler
 
-class Visitor(
+class ASTBuilder(
         private val semanticListener: SemanticErrorHandler,
-        private val syntaxListener: WACCErrorListener,
+        private val syntaxHandler: SyntaxErrorHandler,
         private var globalSymbolTable: SymbolTable
 ) : WACCParserBaseVisitor<Node>() {
 
@@ -96,7 +100,7 @@ class Visitor(
         globalSymbolTable = functionSymbolTable
         val stat = visit(ctx.stat()) as StatementNode
         if (!stat.valid()) {
-            syntaxListener.addSyntaxError(ctx, "return type of function invalid")
+            syntaxHandler.addSyntaxError(ctx, "return type of function invalid")
         }
 
         // Revert back to the global scope
@@ -613,7 +617,7 @@ class Visitor(
                 }
             }
             else -> {
-                // PairLiterNode
+                // AST.PairLiterNode
                 Type(PAIR_LITER)
             }
         }
@@ -628,7 +632,7 @@ class Visitor(
                 val value = ctx.text.toLong()
                 // Check the integer is within the accepted range
                 if (value !in Integer.MIN_VALUE..Integer.MAX_VALUE) {
-                    syntaxListener.addSyntaxError(
+                    syntaxHandler.addSyntaxError(
                             ctx,
                             "int value (${ctx.text.toLong()}) must be between -2147483648 and 2147483647"
                     )

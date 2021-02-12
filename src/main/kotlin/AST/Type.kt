@@ -1,3 +1,5 @@
+package AST
+
 import antlr.WACCParser.*
 import kotlin.Int
 
@@ -157,7 +159,7 @@ class Type {
     //Convert a type to a string for the printing of error messages
     override fun toString(): String {
         if (this.type == PAIR_LITER) {
-            return "PAIR_LITER"
+            return "AST.PAIR_LITER"
         }
         val symbolName = VOCABULARY.getSymbolicName(getType())
         val sb = StringBuilder()
@@ -174,7 +176,7 @@ class Type {
             return sb.toString()
         }
         if (getArray()) {
-            //Return <BaseType>[]
+            //Return <AST.BaseType>[]
             sb.append(getBaseType().toString())
             sb.append("[]")
             return sb.toString()

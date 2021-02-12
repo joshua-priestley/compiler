@@ -1,3 +1,5 @@
+package ErrorHandler
+
 import org.antlr.v4.runtime.ParserRuleContext
 
 class SemanticErrorHandler {
