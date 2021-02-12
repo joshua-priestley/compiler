@@ -22,12 +22,6 @@ dependencies {
     // JUnit5
     testImplementation("org.junit.jupiter:junit-jupiter:$junitVer")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVer")
-
-    // Fuel 7 Gson for testing
-    implementation("com.github.kittinunf.fuel:fuel:2.3.1")
-    implementation("com.github.kittinunf.fuel:fuel-gson:2.3.1")
-    implementation("com.google.code.gson:gson:2.8.5")
-
 }
 
 repositories {
@@ -41,7 +35,9 @@ tasks {
         arguments = arguments + listOf("-package", "antlr", "-no-listener", "-visitor", "-Werror")
         this.outputDirectory = file(antlrOutputDirectory + "antlr")
     }
+
     test {
+        systemProperty("test.type", System.getProperty("test.type"))
         useJUnitPlatform()
     }
 
