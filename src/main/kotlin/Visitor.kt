@@ -7,9 +7,9 @@ import Type.Companion.unaryOpsProduces
 import Type.Companion.unaryOpsRequires
 
 class Visitor(
-    private val semanticListener: SemanticErrorHandler,
-    private val syntaxListener: WACCErrorListener,
-    private var globalSymbolTable: SymbolTable
+        private val semanticListener: SemanticErrorHandler,
+        private val syntaxListener: WACCErrorListener,
+        private var globalSymbolTable: SymbolTable
 ) : WACCParserBaseVisitor<Node>() {
 
     // A map to store all the functions and their parameters for semantic checking
@@ -171,9 +171,9 @@ STATEMENTS
         for (i in argTypes.indices) {
             if (argTypes[i].getType() != parameterTypes[i].getType()) {
                 semanticListener.mismatchedParamTypes(
-                    Type(argTypes[i].getType()).toString(),
-                    Type(parameterTypes[i].getType()).toString(),
-                    ctx
+                        Type(argTypes[i].getType()).toString(),
+                        Type(parameterTypes[i].getType()).toString(),
+                        ctx
                 )
                 return false
             }
@@ -311,7 +311,7 @@ STATEMENTS
         if (lhsType != null) {
             // Check that the types are equal for all different cases (variable, array or pair)
             if (lhsType.getType() != rhsType!!.getType() && !(lhsType.getArray() && rhsType.getType() == Type(EMPTY_ARR).getType())
-                && !(lhsType.getPair() && rhsType.getType() == Type(PAIR_LITER).getType())
+                    && !(lhsType.getPair() && rhsType.getType() == Type(PAIR_LITER).getType())
             ) {
                 semanticListener.incompatibleTypeAss(lhsType.toString(), rhsType.toString(), ctx)
             }
@@ -412,9 +412,10 @@ STATEMENTS
         boolTypeResult = true
         val condExpr = visit(expr) as ExprNode
         // Checks that it is of type bool
-        if (getExprType(condExpr, expr) != Type(BOOL)) {
+        if (condExpr is Ident || getExprType(condExpr, expr) != Type(BOOL)) {
             semanticListener.conditionalBoolean(getExprType(condExpr, expr).toString(), ctx)
         }
+
         boolTypeResult = false
         return condExpr
     }
@@ -469,7 +470,7 @@ STATEMENTS
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
         // Check that the variable named exists and is not a function
         if (!boolTypeResult && globalSymbolTable.containsNodeLocal(ident.toString()) && globalSymbolTable.containsNodeLocal(ident.toString())
-            && !globalSymbolTable.getNodeLocal(ident.toString())!!.isFunction()
+                && !globalSymbolTable.getNodeLocal(ident.toString())!!.isFunction()
         ) {
             semanticListener.redefinedVariable(ident.name, ctx)
         } else {
@@ -484,8 +485,8 @@ STATEMENTS
         // Check each side's type is equal
         if (rhsType != null) {
             if (lhsType.getType() != rhsType.getType()
-                && !(lhsType.getArray() && rhsType.getType() == Type(EMPTY_ARR).getType())
-                && !(lhsType.getPair() && rhsType.getType() == Type(PAIR_LITER).getType())
+                    && !(lhsType.getArray() && rhsType.getType() == Type(EMPTY_ARR).getType())
+                    && !(lhsType.getPair() && rhsType.getType() == Type(PAIR_LITER).getType())
             ) {
                 semanticListener.incompatibleTypeDecl(ident.name, lhsType.toString(), rhsType.toString(), ctx)
             }
@@ -524,8 +525,8 @@ TYPES
 
     override fun visitPair_type(ctx: Pair_typeContext): Node {
         return PairTypeNode(
-            visit(ctx.pair_elem_type(0)) as PairElemTypeNode,
-            visit(ctx.pair_elem_type(1)) as PairElemTypeNode
+                visit(ctx.pair_elem_type(0)) as PairElemTypeNode,
+                visit(ctx.pair_elem_type(1)) as PairElemTypeNode
         )
     }
 
@@ -610,8 +611,8 @@ TYPES
                 // Check the integer is within the accepted range
                 if (value !in Integer.MIN_VALUE..Integer.MAX_VALUE) {
                     syntaxListener.addSyntaxError(
-                        ctx,
-                        "int value (${ctx.text.toLong()}) must be between -2147483648 and 2147483647"
+                            ctx,
+                            "int value (${ctx.text.toLong()}) must be between -2147483648 and 2147483647"
                     )
                 }
                 IntLiterNode(ctx.text)
@@ -637,7 +638,7 @@ TYPES
 
     override fun visitArray_elem(ctx: Array_elemContext): Node {
         return ArrayElem(visit(ctx.ident()) as Ident,
-            ctx.expr().map { visit(it) as ExprNode })
+                ctx.expr().map { visit(it) as ExprNode })
     }
 
     override fun visitUnaryOp(ctx: UnaryOpContext): Node {
@@ -677,10 +678,10 @@ TYPES
 
         // Check the binary op expression types match up with what is required
         if ((exprType != null && getExprType(expr2, ctx.expr(1)) != null && exprType.getType() != getExprType(
-                expr2,
-                ctx.expr(1)
-            )!!.getType())
-            || (!binaryOpsRequires(op.value).contains(exprType) && !binaryOpsRequires(op.value).contains(Type(ANY)))
+                        expr2,
+                        ctx.expr(1)
+                )!!.getType())
+                || (!binaryOpsRequires(op.value).contains(exprType) && !binaryOpsRequires(op.value).contains(Type(ANY)))
         ) {
             semanticListener.binaryOpType(ctx)
         }
@@ -721,8 +722,8 @@ EXPRESSIONS
 
     override fun visitAssignRhsNewpair(ctx: AssignRhsNewpairContext): Node {
         return RHSNewPairNode(
-            visit(ctx.expr(0)) as ExprNode,
-            visit(ctx.expr(1)) as ExprNode
+                visit(ctx.expr(0)) as ExprNode,
+                visit(ctx.expr(1)) as ExprNode
         )
     }
 
@@ -732,10 +733,10 @@ EXPRESSIONS
 
     override fun visitAssignRhsCall(ctx: AssignRhsCallContext): Node {
         return RHSCallNode(visit(ctx.ident()) as Ident,
-            when {
-                ctx.arg_list() != null -> ctx.arg_list().expr().map { visit(it) as ExprNode }
-                else -> null
-            })
+                when {
+                    ctx.arg_list() != null -> ctx.arg_list().expr().map { visit(it) as ExprNode }
+                    else -> null
+                })
     }
 
     override fun visitPairFst(ctx: PairFstContext): Node {
