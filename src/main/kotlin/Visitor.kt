@@ -637,13 +637,14 @@ TYPES
                 }
             }
             is BinaryOpNode -> {
-                //println("we got here right?")
                 if (cond) {
                     binaryOpsProduces(expr.operator.value)
                 } else {
                     val requires = binaryOpsRequires(expr.operator.value)
                     if (requires.contains(getExprType(expr.expr1,ctx)) || requires.contains(Type(ANY))) {
-                        getExprType(expr.expr1,ctx)
+                        //TODO check is this actually right? an operator expr should always have the produced type right???
+                        binaryOpsProduces(expr.operator.value)
+                        //getExprType(expr.expr1)
                     } else {
                         println("SEMANTIC ERROR DETECTED -- INCORRECT TYPE FOR BINARY OPERATOR")
                         semantic = true
@@ -734,12 +735,15 @@ TYPES
         val expr1 = visit(ctx.expr(0)) as ExprNode
         val expr2 = visit(ctx.expr(1)) as ExprNode
 
-      //  println(expr1)
-        //println(expr2)
 
-        val exprType = getExprType(expr1,ctx.expr(0))
-
-        if (exprType != null && getExprType(expr2,ctx.expr(1)) != null && exprType.getType() != getExprType(expr2,ctx.expr(0))!!.getType()) {
+        val exprType = getExprType(expr1)
+        /*
+        println(expr1)
+        println(expr2)
+        println("Type is: $exprType")
+        println("Type 2 is: ${getExprType(expr2)}")
+        */
+        if (exprType != null && getExprType(expr2,ctx.expr(1)) != null && exprType.getType() != getExprType(expr2,ctx.expr(1))!!.getType()) {
             println("Type is: $exprType")
             println("Type 2 is: ${getExprType(expr2,ctx.expr(1))}")
             println("SEMANTIC ERROR DETECTED --- BOOLEAN EXPRESSION TYPES DO NOT MATCH WITH EACHOTHER Line: " + ctx.getStart().line)
