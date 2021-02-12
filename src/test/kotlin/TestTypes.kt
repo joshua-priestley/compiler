@@ -23,6 +23,7 @@ class TestTypes {
         assertNotEquals(str, int)
     }
 
+    // Non nested pair types are equal if pairwise types are the same
     @Test
     fun testPairEquals() {
         val t1 = Type(str, int)
@@ -34,22 +35,24 @@ class TestTypes {
         assertNotEquals(t3, t4)
     }
 
+    // Character arrays should be the same type as strings
     @Test
     fun testCharArrayStringEquals() {
         val t1 = Type(chr)
         assertEquals(str, t1)
     }
 
+    // Null pairs should match any pair type
     @Test
     fun testPairLiterEquals() {
         val p1 = Type(PAIR_LITER)
         val p2 = Type(PAIR_LITER)
-        val p3 = Type(PAIR)
+        val p3 = Type(int, int)
         assertEquals(p1, p2)
-        assertNotEquals(p1, p3)
+        assertEquals(p1, p3)
     }
 
-
+    // Array types are equal if their element types are equal
     @Test
     fun testArrayEquals() {
         val t1 = Type(str)
@@ -59,6 +62,7 @@ class TestTypes {
         assertNotEquals(t1, t2)
     }
 
+    // Nested array types are equal if their element types are equal
     @Test
     fun testNestedArrayEquals() {
         val t1 = Type(Type(str))
@@ -68,6 +72,7 @@ class TestTypes {
         assertNotEquals(t1, t2)
     }
 
+    // The inner types of a nested pair should not be considered when looking at equality
     @Test
     fun testNestedPairEquals() {
         val p1 = Type(str, int)
@@ -77,6 +82,7 @@ class TestTypes {
         val np2 = Type(p1, p2)
         val np3 = Type(p3, p3)
         assertEquals(np1, np2)
-        assertNotEquals(np2, np3)
+        assertEquals(np2, np3)
+        assertEquals(np1, np3)
     }
 }
