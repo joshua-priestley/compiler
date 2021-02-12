@@ -33,9 +33,9 @@ class TestPrograms {
     @TestFactory
     fun createTests(): List<DynamicTest> {
         val files = when (System.getProperty("test.type")) {
-            "syntax" -> testFiles.filter { it.canonicalPath.contains("syntaxErr") }
-            "semantic" -> testFiles.filter { it.canonicalPath.contains("semanticErr") }
-            "valid" -> testFiles.filter { it.canonicalPath.contains("valid") }
+            "syntax" -> testFiles.filter { it.absolutePath.contains("/syntaxErr/") }
+            "semantic" -> testFiles.filter { it.absolutePath.contains("/semanticErr/") }
+            "valid" -> testFiles.filter { it.absolutePath.contains("/valid/") }
             else -> testFiles
         }
         return files.map { f -> DynamicTest.dynamicTest(f.name) { runTest(f) } }
