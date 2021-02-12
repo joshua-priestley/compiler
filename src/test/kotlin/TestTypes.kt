@@ -30,8 +30,8 @@ class TestTypes {
         val t3 = Type(str, s1)
         val t4 = Type(int, str)
         assertEquals(t1, t2)
-        assertNotEquals(t2, t3)
-        assertNotEquals(t3, t4)
+        assertEquals(t2, t3)
+        assertEquals(t3, t4)
     }
 
     @Test
@@ -77,6 +77,6 @@ class TestTypes {
         val np2 = Type(p1, p2)
         val np3 = Type(p3, p3)
         assertEquals(np1, np2)
-        assertNotEquals(np2, np3)
+        assertEquals(np2, np3)
     }
 }

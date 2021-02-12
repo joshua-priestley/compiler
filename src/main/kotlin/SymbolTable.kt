@@ -14,7 +14,6 @@ class SymbolTable(var parentT: SymbolTable?) {
         table.clear()
     }
 
-
     fun addChildTable(child: SymbolTable) {
         childrenTables.add(child)
     }
