@@ -77,6 +77,52 @@ class Type {
         return (this.type == PAIR_LITER)
     }
 
+    companion object {
+        // Get the type a binary operator produces
+        fun binaryOpsProduces(operator: kotlin.Int): Type {
+            return when {
+                //Tokens 1-5 are int operators
+                operator <= 5 -> Type(INT)
+                //Tokens 6-13 are bool operators
+                operator in 6..13 -> Type(BOOL)
+                else -> Type(INVALID)
+            }
+        }
+
+        // Get the type a binary operator requires
+        fun binaryOpsRequires(operator: kotlin.Int): List<Type> {
+            return when {
+                operator < 6 -> mutableListOf(Type(INT))
+                operator in 6..9 -> mutableListOf(Type(INT), Type(CHAR))
+                operator in 10..11 -> mutableListOf(Type(ANY)) // EQ and NEQ can take any type
+                operator in 12..14 -> mutableListOf(Type(BOOL))
+                operator in 12..14 -> mutableListOf(Type(BOOL))
+                else -> mutableListOf(Type(INVALID))
+            }
+        }
+
+        // Get the type a unary operator produces
+        fun unaryOpsProduces(operator: kotlin.Int): Type {
+            return when (operator) {
+                NOT -> Type(BOOL)
+                LEN, ORD, MINUS -> Type(INT)
+                CHR -> Type(CHAR)
+                else -> Type(INVALID)
+            }
+        }
+
+        // Get the type a unary operator requires
+        fun unaryOpsRequires(operator: kotlin.Int): Type {
+            return when (operator) {
+                NOT -> Type(BOOL)
+                ORD -> Type(CHAR)
+                MINUS, CHR -> Type(INT)
+                LEN -> Type(ARRAY)
+                else -> Type(INVALID)
+            }
+        }
+    }
+
     //Equality for types for semantic checks
     override fun equals(other: Any?): Boolean {
         if (other is Type) {
@@ -85,7 +131,7 @@ class Type {
                 //Char array and string are equivalent
                 getArray() && !getBaseType().getArray() && getBaseType().getType() == CHAR && compare.getType() == STRING -> true
                 compare.getArray() && compare.getBaseType().getType() == CHAR && !compare.getBaseType()
-                    .getArray() && getType() == STRING -> true
+                        .getArray() && getType() == STRING -> true
 
                 //Check array base types
                 compare.getArray() && getArray() -> compare.getBaseType() == getBaseType()

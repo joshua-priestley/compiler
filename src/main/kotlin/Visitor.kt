@@ -1,6 +1,10 @@
 import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
 import org.antlr.v4.runtime.ParserRuleContext
+import Type.Companion.binaryOpsProduces
+import Type.Companion.binaryOpsRequires
+import Type.Companion.unaryOpsProduces
+import Type.Companion.unaryOpsRequires
 
 class Visitor(
     private val semanticListener: SemanticErrorHandler,
@@ -221,7 +225,7 @@ STATEMENTS
                 semanticListener.arrayIndex(i.toString(), getExprType(exprs[i], ctx).toString(), "NULL", ctx)
                 break
                 // If the elements type does not match the first then there is an error
-            } else if (getExprType(exprs[i], null) != firstType) {
+            } else if (getExprType(exprs[i], ctx) != firstType) {
                 semanticListener.arrayDifferingTypes(name, ctx)
                 break
             }
@@ -539,50 +543,6 @@ TYPES
     EXPRESSIONS
      */
 
-    // Get the type a binary operator produces
-    private fun binaryOpsProduces(operator: kotlin.Int): Type {
-        return when {
-            //Tokens 1-5 are int operators
-            operator <= 5 -> Type(INT)
-            //Tokens 6-13 are bool operators
-            operator in 6..13 -> Type(BOOL)
-            else -> Type(INVALID)
-        }
-    }
-
-    // Get the type a binary operator requires
-    private fun binaryOpsRequires(operator: kotlin.Int): List<Type> {
-        return when {
-            operator < 6 -> mutableListOf(Type(INT))
-            operator in 6..9 -> mutableListOf(Type(INT), Type(CHAR))
-            operator in 10..11 -> mutableListOf(Type(ANY)) // EQ and NEQ can take any type
-            operator in 12..14 -> mutableListOf(Type(BOOL))
-            operator in 12..14 -> mutableListOf(Type(BOOL))
-            else -> mutableListOf(Type(INVALID))
-        }
-    }
-
-    // Get the type a unary operator produces
-    private fun unaryOpsProduces(operator: kotlin.Int): Type {
-        return when (operator) {
-            NOT -> Type(BOOL)
-            LEN, ORD, MINUS -> Type(INT)
-            CHR -> Type(CHAR)
-            else -> Type(INVALID)
-        }
-    }
-
-    // Get the type a unary operator requires
-    private fun unaryOpsRequires(operator: kotlin.Int): Type {
-        return when (operator) {
-            NOT -> Type(BOOL)
-            ORD -> Type(CHAR)
-            MINUS, CHR -> Type(INT)
-            LEN -> Type(ARRAY)
-            else -> Type(INVALID)
-        }
-    }
-
     // Check is possible version of an expression and return its type
     private fun getExprType(expr: ExprNode, ctx: ParserRuleContext): Type? {
         return when (expr) {
@@ -626,7 +586,7 @@ TYPES
                 } else {
                     val requires = binaryOpsRequires(expr.operator.value)
                     if (requires.contains(getExprType(expr.expr1, ctx)) || requires.contains(Type(ANY))) {
-                        binaryOpsProduces(expr.operator.value)
+                        Type.binaryOpsProduces(expr.operator.value)
                     } else {
                         semanticListener.binaryOpType(ctx)
                         null
