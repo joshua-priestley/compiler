@@ -11,7 +11,6 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
               private var globalSymbolTable: SymbolTable) : WACCParserBaseVisitor<Node>() {
 
     private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
-    var semantic = false
     var cond = false
 
     override fun visitProgram(ctx: ProgramContext): Node {
@@ -35,7 +34,6 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
             if (globalSymbolTable.containsNodeLocal(ident.toString())) {
                 // println("SEMANTIC ERROR DETECTED --- FUNCTION ALREADY EXISTS")
                 semanticListener.redefinedVariable(ident.name + "()", func)
-                semantic = true
             } else {
                 globalSymbolTable.addNode(ident.toString(), type.type.setFunction(true))
             }
@@ -113,7 +111,6 @@ STATEMENTS
             expr = (pairElem as FstExpr).expr
             if (expr::class != Ident::class) {
                 semanticListener.fstSndMustBePair(ctx)
-                semantic = true
                 null
             } else if (!globalSymbolTable.containsNodeGlobal((expr as Ident).toString())) {
                 semanticListener.undefinedType(expr.name, ctx)
@@ -125,11 +122,9 @@ STATEMENTS
             expr = (pairElem as SndExpr).expr
             if (expr::class != Ident::class) {
                 semanticListener.fstSndMustBePair(ctx)
-                semantic = true
                 null
             } else if (!globalSymbolTable.containsNodeGlobal((expr as Ident).toString())) {
                 semanticListener.undefinedType(expr.name, ctx)
-                semantic = true
                 null
             } else {
                 globalSymbolTable.getNodeGlobal(expr.toString())!!.getPairSnd()
@@ -156,7 +151,7 @@ STATEMENTS
         }
         for (i in argTypes.indices) {
             if (argTypes[i].getType() != parameterTypes[i].getType()) {
-                semanticListener.mismatchedParamTypes(argTypes[i].getType().toString(), parameterTypes[i].getType().toString(), ctx)
+                semanticListener.mismatchedParamTypes(Type(argTypes[i].getType()).toString(), Type(parameterTypes[i].getType()).toString(), ctx)
                 return false
             }
         }
@@ -168,23 +163,18 @@ STATEMENTS
             is AssignLHSIdentNode -> {
                 if (!globalSymbolTable.containsNodeGlobal(lhs.ident.toString())) {
                     semanticListener.undefinedType(lhs.ident.name, ctx)
-                    semantic = true
                 } else if (globalSymbolTable.getNodeGlobal(lhs.ident.toString())!!.isFunction()) {
                     semanticListener.assigningFunction(lhs.ident.name, ctx)
-                    semantic = true
                 }
                 globalSymbolTable.getNodeGlobal(lhs.ident.toString())
             }
             is LHSArrayElemNode -> {
                 if (!globalSymbolTable.containsNodeGlobal(lhs.arrayElem.ident.toString())) {
                     semanticListener.undefinedType(lhs.arrayElem.ident.name, ctx)
-                    semantic = true
                 } else if (getExprType(lhs.arrayElem.expr[0],null) != Type(INT)) {
                     semanticListener.arrayIndex("0", "INT", getExprType(lhs.arrayElem.expr[0],null).toString(), ctx)
-                    semantic = true
                 } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getType() == STRING) {
                     semanticListener.indexStrings(ctx)
-                    semantic = true
                 }
                 globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getBaseType()
             }
@@ -207,8 +197,6 @@ STATEMENTS
                 // If the elements type does not match the first then there is an error
             } else if (getExprType(exprs[i],null) != firstType) {
                 semanticListener.arrayDifferingTypes(ctx)
-                // println("SEMANTIC ERROR --- Array elements have differing types")
-                semantic = true
                 break
             }
         }
@@ -287,9 +275,7 @@ STATEMENTS
         if (lhsType != null) {
             if (lhsType.getType() != rhsType!!.getType() && !(lhsType.getArray() && rhsType.getType() == Type(EMPTY_ARR).getType())
                 && !(lhsType.getPair() && rhsType.getType() == Type(PAIR_LITER).getType())) {
-                //println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT Line: " + ctx.getStart().line)
                 semanticListener.incompatibleTypeAss(lhsType.toString(), rhsType.toString(), ctx)
-                    semantic = true
             }
         }
 
@@ -304,11 +290,9 @@ STATEMENTS
             else -> {
                 if (lhsNode !is AssignLHSIdentNode) {
                     semanticListener.readNotVariable(ctx)
-                    semantic = true
                 }
                 if (!globalSymbolTable.containsNodeGlobal((lhsNode as AssignLHSIdentNode).ident.toString())) {
                     semanticListener.undefinedType(lhsNode.ident.name, ctx)
-                    semantic = true
                 }
                 globalSymbolTable.getNodeGlobal(lhsNode.ident.toString())
             }
@@ -316,7 +300,6 @@ STATEMENTS
 
         if (!(type == Type(INT) || type == Type(CHAR))) {
             semanticListener.readTypeError(type.toString(), ctx)
-            semantic = true
 
         }
         return ReadNode(lhsNode)
@@ -335,7 +318,6 @@ STATEMENTS
         val freeType = getExprType(freedExpr,ctx.expr())
         if (freeType == null || !freeType.getPair()) {
             semanticListener.incompatibleTypeFree(freeType.toString(), ctx)
-            semantic = true
         }
         return FreeNode(freedExpr)
     }
@@ -343,7 +325,6 @@ STATEMENTS
     override fun visitReturn(ctx: ReturnContext): Node {
         if (globalSymbolTable.parentT == null) {
             semanticListener.returnFromGlobal(ctx)
-            semantic = true
         }
 
         val expr = visit(ctx.expr()) as ExprNode
@@ -354,7 +335,6 @@ STATEMENTS
 
         if (type != expected) {
             semanticListener.incompatibleTypeReturn(expected.toString(), type.toString(), ctx)
-            semantic = true
         }
         return ReturnNode(expr)
     }
@@ -362,7 +342,6 @@ STATEMENTS
     private fun checkPrint(expr: ExprNode, ctx: ParserRuleContext) {
         if (expr is Ident && !globalSymbolTable.containsNodeGlobal(expr.toString())) {
             semanticListener.undefinedType(expr.name, ctx)
-            semantic = true
         }
     }
 
@@ -387,7 +366,6 @@ STATEMENTS
         val condExpr = visit(ctx.expr()) as ExprNode
         if (getExprType(condExpr,ctx.expr()) != Type(BOOL)) {
             semanticListener.conditionalBoolean(ctx)
-            semantic = true
         }
         cond = false
 
@@ -409,7 +387,6 @@ STATEMENTS
         val condExpr = visit(ctx.expr()) as ExprNode
         if (getExprType(condExpr,ctx.expr()) != Type(BOOL)) {
             semanticListener.conditionalBoolean(ctx)
-            semantic = true
         }
         cond = false
 
@@ -455,8 +432,7 @@ STATEMENTS
                 && !(lhsType.getArray() && rhsType.getType() == Type(EMPTY_ARR).getType())
                 && !(lhsType.getPair() && rhsType.getType() == Type(PAIR_LITER).getType())
             ) {
-                semanticListener.incompatibleTypeDecl(ident.name, lhsType.toString(), rhs.toString(), ctx)
-                semantic = true
+                semanticListener.incompatibleTypeDecl(ident.name, lhsType.toString(), rhsType.toString(), ctx)
             }
         }
 
@@ -562,7 +538,6 @@ TYPES
             is Ident -> {
                 if (!globalSymbolTable.containsNodeGlobal(expr.toString())) {
                     semanticListener.undefinedType(expr.name, ctx!!)
-                    semantic = true
                     null
                 } else {
                     globalSymbolTable.getNodeGlobal(expr.toString())
@@ -572,14 +547,10 @@ TYPES
             is ArrayElem -> {
                 if (getExprType(expr.expr[0],ctx) != Type(INT)) {
                     semanticListener.arrayIndex("0", getExprType(expr.expr[0], ctx).toString(), "INT", ctx!!)
-                    semantic = true
                 } else if (!globalSymbolTable.containsNodeGlobal(expr.ident.toString())) {
                     semanticListener.undefinedType(expr.ident.name, ctx!!)
-                    semantic = true
-
                 } else if (globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getType() == STRING) {
                     semanticListener.indexStrings(ctx!!)
-                    semantic = true
                 }
                 globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
             }
@@ -600,7 +571,6 @@ TYPES
                         binaryOpsProduces(expr.operator.value)
                     } else {
                         semanticListener.binaryOpType(ctx!!)
-                        semantic = true
                         null
                     }
                 }
@@ -691,7 +661,6 @@ TYPES
         if ((exprType != null && getExprType(expr2,ctx.expr(1)) != null && exprType.getType() != getExprType(expr2,ctx.expr(1))!!.getType())
                 || (!binaryOpsRequires(op.value).contains(exprType) && !binaryOpsRequires(op.value).contains(Type(ANY)))) {
             semanticListener.binaryOpType(ctx)
-            semantic = true
         }
 
         return BinaryOpNode(op, expr1, expr2)
