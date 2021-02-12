@@ -587,7 +587,7 @@ TYPES
                 } else {
                     val requires = binaryOpsRequires(expr.operator.value)
                     if (requires.contains(getExprType(expr.expr1, ctx)) || requires.contains(Type(ANY))) {
-                        Type.binaryOpsProduces(expr.operator.value)
+                        binaryOpsProduces(expr.operator.value)
                     } else {
                         semanticListener.binaryOpType(ctx)
                         null
