@@ -209,7 +209,7 @@ STATEMENTS
     }
 
     // Checks every element in the list is the same type
-    private fun checkElemsSameType(exprs: List<ExprNode>, ctx: ParserRuleContext) {
+    private fun checkElemsSameType(name: String, exprs: List<ExprNode>, ctx: ParserRuleContext) {
         // No need if empty list
         if (exprs.isEmpty()) {
             return
@@ -223,7 +223,7 @@ STATEMENTS
                 break
                 // If the elements type does not match the first then there is an error
             } else if (getExprType(exprs[i], null) != firstType) {
-                semanticListener.arrayDifferingTypes(ctx)
+                semanticListener.arrayDifferingTypes(name, ctx)
                 break
             }
         }
@@ -251,7 +251,7 @@ STATEMENTS
                 getPairElemType(rhs.pairElem, ctx)
             }
             is RHSArrayLitNode -> {
-                checkElemsSameType(rhs.exprs, ctx)
+                checkElemsSameType(rhs.toString(), rhs.exprs, ctx)
                 if (rhs.exprs.isEmpty()) {
                     Type(EMPTY_ARR)
                 } else {
@@ -410,7 +410,7 @@ STATEMENTS
         val condExpr = visit(expr) as ExprNode
         // Checks that it is of type bool
         if (getExprType(condExpr, expr) != Type(BOOL)) {
-            semanticListener.conditionalBoolean(ctx)
+            semanticListener.conditionalBoolean(getExprType(condExpr, expr).toString(), ctx)
         }
         boolTypeResult = false
         return condExpr
@@ -652,7 +652,7 @@ TYPES
                 if (value !in Integer.MIN_VALUE..Integer.MAX_VALUE) {
                     syntaxListener.addSyntaxError(
                         ctx,
-                        "int value must be between -2147483648 and 2147483647 Line: " + ctx.getStart().line
+                        "int value (${ctx.text.toLong()}) must be between -2147483648 and 2147483647"
                     )
                 }
                 IntLiterNode(ctx.text)
