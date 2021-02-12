@@ -25,7 +25,7 @@ fun main(args: Array<String>) {
     exitProcess(compiler.compile())
 }
 
-class Compiler(val inputFile: String)  {
+class Compiler(private val inputFile: String)  {
     fun compile(): Int {
         val file = File(inputFile)
 

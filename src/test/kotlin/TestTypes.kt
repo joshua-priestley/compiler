@@ -1,4 +1,3 @@
-import compiler.Compiler
 import antlr.WACCParser.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals

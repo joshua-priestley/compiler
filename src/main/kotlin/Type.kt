@@ -77,17 +77,10 @@ class Type {
         return (this.type == PAIR_LITER)
     }
 
-    override fun hashCode(): Int {
-        return super.hashCode()
-    }
-
     //Equality for types for semantic checks
     override fun equals(other: Any?): Boolean {
-//        println("this ${toString()}")
-//        println("other ${other.toString()}")
         if (other is Type) {
-            var compare: Type = other
-//            println(compare)
+            val compare: Type = other
             return when {
                 //Char array and string are equivalent
                 getArray() && !getBaseType().getArray() && getBaseType().getType() == CHAR && compare.getType() == STRING -> true
@@ -97,8 +90,8 @@ class Type {
                 //Check array base types
                 compare.getArray() && getArray() -> compare.getBaseType() == getBaseType()
 
-                compare.getType() == PAIR_LITER -> getType() == PAIR_LITER
 
+                compare.getPair() -> getPair()
                 //Check pair types
                 compare.getPair() && getPair() -> compare.getPairFst() == getPairFst() && compare.getPairSnd() == getPairSnd()
 
@@ -142,6 +135,15 @@ class Type {
         }
         //Return <Type>
         return symbolName
+    }
+
+    override fun hashCode(): Int {
+        var result = type
+        result = 31 * result + (pairFst?.hashCode() ?: 0)
+        result = 31 * result + (pairSnd?.hashCode() ?: 0)
+        result = 31 * result + (arrType?.hashCode() ?: 0)
+        result = 31 * result + function.hashCode()
+        return result
     }
 
 

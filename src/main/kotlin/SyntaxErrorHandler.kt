@@ -1,4 +1,4 @@
-import antlr.WACCParser
+
 import org.antlr.v4.runtime.BaseErrorListener
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.RecognitionException
@@ -6,14 +6,11 @@ import org.antlr.v4.runtime.Recognizer
 import java.util.*
 import kotlin.Int
 
-enum class ErrorType {
-    SYNTAX,
-    SEMANTIC
-}
+
 
 class WACCErrorListener : BaseErrorListener() {
 
-    val syntaxErrorList = LinkedList<String>()
+    private val syntaxErrorList = LinkedList<String>()
 
     override fun syntaxError(recognizer: Recognizer<*, *>?,
                              offendingSymbol: Any?,
@@ -25,7 +22,7 @@ class WACCErrorListener : BaseErrorListener() {
 
     fun hasSyntaxErrors() = syntaxErrorList.isNotEmpty()
 
-    fun errorPosition(ctx: ParserRuleContext): String {
+    private fun errorPosition(ctx: ParserRuleContext): String {
         return "${ctx.getStart().line}:${ctx.getStart().charPositionInLine}"
     }
 

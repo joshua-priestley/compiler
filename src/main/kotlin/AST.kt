@@ -23,9 +23,9 @@ interface StatementNode : Node {
         } else if (this is SequenceNode) {
             return this.stat2.valid()
         } else if (this is ExitNode || this is ReturnNode) {
-            return true;
+            return true
         }
-        return false;
+        return false
     }
 }
 
@@ -59,7 +59,7 @@ data class IntLiterNode(val value: String) : ExprNode
 data class StrLiterNode(val value: String) : ExprNode
 data class CharLiterNode(val value: String) : ExprNode
 data class BoolLiterNode(val value: String) : ExprNode
-class PairLiterNode() : ExprNode
+class PairLiterNode : ExprNode
 data class Ident(val name: String) : ExprNode
 data class ArrayElem(val ident: Ident, val expr: List<ExprNode>) : ExprNode
 data class UnaryOpNode(val operator: UnOp, val expr: ExprNode) : ExprNode
@@ -68,9 +68,6 @@ data class BinaryOpNode(val operator: BinOp, val expr1: ExprNode, val expr2: Exp
 // Expression nodes for functions
 data class Param(val type: TypeNode, val ident: Ident) : ExprNode
 
-//TODO remove these? or replace lists in call/function nodes with these
-data class ParamList(val params: List<Param>) : ExprNode
-data class ArgList(val args: List<ExprNode>) : ExprNode
 
 /*
  * Operators
@@ -80,7 +77,7 @@ enum class UnOp(val value: Int) {
 }
 
 //TODO does making this a node mean its no longer an AST?
-//think about how to do binary operater precedence more
+//think about how to do binary operator precedence more
 enum class BinOp(val value: Int) : Node {
     MUL(3), DIV(4), MOD(5), PLUS(1), MINUS(2), GT(6), GTE(7), LT(8), LTE(9), EQ(10), NEQ(11), AND(12), OR(13), NOT_SUPPORTED(
         -1
@@ -112,8 +109,7 @@ interface TypeNode : Node {
 }
 
 // Base Types
-interface BaseType : TypeNode {
-}
+interface BaseType : TypeNode
 
 class Str(override val type: Type = Type(STRING)) : BaseType
 class Bool(override val type: Type = Type(BOOL)) : BaseType
@@ -125,7 +121,7 @@ class Pair(override val type: Type = Type(PAIR_LITER)) : BaseType
 
 // Array Types
 interface ArrayType : TypeNode
-class ArrayNode(val typeNode: TypeNode, override val type: Type = Type(typeNode.type)) : ArrayType
+class ArrayNode(private val typeNode: TypeNode, override val type: Type = Type(typeNode.type)) : ArrayType
 
 //Pair Types
 data class PairTypeNode(
