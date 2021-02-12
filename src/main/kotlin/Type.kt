@@ -79,7 +79,7 @@ class Type {
 
     companion object {
         // Get the type a binary operator produces
-        fun binaryOpsProduces(operator: kotlin.Int): Type {
+        fun binaryOpsProduces(operator: Int): Type {
             return when {
                 //Tokens 1-5 are int operators
                 operator <= 5 -> Type(INT)
@@ -90,7 +90,7 @@ class Type {
         }
 
         // Get the type a binary operator requires
-        fun binaryOpsRequires(operator: kotlin.Int): List<Type> {
+        fun binaryOpsRequires(operator: Int): List<Type> {
             return when {
                 operator < 6 -> mutableListOf(Type(INT))
                 operator in 6..9 -> mutableListOf(Type(INT), Type(CHAR))
@@ -102,7 +102,7 @@ class Type {
         }
 
         // Get the type a unary operator produces
-        fun unaryOpsProduces(operator: kotlin.Int): Type {
+        fun unaryOpsProduces(operator: Int): Type {
             return when (operator) {
                 NOT -> Type(BOOL)
                 LEN, ORD, MINUS -> Type(INT)
@@ -112,7 +112,7 @@ class Type {
         }
 
         // Get the type a unary operator requires
-        fun unaryOpsRequires(operator: kotlin.Int): Type {
+        fun unaryOpsRequires(operator: Int): Type {
             return when (operator) {
                 NOT -> Type(BOOL)
                 ORD -> Type(CHAR)
