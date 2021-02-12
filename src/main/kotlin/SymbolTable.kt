@@ -1,7 +1,7 @@
 // Class to store the symbol table with a reference to the parent symbol table
 class SymbolTable(var parentT: SymbolTable?) {
     // Table to store all variables and functions available
-    private val table: LinkedHashMap<String, Type> = linkedMapOf()
+    val table: LinkedHashMap<String, Type> = linkedMapOf()
 
     // List of the other children tables (of functions)
     private val childrenTables: MutableList<SymbolTable> = mutableListOf()
@@ -9,6 +9,11 @@ class SymbolTable(var parentT: SymbolTable?) {
     init {
         parentT?.addChildTable(this)
     }
+
+    fun clearTable(){
+        table.clear()
+    }
+
 
     fun addChildTable(child: SymbolTable) {
         childrenTables.add(child)
