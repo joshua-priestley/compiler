@@ -412,7 +412,7 @@ STATEMENTS
         boolTypeResult = true
         val condExpr = visit(expr) as ExprNode
         // Checks that it is of type bool
-        if (condExpr is Ident || getExprType(condExpr, expr) != Type(BOOL)) {
+        if ((condExpr is Ident && !globalSymbolTable.containsNodeGlobal(condExpr.toString())) || getExprType(condExpr, expr) != Type(BOOL)) {
             semanticListener.conditionalBoolean(getExprType(condExpr, expr).toString(), ctx)
         }
 
