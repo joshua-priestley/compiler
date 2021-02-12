@@ -40,6 +40,12 @@ class SemanticErrorHandler {
         errorList.add(fullMsg)
     }
 
+    fun fstSndMustBePair(ctx: ParserRuleContext) {
+        val msg = "When calling fst or snd, must be a variable"
+        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+
+        errorList.add(fullMsg)    }
+
     fun mismatchedArgs(expected: String, actual: String, ctx: ParserRuleContext) {
         val msg = "Number of function arguments does not match (expected: $expected, actual: $actual)"
         val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
@@ -121,6 +127,13 @@ class SemanticErrorHandler {
 
     fun incompatibleTypeFree(actual: String, ctx: ParserRuleContext) {
         val msg = "Incompatible return type (expected: Pair, actual: $actual)"
+        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+
+        errorList.add(fullMsg)
+    }
+
+    fun arrayDifferingTypes(ctx: ParserRuleContext) {
+        val msg = "Array has differing element types"
         val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
 
         errorList.add(fullMsg)

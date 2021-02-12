@@ -33,7 +33,8 @@ class Visitor(private val semanticListener: SemanticErrorHandler,
             val ident = visit(func.ident()) as Ident
             val type = visit(func.type()) as TypeNode
             if (globalSymbolTable.containsNodeLocal(ident.toString())) {
-                println("SEMANTIC ERROR DETECTED --- FUNCTION ALREADY EXISTS")
+                // println("SEMANTIC ERROR DETECTED --- FUNCTION ALREADY EXISTS")
+                semanticListener.redefinedVariable(ident.name + "()", func)
                 semantic = true
             } else {
                 globalSymbolTable.addNode(ident.toString(), type.type.setFunction(true))
@@ -111,7 +112,7 @@ STATEMENTS
         return if (pairElem::class == FstExpr::class) {
             expr = (pairElem as FstExpr).expr
             if (expr::class != Ident::class) {
-                println("SEMANTIC ERROR DETECTED --- FST EXPRESSION MUST BE AN IDENT")
+                semanticListener.fstSndMustBePair(ctx)
                 semantic = true
                 null
             } else if (!globalSymbolTable.containsNodeGlobal((expr as Ident).toString())) {
@@ -123,11 +124,11 @@ STATEMENTS
         } else {
             expr = (pairElem as SndExpr).expr
             if (expr::class != Ident::class) {
-                println("SEMANTIC ERROR DETECTED --- SND EXPRESSION MUST BE AN IDENT")
+                semanticListener.fstSndMustBePair(ctx)
                 semantic = true
                 null
             } else if (!globalSymbolTable.containsNodeGlobal((expr as Ident).toString())) {
-                println("SEMANTIC ERROR DETECTED --- PAIR DOES NOT EXIST")
+                semanticListener.undefinedType(expr.name, ctx)
                 semantic = true
                 null
             } else {
@@ -205,7 +206,8 @@ STATEMENTS
                 break
                 // If the elements type does not match the first then there is an error
             } else if (getExprType(exprs[i],null) != firstType) {
-                println("SEMANTIC ERROR --- Array elements have differing types")
+                semanticListener.arrayDifferingTypes(ctx)
+                // println("SEMANTIC ERROR --- Array elements have differing types")
                 semantic = true
                 break
             }
@@ -453,7 +455,7 @@ STATEMENTS
                 && !(lhsType.getArray() && rhsType.getType() == Type(EMPTY_ARR).getType())
                 && !(lhsType.getPair() && rhsType.getType() == Type(PAIR_LITER).getType())
             ) {
-                semanticListener.incompatibleTypeDecl(ident.toString(), lhsType.toString(), rhs.toString(), ctx)
+                semanticListener.incompatibleTypeDecl(ident.name, lhsType.toString(), rhs.toString(), ctx)
                 semantic = true
             }
         }
