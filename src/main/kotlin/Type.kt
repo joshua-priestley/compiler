@@ -95,6 +95,8 @@ class Type {
                 //Check array base types
                 compare.getArray() && getArray() -> compare.getBaseType() == getBaseType()
 
+                compare.getType() == PAIR_LITER -> getType() == PAIR_LITER
+
                 //Check pair types
                 compare.getPair() && getPair() -> compare.getPairFst() == getPairFst() && compare.getPairSnd() == getPairSnd()
 

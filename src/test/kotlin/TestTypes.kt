@@ -41,6 +41,16 @@ class TestTypes {
     }
 
     @Test
+    fun testPairLiterEquals() {
+        val p1 = Type(PAIR_LITER)
+        val p2 = Type(PAIR_LITER)
+        val p3 = Type(PAIR)
+        assertEquals(p1, p2)
+        assertNotEquals(p1, p3)
+    }
+
+
+    @Test
     fun testArrayEquals() {
         val t1 = Type(str)
         val t2 = Type(int)

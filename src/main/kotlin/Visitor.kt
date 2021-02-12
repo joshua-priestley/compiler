@@ -351,8 +351,10 @@ STATEMENTS
         cond = true
         val type = getExprType(expr)
         cond = false
-        val retType = globalSymbolTable.getNodeLocal("\$RET")
-        if (type != retType && !(retType!!.getType() == PAIR_LITER && type!!.getType() == PAIR_LITER)) {
+        val expected = globalSymbolTable.getNodeLocal("\$RET")
+
+        if (type != globalSymbolTable.getNodeLocal("\$RET")) {
+
             println("SEMANTIC ERROR DETECTED --- RETURN TYPES NOT EQUAL Line: " + ctx.getStart().line)
             semantic = true
         }
@@ -391,10 +393,11 @@ STATEMENTS
             semantic = true
             inIf = false
         }
+        val stat1 = visit(ctx.stat(0)) as StatementNode
+        val stat2 = visit(ctx.stat(1)) as StatementNode
         cond = false
-        return IfElseNode(condExpr,
-                visit(ctx.stat(0)) as StatementNode,
-                visit(ctx.stat((1))) as StatementNode)
+
+        return IfElseNode(condExpr, stat1, stat2)
     }
 
     override fun visitWhile(ctx: WhileContext): Node {
@@ -425,7 +428,7 @@ STATEMENTS
         val type = visit(ctx.type()) as TypeNode
         val ident = Ident(ctx.ident().text)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
-        if (globalSymbolTable.containsNodeLocal(ident.toString())
+        if (!cond && globalSymbolTable.containsNodeLocal(ident.toString())
             && !globalSymbolTable.getNodeLocal(ident.toString())!!.isFunction()) {
             println("SEMANTIC ERROR DETECTED --- VARIABLE ALREADY EXISTS  Line: " + ctx.getStart().line)
             semantic = true
@@ -579,6 +582,7 @@ TYPES
                 }
             }
             is BinaryOpNode -> {
+                //println("we got here right?")
                 if (cond) {
                     binaryOpsProduces(expr.operator.value)
                 } else {
