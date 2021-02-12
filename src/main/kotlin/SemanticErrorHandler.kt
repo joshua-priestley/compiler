@@ -1,6 +1,6 @@
 import org.antlr.v4.runtime.ParserRuleContext
 class SemanticErrorHandler {
-    private val errorList: MutableCollection<String> = mutableListOf()
+    private val errorList: MutableSet<String> = mutableSetOf()
 
     fun hasSemanticErrors() = errorList.isNotEmpty()
 

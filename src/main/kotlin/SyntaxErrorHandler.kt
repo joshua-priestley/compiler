@@ -3,14 +3,13 @@ import org.antlr.v4.runtime.BaseErrorListener
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.RecognitionException
 import org.antlr.v4.runtime.Recognizer
-import java.util.*
 import kotlin.Int
 
 
 
 class WACCErrorListener : BaseErrorListener() {
 
-    private val syntaxErrorList = LinkedList<String>()
+    private val syntaxErrorList = mutableSetOf<String>()
 
     override fun syntaxError(recognizer: Recognizer<*, *>?,
                              offendingSymbol: Any?,
