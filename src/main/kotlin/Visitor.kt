@@ -1,7 +1,6 @@
 import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
 import org.antlr.v4.runtime.ParserRuleContext
-import javax.naming.Context
 
 class Visitor(
     private val semanticListener: SemanticErrorHandler,
@@ -13,7 +12,7 @@ class Visitor(
     private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
 
     // A flag to know if we want the type a boolean returns or requires
-    var boolTypeResult = false
+    private var boolTypeResult = false
 
     // Visits the main program to build the AST
     override fun visitProgram(ctx: ProgramContext): Node {
@@ -80,7 +79,6 @@ class Visitor(
         // Assign the current scope to the scope of the function when building its statement node
         globalSymbolTable = functionSymbolTable
         val stat = visit(ctx.stat()) as StatementNode
-        // TODO: CHANGE ERROR MESSAGE TO SMTH BETTER
         if (!stat.valid()) {
             syntaxListener.addSyntaxError(ctx, "return type of function invalid")
         }
@@ -124,7 +122,7 @@ STATEMENTS
                 semanticListener.fstSndMustBePair(ctx)
                 null
             } else if (!globalSymbolTable.containsNodeGlobal((expr as Ident).toString())) {
-                semanticListener.undefinedType(expr.name, ctx)
+                semanticListener.undefinedVar(expr.name, ctx)
                 null
             } else {
                 globalSymbolTable.getNodeGlobal(expr.toString())!!.getPairFst()
@@ -135,7 +133,7 @@ STATEMENTS
                 semanticListener.fstSndMustBePair(ctx)
                 null
             } else if (!globalSymbolTable.containsNodeGlobal((expr as Ident).toString())) {
-                semanticListener.undefinedType(expr.name, ctx)
+                semanticListener.undefinedVar(expr.name, ctx)
                 null
             } else {
                 globalSymbolTable.getNodeGlobal(expr.toString())!!.getPairSnd()
@@ -185,7 +183,7 @@ STATEMENTS
             is AssignLHSIdentNode -> {
                 // Check the type is valid and the variable is not a function name
                 if (!globalSymbolTable.containsNodeGlobal(lhs.ident.toString())) {
-                    semanticListener.undefinedType(lhs.ident.name, ctx)
+                    semanticListener.undefinedVar(lhs.ident.name, ctx)
                 } else if (globalSymbolTable.getNodeGlobal(lhs.ident.toString())!!.isFunction()) {
                     semanticListener.assigningFunction(lhs.ident.name, ctx)
                 }
@@ -194,7 +192,7 @@ STATEMENTS
             is LHSArrayElemNode -> {
                 // Check the array exists, the type is valid and the index is an integer
                 if (!globalSymbolTable.containsNodeGlobal(lhs.arrayElem.ident.toString())) {
-                    semanticListener.undefinedType(lhs.arrayElem.ident.name, ctx)
+                    semanticListener.undefinedVar(lhs.arrayElem.ident.name, ctx)
                 } else if (getExprType(lhs.arrayElem.expr[0], ctx) != Type(INT)) {
                     semanticListener.arrayIndex("0", "INT", getExprType(lhs.arrayElem.expr[0], ctx).toString(), ctx)
                 } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getType() == STRING) {
@@ -330,7 +328,7 @@ STATEMENTS
                     semanticListener.readNotVariable(ctx)
                 }
                 if (!globalSymbolTable.containsNodeGlobal((lhsNode as AssignLHSIdentNode).ident.toString())) {
-                    semanticListener.undefinedType(lhsNode.ident.name, ctx)
+                    semanticListener.undefinedVar(lhsNode.ident.name, ctx)
                 }
                 globalSymbolTable.getNodeGlobal(lhsNode.ident.toString())
             }
@@ -385,7 +383,7 @@ STATEMENTS
     // Check that if we are printing a variable, it exists
     private fun checkPrint(expr: ExprNode, ctx: ParserRuleContext) {
         if (expr is Ident && !globalSymbolTable.containsNodeGlobal(expr.toString())) {
-            semanticListener.undefinedType(expr.name, ctx)
+            semanticListener.undefinedVar(expr.name, ctx)
         }
     }
 
@@ -586,7 +584,7 @@ TYPES
     }
 
     // Check is possible version of an expression and return its type
-    private fun getExprType(expr: ExprNode, ctx: ParserRuleContext?): Type? {
+    private fun getExprType(expr: ExprNode, ctx: ParserRuleContext): Type? {
         return when (expr) {
             is IntLiterNode -> Type(INT)
             is StrLiterNode -> Type(STRING)
@@ -595,7 +593,7 @@ TYPES
             is Ident -> {
                 // Check the variable exists
                 if (!globalSymbolTable.containsNodeGlobal(expr.toString())) {
-                    semanticListener.undefinedType(expr.name, ctx!!)
+                    semanticListener.undefinedVar(expr.name, ctx)
                     null
                 } else {
                     globalSymbolTable.getNodeGlobal(expr.toString())
@@ -605,12 +603,12 @@ TYPES
             is ArrayElem -> {
                 // Check the index is correct and the types match
                 if (getExprType(expr.expr[0], ctx) != Type(INT)) {
-                    semanticListener.arrayIndex("0", getExprType(expr.expr[0], ctx).toString(), "INT", ctx!!)
+                    semanticListener.arrayIndex("0", getExprType(expr.expr[0], ctx).toString(), "INT", ctx)
                 } else if (!globalSymbolTable.containsNodeGlobal(expr.ident.toString())) {
-                    semanticListener.undefinedType(expr.ident.name, ctx!!)
+                    semanticListener.undefinedVar(expr.ident.name, ctx)
                 } else if (globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getType() == STRING) {
                     // Make sure we are not trying to index a string
-                    semanticListener.indexStrings(ctx!!)
+                    semanticListener.indexStrings(ctx)
                 }
                 globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
             }
@@ -630,7 +628,7 @@ TYPES
                     if (requires.contains(getExprType(expr.expr1, ctx)) || requires.contains(Type(ANY))) {
                         binaryOpsProduces(expr.operator.value)
                     } else {
-                        semanticListener.binaryOpType(ctx!!)
+                        semanticListener.binaryOpType(ctx)
                         null
                     }
                 }
@@ -665,7 +663,6 @@ TYPES
         return PairLiterNode()
     }
 
-    //TODO can we change the parser to avoid having to do this
     override fun visitId(ctx: IdContext): Node {
         return visit(ctx.ident())
     }
@@ -674,7 +671,6 @@ TYPES
         return Ident(ctx.text)
     }
 
-    //TODO can we change the parser to avoid having to do this
     override fun visitArrayElem(ctx: ArrayElemContext): Node {
         return visit(ctx.array_elem())
     }
@@ -685,8 +681,6 @@ TYPES
     }
 
     override fun visitUnaryOp(ctx: UnaryOpContext): Node {
-        //TODO handle semantic errors here? or handle later using NOT_SUPPORTED flag
-        //TODO is there a ore elegant way to do this?
         val op = when {
             ctx.NOT() != null -> UnOp.NOT
             ctx.MINUS() != null -> UnOp.MINUS
