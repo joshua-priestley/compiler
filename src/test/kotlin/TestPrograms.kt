@@ -44,7 +44,7 @@ class TestPrograms {
     private val testSemanticFiles = File("./wacc_examples/invalid/semanticErr").walk()
         .filter { ".wacc" in it.path }.toSortedSet()
 
-    private val testValidFiles = File("./wacc_examples/invalid/semanticErr").walk()
+    private val testValidFiles = File("./wacc_examples/valid").walk()
         .filter { ".wacc" in it.path }.toSortedSet()
 
     private fun runTest(inputFile: File) {
