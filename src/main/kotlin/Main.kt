@@ -59,7 +59,8 @@ class Compiler(val inputFile: String) {
             listener.printSyntaxErrors()
             return 100
         }
-        if (visitor.semantic) {
+        if (visitor.semantic || semanticErrorHandler.hasSemanticErrors()) {
+            semanticErrorHandler.printSemanticErrors()
             return 200
         }
 

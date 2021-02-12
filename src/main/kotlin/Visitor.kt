@@ -180,7 +180,7 @@ STATEMENTS
                     println("SEMANTIC ERROR DETECTED --- ARRAY REFERENCED BEFORE ASSIGNMENT Line: " + ctx.getStart().line)
                     semantic = true
                 } else if (getExprType(lhs.arrayElem.expr[0],null) != Type(INT)) {
-                    println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER Line: " + ctx.getStart().line)
+                    semanticListener.arrayIndex(ctx)
                     semantic = true
                 } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getType() == STRING) {
                     println("SEMANTIC ERROR DETECTED --- STRINGS CANNOT BE INDEXED Line: " + ctx.getStart().line)
@@ -289,8 +289,9 @@ STATEMENTS
         if (lhsType != null) {
             if (lhsType.getType() != rhsType!!.getType() && !(lhsType.getArray() && rhsType.getType() == Type(EMPTY_ARR).getType())
                 && !(lhsType.getPair() && rhsType.getType() == Type(PAIR_LITER).getType())) {
-                println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT Line: " + ctx.getStart().line)
-                semantic = true
+                //println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE ASSIGNMENT Line: " + ctx.getStart().line)
+                semanticListener.incompatibleTypeAss(lhsType.toString(), rhsType.toString(), ctx)
+                    semantic = true
             }
         }
 
@@ -316,8 +317,9 @@ STATEMENTS
         }
 
         if (!(type == Type(INT) || type == Type(CHAR))) {
-            println("SEMANTIC ERROR DETECTED --- READ MUST GO INTO AN INT OR CHAR Line: " + ctx.getStart().line)
+            semanticListener.readTypeError(type.toString(), ctx)
             semantic = true
+
         }
         return ReadNode(lhsNode)
     }
@@ -443,8 +445,7 @@ STATEMENTS
         val table : SymbolTable
         if (!cond && globalSymbolTable.containsNodeLocal(ident.toString()) && globalSymbolTable.containsNodeLocal(ident.toString())
             && !globalSymbolTable.getNodeLocal(ident.toString())!!.isFunction()) {
-            println("SEMANTIC ERROR DETECTED --- VARIABLE ALREADY EXISTS  Line: " + ctx.getStart().line)
-            semantic = true
+            semanticListener.redefinedVariable(ident.toString(), ctx)
         } else {
             globalSymbolTable.addNode(ident.toString(), type.type)
         }
@@ -459,7 +460,8 @@ STATEMENTS
                 && !(lhsType.getArray() && rhsType.getType() == Type(EMPTY_ARR).getType())
                 && !(lhsType.getPair() && rhsType.getType() == Type(PAIR_LITER).getType())
             ) {
-                println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION Line: " + ctx.getStart().line)
+                //println("SEMANTIC ERROR DETECTED --- LHS TYPE DOES NOT EQUAL RHS TYPE DECLARATION Line: " + ctx.getStart().line)
+                semanticListener.incompatibleTypeDecl(ident.toString(), lhsType.toString(), rhs.toString(), ctx)
                 semantic = true
             }
         }
@@ -565,6 +567,7 @@ TYPES
             is CharLiterNode -> Type(CHAR)
             is Ident -> {
                 if (!globalSymbolTable.containsNodeGlobal(expr.toString())) {
+                    semanticListener.undefinedType(expr.name, ctx!!)
 
                     println("SEMANTIC ERROR DETECTED --- VARIABLE DOES NOT EXIST Line: " + ctx!!.getStart().line + " " + expr.toString())
                     semantic = true
@@ -576,7 +579,8 @@ TYPES
 
             is ArrayElem -> {
                 if (getExprType(expr.expr[0],ctx) != Type(INT)) {
-                    println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER Line: " + ctx!!.getStart().line)
+                   // println("SEMANTIC ERROR DETECTED --- ARRAY INDEX IS NOT AN INTEGER Line: " + ctx!!.getStart().line)
+                    semanticListener.arrayIndex(ctx!!)
                     semantic = true
                 } else if (!globalSymbolTable.containsNodeGlobal(expr.ident.toString())) {
                     println("SEMANTIC ERROR DETECTED --- ARRAY DOES NOT EXIST")
