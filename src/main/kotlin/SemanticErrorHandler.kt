@@ -38,6 +38,28 @@ class SemanticErrorHandler {
 
         errorList.add(fullMsg)
     }
+
+    fun funRefBeforeAss(expr: String, ctx: ParserRuleContext) {
+        val msg = "Function referenced before assignment at $expr"
+        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+
+        errorList.add(fullMsg)
+    }
+
+    fun newPairFalse(pairIndex: String, ctx: ParserRuleContext) {
+        val msg = "newpair expression $pairIndex is false"
+        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+
+        errorList.add(fullMsg)
+    }
+
+    fun incompatibleExitCode(expr: String, actual: String, ctx: ParserRuleContext) {
+        val msg = "Incompatible exit code at $expr (expected: INT, actual: $actual)"
+        val fullMsg = buildErrorMessage(msg,ctx.getStart().line,ctx.getStart().charPositionInLine)
+
+        errorList.add(fullMsg)
+    }
+
     //Error message for redefining variable within same scope
     fun redefinedVariable(ident: String, ctx: ParserRuleContext) {
         val msg = "\"$ident\" is already defined in this scope"

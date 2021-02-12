@@ -1,6 +1,7 @@
 import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
 import Type
+import org.antlr.v4.runtime.ParserRuleContext
 import javax.swing.plaf.nimbus.State
 import kotlin.math.exp
 
@@ -214,15 +215,14 @@ STATEMENTS
         }
     }
 
-    private fun getRHSType(rhs: AssignRHSNode): Type? {
+    private fun getRHSType(rhs: AssignRHSNode, ctx: ParserRuleContext): Type? {
         return when (rhs) {
             is RHSExprNode -> {
                 getExprType(rhs.expr,null)
             }
             is RHSCallNode -> {
                 if (!globalSymbolTable.containsNodeGlobal(rhs.ident.toString())) {
-                    println("SEMANTIC ERROR DETECTED --- FUNCTION REFERENCED BEFORE ASSIGNMENT")
-                    semantic = true
+                    semanticListener.funRefBeforeAss(rhs.ident.name, ctx)
                     null
                 } else if (!checkParameters(rhs)) {
                     null
@@ -248,7 +248,8 @@ STATEMENTS
             }
             else -> {
                 // RHSNewPairElemNode
-                var expr1 = getExprType((rhs as RHSNewPairNode).expr1,null)
+                val pair = rhs as RHSNewPairNode
+                var expr1 = getExprType(pair.expr1,null)
                 var expr2 = getExprType(rhs.expr2,null)
 
                 if (expr1 != null) {
@@ -263,12 +264,10 @@ STATEMENTS
                 }
 
                 if (expr1 == null) {
-                    println("SEMANTIC ERROR DETECTED --- NEWPAIR EXPRESSION 1 IS FALSE")
-                    semantic = true
+                    semanticListener.newPairFalse("1", ctx)
                     null
                 } else if (expr2 == null) {
-                    println("SEMANTIC ERROR DETECTED --- NEWPAIR EXPRESSION 2 IS FALSE")
-                    semantic = true
+                    semanticListener.newPairFalse("2", ctx)
                     null
                 } else {
                     Type(expr1, expr2)
@@ -284,7 +283,7 @@ STATEMENTS
         val lhsType = getLHSType(lhs,ctx.assign_lhs())
 
         cond = true
-        val rhsType = getRHSType(rhs)
+        val rhsType = getRHSType(rhs, ctx)
         cond = false
         if (lhsType != null) {
             if (lhsType.getType() != rhsType!!.getType() && !(lhsType.getArray() && rhsType.getType() == Type(EMPTY_ARR).getType())
@@ -327,8 +326,7 @@ STATEMENTS
     override fun visitExit(ctx: ExitContext): Node {
         val expr = visit(ctx.expr()) as ExprNode
         if (getExprType(expr,ctx.expr()) != Type(INT)) {
-            println("SEMANTIC ERROR DETECTED --- EXIT CODE MUST BE INT Line: " + ctx.getStart().line)
-            semantic = true
+            semanticListener.incompatibleExitCode(ctx.expr().text, getExprType(expr,ctx.expr()).toString(), ctx)
         }
         return ExitNode(expr)
     }
@@ -452,7 +450,7 @@ STATEMENTS
 
         val lhsType = type.type
         cond = true
-        val rhsType = getRHSType(rhs)
+        val rhsType = getRHSType(rhs, ctx)
         cond = false
 
         if(rhsType != null) {
