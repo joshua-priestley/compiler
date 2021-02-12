@@ -1,6 +1,7 @@
 import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
 import Type
+import javax.swing.plaf.nimbus.State
 import kotlin.math.exp
 
 class Visitor(private val semanticListener: SemanticErrorHandler,
@@ -379,7 +380,7 @@ STATEMENTS
         cond = true
         val type = getExprType(expr,ctx.expr())
         cond = false
-        val expected = globalSymbolTable.getNodeLocal("\$RET")
+        val expected = globalSymbolTable.getNodeGlobal("\$RET")
 
         if (type != expected) {
 
@@ -450,8 +451,13 @@ STATEMENTS
             semantic = true
         }
         cond = false
-        return WhileNode(condExpr,
-                visit(ctx.stat()) as StatementNode)
+
+        val loopSymbolTable = SymbolTable(globalSymbolTable)
+        globalSymbolTable = loopSymbolTable
+        val stat = visit(ctx.stat()) as StatementNode
+        globalSymbolTable = globalSymbolTable.parentT!!
+
+        return WhileNode(condExpr, stat)
     }
 
     override fun visitBegin(ctx: BeginContext): Node {
@@ -736,7 +742,7 @@ TYPES
         val expr2 = visit(ctx.expr(1)) as ExprNode
 
 
-        val exprType = getExprType(expr1)
+        val exprType = getExprType(expr1, ctx)
         /*
         println(expr1)
         println(expr2)
