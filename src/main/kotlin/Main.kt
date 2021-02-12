@@ -33,12 +33,14 @@ class Compiler(private val inputFile: String)  {
             throw IllegalArgumentException("Cannot find input file at ${file.absolutePath}")
         }
 
+        val listener = WACCErrorListener()
         val input = CharStreams.fromPath(file.toPath())
         val lexer = WACCLexer(input)
+        lexer.removeErrorListeners()
+        lexer.addErrorListener(listener)
         val tokens = CommonTokenStream(lexer)
         val parser = WACCParser(tokens)
         parser.removeErrorListeners()
-        val listener = WACCErrorListener()
         parser.addErrorListener(listener)
         val tree = parser.program()
         val semanticErrorHandler = SemanticErrorHandler()
