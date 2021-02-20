@@ -2,13 +2,7 @@ package compiler.Instructions
 
 import java.lang.StringBuilder
 
-class Pop: Instruction {
-
-    private val registers: List<Register>
-
-    constructor(registers: List<Register>) {
-        this.registers = registers
-    }
+class Pop(private val registers: List<Register>) : Instruction {
 
     override fun toString(): String {
         val instr = StringBuilder()
