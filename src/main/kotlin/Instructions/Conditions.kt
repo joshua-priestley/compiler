@@ -1,10 +1,15 @@
 package compiler.Instructions
 
 enum class Conditions {
-    EQ,
-    NE,
-    GE,
-    GT,
-    LE,
-    LT
+    EQ,     // Equal
+    NE,     // Not Equal
+    GE,     // >
+    GT,     // >=
+    LE,     // <
+    LT,     // <=
+    VS,     // Overflow
+    VC,     // No Overflow
+    AL,     // Always
+    MI,     // Negative
+    PL      // Positive or Zero
 }
