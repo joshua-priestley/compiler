@@ -61,6 +61,8 @@ class Compiler(private val inputFile: String) {
             return SEMANTIC_ERROR
         }
 
+        val assemblyFileName = inputFile.replace(".wacc", ".s")
+
         println("Successfully finished compilation with exit code 0.")
         return OK
     }
