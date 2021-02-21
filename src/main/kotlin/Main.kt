@@ -60,6 +60,10 @@ class Compiler(private val inputFile: String) {
         val visitor = ASTBuilder(semanticErrorHandler, listener, symbolTable)
         val root = visitor.visit(tree)
 
+        if (listener.hasSyntaxErrors()) {
+            listener.printSyntaxErrors()
+            return SYNTACTIC_ERROR
+        }
 
         if (semanticErrorHandler.hasSemanticErrors()) {
             semanticErrorHandler.printSemanticErrors()
