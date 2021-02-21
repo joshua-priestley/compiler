@@ -10,6 +10,8 @@ import AST.Type.Companion.unaryOpsRequires
 import ErrorHandler.SemanticErrorHandler
 import ErrorHandler.SyntaxErrorHandler
 
+var nextSymbolTableID: kotlin.Int = 1
+
 class ASTBuilder(
         private val semanticListener: SemanticErrorHandler,
         private val syntaxHandler: SyntaxErrorHandler,
@@ -74,7 +76,7 @@ class ASTBuilder(
     // Visit a function for the AST
     override fun visitFunc(ctx: FuncContext): Node {
         // Create a new scope for the function
-        val functionSymbolTable = SymbolTable(globalSymbolTable)
+        val functionSymbolTable = SymbolTable(globalSymbolTable, nextSymbolTableID++)
 
         val ident = visit(ctx.ident()) as Ident // Function name
         val type = visit(ctx.type()) as TypeNode // Return type
@@ -107,7 +109,7 @@ class ASTBuilder(
         globalSymbolTable = globalSymbolTable.parentT!!
 
         if (!globalSymbolTable.containsNodeLocal(ident.name)) {
-            globalSymbolTable.addChildTable(functionSymbolTable)
+            globalSymbolTable.addChildTable(functionSymbolTable.ID, functionSymbolTable)
         }
 
         return FunctionNode(type, ident, parameterNodes.toList(), stat)
@@ -301,12 +303,12 @@ class ASTBuilder(
 
         // Create new scope for each branch of the conditional to make sure there are no scoping issues
         // Then traverse down either side
-        val ifSymbolTable = SymbolTable(globalSymbolTable)
+        val ifSymbolTable = SymbolTable(globalSymbolTable, nextSymbolTableID++)
         globalSymbolTable = ifSymbolTable
         val stat1 = visit(ctx.stat(0)) as StatementNode
         globalSymbolTable = globalSymbolTable.parentT!!
 
-        val elseSymbolTable = SymbolTable(globalSymbolTable)
+        val elseSymbolTable = SymbolTable(globalSymbolTable, nextSymbolTableID++)
         globalSymbolTable = elseSymbolTable
         val stat2 = visit(ctx.stat(1)) as StatementNode
         globalSymbolTable = globalSymbolTable.parentT!!
@@ -318,7 +320,7 @@ class ASTBuilder(
         val condExpr = getConditionExpression((ctx.expr()), ctx)
 
         // Create a new scope for the loop
-        val loopSymbolTable = SymbolTable(globalSymbolTable)
+        val loopSymbolTable = SymbolTable(globalSymbolTable, nextSymbolTableID++)
         globalSymbolTable = loopSymbolTable
         val stat = visit(ctx.stat()) as StatementNode
         globalSymbolTable = globalSymbolTable.parentT!!
@@ -328,7 +330,7 @@ class ASTBuilder(
 
     override fun visitBegin(ctx: BeginContext): Node {
         // Create a new scope for each begin
-        val scopeSymbolTable = SymbolTable(globalSymbolTable)
+        val scopeSymbolTable = SymbolTable(globalSymbolTable, nextSymbolTableID++)
         globalSymbolTable = scopeSymbolTable
         val stat = visit(ctx.stat()) as StatementNode
         globalSymbolTable = globalSymbolTable.parentT!!

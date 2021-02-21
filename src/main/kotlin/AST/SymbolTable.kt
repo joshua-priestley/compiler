@@ -1,23 +1,21 @@
 package AST
 
 // Class to store the symbol table with a reference to the parent symbol table
-class SymbolTable(var parentT: SymbolTable?) {
+class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
 
     // Table to store all variables and functions available
     private val table: LinkedHashMap<String, Type> = linkedMapOf()
 
     // List of the other children tables (of functions)
-    private val childrenTables: MutableList<SymbolTable> = mutableListOf()
+    private val childrenTables: LinkedHashMap<kotlin.Int, SymbolTable> = linkedMapOf()
 
     init {
-        parentT?.addChildTable(this)
+        parentT?.addChildTable(ID, this)
     }
 
-
-    fun addChildTable(child: SymbolTable) {
-        childrenTables.add(child)
+    fun addChildTable(ID: kotlin.Int, child: SymbolTable) {
+        childrenTables[ID] = child
     }
-
 
     fun addNode(name: String, type: Type) {
         table[name] = type

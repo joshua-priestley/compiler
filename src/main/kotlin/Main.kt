@@ -56,7 +56,7 @@ class Compiler(private val inputFile: String) {
             return SYNTACTIC_ERROR
         }
 
-        val symbolTable = SymbolTable(null)
+        val symbolTable = SymbolTable(null, 0)
         val visitor = ASTBuilder(semanticErrorHandler, listener, symbolTable)
         val root = visitor.visit(tree)
 
