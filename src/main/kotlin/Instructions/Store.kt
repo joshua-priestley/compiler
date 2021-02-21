@@ -21,6 +21,12 @@ class Store : Instruction {
     }
 
     override fun toString(): String {
-        TODO("Not yet implemented")
+        val output = StringBuilder()
+        output.append("\tSTR")
+        if (cond != null) output.append(cond)
+        output.append(" $srcReg, [$dstAddress")
+        if (offset != 0) output.append(", #$offset")
+        output.append("]")
+        return output.toString()
     }
 }
