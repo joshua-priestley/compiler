@@ -3,7 +3,6 @@ package compiler
 import ErrorHandler.SemanticErrorHandler
 import AST.SymbolTable
 import AST.ASTBuilder
-import AST.Node
 import ErrorHandler.SyntaxErrorHandler
 import org.antlr.v4.runtime.*
 import antlr.*
@@ -17,14 +16,14 @@ const val SYNTACTIC_ERROR = 100
 const val SEMANTIC_ERROR = 200
 const val OK = 0
 
-var assemble = false
+var assembly = false
 
 fun main(args: Array<String>) {
     if (args.size != 1) {
         throw IllegalArgumentException("Wrong number of arguments: expected: 1, actual: {$args.size}")
     }
 
-    assemble = "-OC" in args
+    assembly = "-OC" in args
 
     val compiler = Compiler(args[0])
 
@@ -70,7 +69,9 @@ class Compiler(private val inputFile: String) {
             return SEMANTIC_ERROR
         }
 
-        if (assemble) {
+        symbolTable.printChildTables()
+
+        if (assembly) {
             val codeGeneration = CodeGeneration(symbolTable)
             val listOfInstructions = codeGeneration.generate(root)
             val instructions = listOfInstructions.joinToString(separator = "\n") + "\n"

@@ -40,7 +40,6 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
         return null
     }
 
-
     fun containsNodeLocal(name: String): Boolean {
         return table.containsKey(name)
     }
@@ -57,6 +56,13 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
             currTable = currTable.parentT
         }
         return false
+    }
+
+    fun printChildTables() {
+        println(childrenTables)
+        for (key in childrenTables.keys) {
+            childrenTables[key]?.printChildTables()
+        }
     }
 
 }
