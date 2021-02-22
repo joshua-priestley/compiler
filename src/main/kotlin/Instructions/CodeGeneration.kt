@@ -64,8 +64,31 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return when (stat) {
             is SkipNode -> generateSkip()
             is ExitNode -> generateExit(stat)
+            is FreeNode -> generateFree(stat)
+            is SequenceNode -> generateSeq(stat)
             else -> mutableListOf()
         }
+    }
+
+    private fun generateSeq(stat: SequenceNode): List<Instruction> {
+        val sequenceInstruction = mutableListOf<Instruction>()
+
+        sequenceInstruction.addAll(generateStat(stat.stat1))
+        sequenceInstruction.addAll(generateStat(stat.stat2))
+
+        return sequenceInstruction
+    }
+
+    private fun generateFree(stat: FreeNode): List<Instruction> {
+        val freeInstruction = mutableListOf<Instruction>()
+
+        freeInstruction.addAll(generateIterLoad(stat.expr, Register.R4))
+        freeInstruction.add(Move(Register.R0, Register.R4))
+
+        // TODO: Library Calls
+        freeInstruction.add(Branch("", Conditions.L))
+
+        return freeInstruction
     }
 
     private fun generateExit(exitNode: ExitNode): List<Instruction> {
@@ -85,6 +108,28 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generateSkip(): List<Instruction> {
         return mutableListOf()
+    }
+
+    private fun generateIterLoad(exprNode: ExprNode, dstRegister: Register): List<Instruction> {
+        val loadInstruction = mutableListOf<Instruction>()
+        when (exprNode) {
+            is IntLiterNode -> {
+                loadInstruction.add(Load(dstRegister, exprNode.value))
+            }
+            is StrLiterNode -> {
+                // TODO: Data segment stuff
+            }
+            is CharLiterNode -> {
+                loadInstruction.add(Load(dstRegister, exprNode.value))
+            }
+            is BoolLiterNode -> {
+                loadInstruction.add(Load(dstRegister, exprNode.value))
+            }
+            is Ident -> {
+                // TODO: Stack offset stuff
+            }
+        }
+        return loadInstruction
     }
 
 }
