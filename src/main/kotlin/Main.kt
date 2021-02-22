@@ -69,8 +69,6 @@ class Compiler(private val inputFile: String) {
             return SEMANTIC_ERROR
         }
 
-        symbolTable.printChildTables()
-
         if (assembly) {
             val codeGeneration = CodeGeneration(symbolTable)
             val listOfInstructions = codeGeneration.generate(root)
