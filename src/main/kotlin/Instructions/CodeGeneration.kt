@@ -61,6 +61,29 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generateStat(stat: StatementNode): List<Instruction> {
+        return when (stat) {
+            is SkipNode -> generateSkip()
+            is ExitNode -> generateExit(stat)
+            else -> mutableListOf()
+        }
+    }
+
+    private fun generateExit(exitNode: ExitNode): List<Instruction> {
+        val exitInstruction = mutableListOf<Instruction>()
+
+        if (exitNode.expr is IntLiterNode) {
+            exitInstruction.add(Load(Register.R4, exitNode.expr.value))
+        } else if (exitNode.expr is Ident) {
+            // Get variable's value from stack
+        }
+
+        exitInstruction.add(Move(Register.R0, Register.R4))
+        exitInstruction.add(Branch("exit", Conditions.L))
+
+        return exitInstruction
+    }
+
+    private fun generateSkip(): List<Instruction> {
         return mutableListOf()
     }
 

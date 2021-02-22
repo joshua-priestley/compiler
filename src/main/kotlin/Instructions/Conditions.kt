@@ -11,5 +11,6 @@ enum class Conditions {
     VC,     // No Overflow
     AL,     // Always
     MI,     // Negative
-    PL      // Positive or Zero
+    PL,     // Positive or Zero
+    L       // Link
 }

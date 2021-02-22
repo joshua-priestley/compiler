@@ -75,7 +75,7 @@ class Compiler(private val inputFile: String, private val assembly: Boolean = fa
 
             val assemblyFileName = inputFile.replace(".wacc", ".s")
             println(instructions)
-            File(assemblyFileName).writeText(instructions)
+            //File(assemblyFileName).writeText(instructions)
         }
 
         println("Successfully finished compilation with exit code 0.")
