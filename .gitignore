@@ -20,5 +20,5 @@ out
 #ignore .DS_STORE files
 .DS_STORE
 
-#ignore the assembly files and examples
-wacc_examples
+#ignore the assembly files
+*.s
