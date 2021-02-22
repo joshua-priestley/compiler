@@ -3,8 +3,8 @@ package compiler.Instructions
 import java.lang.StringBuilder
 
 abstract class Shift {
-    val imm: Int?
-    val reg: Register?
+    private val imm: Int?
+    private val reg: Register?
 
     constructor() {
         this.imm = null
