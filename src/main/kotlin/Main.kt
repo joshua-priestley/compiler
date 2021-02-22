@@ -3,6 +3,7 @@ package compiler
 import ErrorHandler.SemanticErrorHandler
 import AST.SymbolTable
 import AST.ASTBuilder
+import AST.ProgramNode
 import ErrorHandler.SyntaxErrorHandler
 import org.antlr.v4.runtime.*
 import antlr.*
@@ -71,7 +72,7 @@ class Compiler(private val inputFile: String) {
 
         if (assembly) {
             val codeGeneration = CodeGeneration(symbolTable)
-            val listOfInstructions = codeGeneration.generate(root)
+            val listOfInstructions = codeGeneration.generateProgram(root as ProgramNode)
             val instructions = listOfInstructions.joinToString(separator = "\n") + "\n"
 
             val assemblyFileName = inputFile.replace(".wacc", ".s")
