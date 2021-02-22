@@ -8,7 +8,7 @@ class Pop(private val registers: List<Register>, private val cond: Conditions? =
         val instr = StringBuilder()
         instr.append("\tPOP")
         if (cond != null) instr.append(cond)
-        instr.append(" {${registers.joinToString(separator = ",")}")
+        instr.append(" {${registers.joinToString(separator = ",")}}")
         return instr.toString()
     }
 }

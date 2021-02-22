@@ -17,21 +17,19 @@ const val SYNTACTIC_ERROR = 100
 const val SEMANTIC_ERROR = 200
 const val OK = 0
 
-var assembly = false
-
 fun main(args: Array<String>) {
     if (args.size != 1) {
         throw IllegalArgumentException("Wrong number of arguments: expected: 1, actual: {$args.size}")
     }
 
-    assembly = "-OC" in args
+    val assembly = "-OC" in args
 
-    val compiler = Compiler(args[0])
+    val compiler = Compiler(args[0], assembly)
 
     exitProcess(compiler.compile())
 }
 
-class Compiler(private val inputFile: String) {
+class Compiler(private val inputFile: String, private val assembly: Boolean = false) {
     fun compile(): Int {
         val file = File(inputFile)
 
@@ -76,6 +74,7 @@ class Compiler(private val inputFile: String) {
             val instructions = listOfInstructions.joinToString(separator = "\n") + "\n"
 
             val assemblyFileName = inputFile.replace(".wacc", ".s")
+            println(instructions)
             File(assemblyFileName).writeText(instructions)
         }
 
