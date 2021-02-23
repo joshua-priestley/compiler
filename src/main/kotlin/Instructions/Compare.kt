@@ -26,7 +26,7 @@ class Compare: Instruction {
         val instr = StringBuilder()
         instr.append("\tCMP")
         if (cond != null) instr.append(cond)
-        instr.append(" $firstReg ")
+        instr.append(" $firstReg, ")
         if (secondReg != null) {
             instr.append(secondReg)
         } else {

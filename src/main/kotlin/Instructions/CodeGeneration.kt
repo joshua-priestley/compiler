@@ -69,6 +69,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is FreeNode -> generateFree(stat)
             is SequenceNode -> generateSeq(stat)
             is IfElseNode -> generateIf(stat)
+            is WhileNode -> generateWhile(stat)
             else -> mutableListOf()
         }
     }
@@ -103,7 +104,32 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return ifInstruction
     }
 
-    private fun generateExpr(expr: ExprNode): Collection<Instruction> {
+    private fun generateWhile(stat: WhileNode): List<Instruction> {
+        val whileInstruction = mutableListOf<Instruction>()
+
+        val conditionLabel = nextLabel()
+        val bodyLabel = nextLabel()
+
+        whileInstruction.add(Branch(conditionLabel))
+
+        // Loop body
+        whileInstruction.add(FunctionDeclaration(bodyLabel))
+        whileInstruction.addAll(generateStat(stat.do_))
+
+        // Conditional
+        whileInstruction.add(FunctionDeclaration(conditionLabel))
+        if (stat.expr is LiterNode) {
+            whileInstruction.addAll(generateIterLoad(stat.expr, Register.R4))
+        } else {
+            whileInstruction.addAll(generateExpr(stat.expr))
+        }
+        whileInstruction.add(Compare(Register.R4, 1))
+        whileInstruction.add(Branch(bodyLabel, Conditions.EQ))
+
+        return whileInstruction
+    }
+
+    private fun generateExpr(expr: ExprNode): List<Instruction> {
         return emptyList()
     }
 
@@ -157,10 +183,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 // TODO: Data segment stuff
             }
             is CharLiterNode -> {
-                loadInstruction.add(Load(dstRegister, exprNode.value))
+                loadInstruction.add(Move(dstRegister, exprNode.value.single()))
             }
             is BoolLiterNode -> {
-                loadInstruction.add(Load(dstRegister, exprNode.value))
+                loadInstruction.add(Move(dstRegister, if (exprNode.value == "true") {1} else {0}))
             }
             is Ident -> {
                 // TODO: Stack offset stuff
