@@ -4,6 +4,8 @@ import AST.*
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
+    var labelCounter = 0
+
     fun generateProgram(program: ProgramNode): List<Instruction> {
         // Generate Data Segments
         val dataSegmentInstructions = mutableListOf<Instruction>()
@@ -74,6 +76,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateIf(stat: IfElseNode): List<Instruction> {
         val ifInstruction = mutableListOf<Instruction>()
 
+        val elseLabel = nextLabel()
+        val endLabel = nextLabel()
+
         // Load up the conditional
         if (stat.expr is LiterNode) {
             ifInstruction.addAll(generateIterLoad(stat.expr, Register.R4))
@@ -83,17 +88,17 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         // Compare the conditional
         ifInstruction.add(Compare(Register.R4, 0))
-        ifInstruction.add(Branch("else", Conditions.EQ))
+        ifInstruction.add(Branch(elseLabel, Conditions.EQ))
 
         // Then Branch
         ifInstruction.addAll(generateStat(stat.then))
-        ifInstruction.add(Branch("after"))
+        ifInstruction.add(Branch(endLabel))
 
         // Else Branch
-        ifInstruction.add(FunctionDeclaration("else-branch"))
+        ifInstruction.add(FunctionDeclaration(elseLabel))
         ifInstruction.addAll(generateStat(stat.else_))
 
-        ifInstruction.add(FunctionDeclaration("after"))
+        ifInstruction.add(FunctionDeclaration(endLabel))
 
         return ifInstruction
     }
@@ -162,6 +167,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
         }
         return loadInstruction
+    }
+
+    private fun nextLabel(): String {
+        return "L${labelCounter++}"
     }
 
 }
