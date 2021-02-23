@@ -175,7 +175,18 @@ class ASTBuilder(
      */
 
     override fun visitSequence(ctx: SequenceContext): Node {
-        return SequenceNode(visit(ctx.stat(0)) as StatementNode, visit(ctx.stat(1)) as StatementNode)
+        return SequenceNode(sequenceList(ctx))
+    }
+
+    private fun sequenceList(ctx: SequenceContext): MutableList<StatementNode> {
+        //visit head first so any variables will be added to the symbol table
+        val head = visit(ctx.stat(0)) as StatementNode
+        val tail = when (ctx.stat(1)) {
+            is SequenceContext -> sequenceList(ctx.stat(1) as SequenceContext)
+            else -> mutableListOf(visit(ctx.stat(1)) as StatementNode)
+        }
+        tail.add(0, head)
+        return tail
     }
 
     override fun visitVarAssign(ctx: VarAssignContext): Node {

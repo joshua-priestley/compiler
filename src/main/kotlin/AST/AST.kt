@@ -20,14 +20,13 @@ data class FunctionNode(val type: TypeNode, val ident: Ident, val params: List<P
  */
 interface StatementNode : Node {
     fun valid(): Boolean {
-        if (this is IfElseNode) {
-            return this.then.valid() && this.else_.valid()
-        } else if (this is SequenceNode) {
-            return this.stat2.valid()
-        } else if (this is ExitNode || this is ReturnNode) {
-            return true
+        return when (this) {
+            is IfElseNode -> this.then.valid() && this.else_.valid()
+            is SequenceNode -> this.statList[this.statList.size - 1].valid()
+            is ExitNode -> true
+            is ReturnNode -> true
+            else -> false
         }
-        return false
     }
 }
 
@@ -43,7 +42,7 @@ data class PrintlnNode(val expr: ExprNode) : StatementNode
 data class IfElseNode(val expr: ExprNode, val then: StatementNode, val else_: StatementNode) : StatementNode
 data class WhileNode(val expr: ExprNode, val do_: StatementNode) : StatementNode
 data class BeginEndNode(val stat: StatementNode) : StatementNode
-data class SequenceNode(val stat1: StatementNode, val stat2: StatementNode) : StatementNode
+data class SequenceNode(val statList: List<StatementNode>) : StatementNode
 
 /*
  * LHS Assignment

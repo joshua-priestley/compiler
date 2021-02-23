@@ -136,9 +136,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateSeq(stat: SequenceNode): List<Instruction> {
         val sequenceInstruction = mutableListOf<Instruction>()
 
-        sequenceInstruction.addAll(generateStat(stat.stat1))
-        sequenceInstruction.addAll(generateStat(stat.stat2))
-
+        stat.statList.map {generateStat(it)}.forEach { sequenceInstruction.addAll(it) }
         return sequenceInstruction
     }
 
