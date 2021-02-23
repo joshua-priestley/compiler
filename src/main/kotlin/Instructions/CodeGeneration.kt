@@ -66,8 +66,40 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is ExitNode -> generateExit(stat)
             is FreeNode -> generateFree(stat)
             is SequenceNode -> generateSeq(stat)
+            is IfElseNode -> generateIf(stat)
             else -> mutableListOf()
         }
+    }
+
+    private fun generateIf(stat: IfElseNode): List<Instruction> {
+        val ifInstruction = mutableListOf<Instruction>()
+
+        // Load up the conditional
+        if (stat.expr is LiterNode) {
+            ifInstruction.addAll(generateIterLoad(stat.expr, Register.R4))
+        } else {
+            ifInstruction.addAll(generateExpr(stat.expr))
+        }
+
+        // Compare the conditional
+        ifInstruction.add(Compare(Register.R4, 0))
+        ifInstruction.add(Branch("else", Conditions.EQ))
+
+        // Then Branch
+        ifInstruction.addAll(generateStat(stat.then))
+        ifInstruction.add(Branch("after"))
+
+        // Else Branch
+        ifInstruction.add(FunctionDeclaration("else-branch"))
+        ifInstruction.addAll(generateStat(stat.else_))
+
+        ifInstruction.add(FunctionDeclaration("after"))
+
+        return ifInstruction
+    }
+
+    private fun generateExpr(expr: ExprNode): Collection<Instruction> {
+        return emptyList()
     }
 
     private fun generateSeq(stat: SequenceNode): List<Instruction> {
