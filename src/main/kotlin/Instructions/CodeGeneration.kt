@@ -25,7 +25,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         // main:
         mainInstructions.add(FunctionDeclaration("main"))
 
-        functionBodyInstructions(mainInstructions, program.stat)
+        functionBodyInstructions(mainInstructions, program.stat, true)
 
         return dataSegmentInstructions +
                 labelInstructions +
@@ -40,12 +40,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         instructions.add(FunctionDeclaration("f_${function.ident.name}"))
 
         // Rest follows same format as the main function
-        functionBodyInstructions(instructions, function.stat)
+        functionBodyInstructions(instructions, function.stat, false)
 
         return instructions
     }
 
-    private fun functionBodyInstructions(instructions: MutableList<Instruction>, stat: StatementNode) {
+    private fun functionBodyInstructions(instructions: MutableList<Instruction>, stat: StatementNode, main: Boolean) {
         // PUSH {lr}
         instructions.add(Push(listOf(Register.LR)))
 
@@ -53,10 +53,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         instructions.addAll(generateStat(stat))
 
         // LDR r0, =0
-        instructions.add(Load(Register.R0, "0"))
+        if (main) {
+            instructions.add(Load(Register.R0, "0"))
+        }
 
         // POP {pc}
         instructions.add(Pop(listOf(Register.PC)))
+        if (!main) {
+            instructions.add(Pop(listOf(Register.PC)))
+        }
 
         // .ltorg
         instructions.add(LocalLabel("ltorg"))
@@ -70,6 +75,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is SequenceNode -> generateSeq(stat)
             is IfElseNode -> generateIf(stat)
             is WhileNode -> generateWhile(stat)
+            is DeclarationNode -> mutableListOf()
+            is AssignNode -> mutableListOf()
+            is ReturnNode -> generateReturn(stat)
             else -> mutableListOf()
         }
     }
@@ -129,6 +137,19 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return whileInstruction
     }
 
+    private fun generateReturn(stat: ReturnNode): List<Instruction> {
+        val returnInstruction = mutableListOf<Instruction>()
+
+        if (stat.expr is LiterNode) {
+            returnInstruction.addAll(generateIterLoad(stat.expr, Register.R4))
+        } else {
+            returnInstruction.addAll(generateExpr(stat.expr))
+        }
+
+        returnInstruction.add(Move(Register.R0, Register.R4))
+        return returnInstruction
+    }
+
     private fun generateExpr(expr: ExprNode): List<Instruction> {
         return emptyList()
     }
@@ -181,7 +202,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 // TODO: Data segment stuff
             }
             is CharLiterNode -> {
-                loadInstruction.add(Move(dstRegister, exprNode.value.single()))
+                loadInstruction.add(Move(dstRegister, exprNode.value[1]))
             }
             is BoolLiterNode -> {
                 loadInstruction.add(Move(dstRegister, if (exprNode.value == "true") {1} else {0}))
