@@ -18,6 +18,8 @@ class Type {
     private var function: Boolean = false
     private var parameter: Boolean = false
 
+    private var offsetInTable: Int = 0
+
 
     //Constructor for singleton types
     constructor(type: Int) {
@@ -59,6 +61,15 @@ class Type {
 
     fun isParameter(): Boolean {
         return this.parameter
+    }
+
+    fun setOffset(o: Int): Type {
+        this.offsetInTable = o
+        return this
+    }
+
+    fun getOffset(): Int {
+        return this.offsetInTable
     }
 
     //Get the base type of an array
