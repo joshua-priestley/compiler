@@ -95,6 +95,8 @@ class Type {
             INT -> 4
             BOOL -> 1
             CHAR -> 1
+            ARRAY -> 4
+            PAIR -> 4
             else -> -1
 
         }
