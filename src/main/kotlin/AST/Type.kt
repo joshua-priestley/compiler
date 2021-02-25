@@ -16,6 +16,7 @@ class Type {
     private val pairSnd: Type?
     private var arrType: Type?
     private var function: Boolean = false
+    private var parameter: Boolean = false
 
 
     //Constructor for singleton types
@@ -51,6 +52,15 @@ class Type {
         return this.function
     }
 
+    fun setParameter(parameter: Boolean): Type {
+        this.parameter = parameter
+        return this
+    }
+
+    fun isParameter(): Boolean {
+        return this.parameter
+    }
+
     //Get the base type of an array
     fun getBaseType(): Type {
         return this.arrType ?: Type(INVALID)
@@ -77,6 +87,17 @@ class Type {
 
     fun getPair(): Boolean {
         return (this.type == PAIR_LITER)
+    }
+
+    fun getTypeSize(): Int {
+        return when (this.type) {
+            STRING -> 4
+            INT -> 4
+            BOOL -> 1
+            CHAR -> 1
+            else -> -1
+
+        }
     }
 
     companion object {

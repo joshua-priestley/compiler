@@ -60,9 +60,22 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
 
     fun printChildTables() {
         println(childrenTables)
+        println("Total Size: ${localStackSize()}")
         for (key in childrenTables.keys) {
             childrenTables[key]?.printChildTables()
         }
+    }
+
+    fun localStackSize(): kotlin.Int {
+        var totalSize = 0
+        for (type in table.values) {
+            if (!type.isFunction() && !type.isParameter()) {
+                val size = type.getTypeSize()
+                assert(size != -1)
+                totalSize += size
+            }
+        }
+        return totalSize
     }
 
 }

@@ -89,7 +89,7 @@ class ASTBuilder(
             for (i in 0..ctx.param_list().childCount step 2) {
                 val p = visit(ctx.param_list().getChild(i)) as Param
                 parameterNodes.add(p)
-                functionSymbolTable.addNode(p.ident.toString(), p.type.type)
+                functionSymbolTable.addNode(p.ident.toString(), p.type.type.setParameter(true))
                 parameterTypes.add(p.type.type)
             }
         }
