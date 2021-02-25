@@ -96,9 +96,8 @@ class Type {
             BOOL -> 1
             CHAR -> 1
             ARRAY -> 4
-            PAIR -> 4
+            PAIR_LITER -> 4
             else -> -1
-
         }
     }
 
