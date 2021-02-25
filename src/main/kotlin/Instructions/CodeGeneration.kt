@@ -70,20 +70,40 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateStat(stat: StatementNode): List<Instruction> {
         return when (stat) {
             is SkipNode -> generateSkip()
-            is DeclarationNode -> mutableListOf() // TODO
-            is AssignNode -> mutableListOf() // TODO
-            is ReadNode -> mutableListOf() // TODO
+            is DeclarationNode -> generateDeclaration(stat) // TODO
+            is AssignNode -> generateAssign(stat) // TODO
+            is ReadNode -> generateRead(stat) // TODO
             is FreeNode -> generateFree(stat)
             is ReturnNode -> generateReturn(stat)
             is ExitNode -> generateExit(stat)
-            is PrintNode -> mutableListOf() // TODO
-            is PrintlnNode -> mutableListOf() // TODO
+            is PrintNode -> generatePrint(stat) // TODO
+            is PrintlnNode -> generatePrintln(stat)// TODO
             is IfElseNode -> generateIf(stat)
             is WhileNode -> generateWhile(stat)
             is BeginEndNode -> generateStat(stat.stat)
             else -> generateSeq(stat as SequenceNode) // SequenceNode
 
         }
+    }
+
+    private fun generatePrintln(stat: PrintlnNode): List<Instruction> {
+        return emptyList()
+    }
+
+    private fun generatePrint(stat: PrintNode): List<Instruction> {
+        return emptyList()
+    }
+
+    private fun generateRead(stat: ReadNode): List<Instruction> {
+        return emptyList()
+    }
+
+    private fun generateAssign(stat: AssignNode): List<Instruction> {
+        return emptyList()
+    }
+
+    private fun generateDeclaration(stat: DeclarationNode): List<Instruction> {
+        return emptyList()
     }
 
     private fun generateIf(stat: IfElseNode): List<Instruction> {
