@@ -4,7 +4,8 @@ import AST.*
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
-    var labelCounter = 0
+    private var labelCounter = 0
+    private val data : DataSegment = DataSegment()
 
     fun generateProgram(program: ProgramNode): List<Instruction> {
         // Generate Data Segments
