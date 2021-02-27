@@ -21,12 +21,16 @@ class DataSegment : Instruction {
 
     override fun toString(): String {
         val sb = StringBuilder()
-        for ((message, label) in data) {
-            sb.append(label.toString())
-            sb.append("\n\t")
-            sb.append(".word ${message.toString().length}")
-            sb.append("\n\t")
-            sb.append(".ascii $message")
+        if (data.isNotEmpty()) {
+            sb.append(".data\n\n")
+            for ((message, label) in data) {
+                sb.append(label.toString())
+                sb.append("\n\t")
+                sb.append(".word ${message.toString().length}")
+                sb.append("\n\t")
+                sb.append(".ascii \"$message\"")
+                sb.append("\n")
+            }
         }
         return sb.toString()
     }
