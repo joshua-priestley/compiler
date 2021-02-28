@@ -1,9 +1,10 @@
 import compiler.Compiler
-import org.junit.jupiter.api.Assertions.assertEquals
-
-import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.TestFactory
+import java.io.BufferedReader
 import java.io.File
+import java.io.InputStreamReader
+
 
 class TestBackend {
     private val testDirsPath = "./src/test/kotlin/testDirs"
@@ -25,8 +26,14 @@ class TestBackend {
         val assemblyName = inputFile.absolutePath.replace(".wacc", ".s");
         val executableName = inputFile.absolutePath.replace(".wacc", "");
 
-        Runtime.getRuntime()
+        val exec = Runtime.getRuntime()
             .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
+        val errinput: BufferedReader = BufferedReader(
+            InputStreamReader(
+                exec.getErrorStream()
+            )
+        )
+        println(errinput)
         if(File(executableName).exists()) {
             println("successfully compiled a .o file..... :)")
         } else {
