@@ -245,7 +245,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 loadInstruction.add(Load(dstRegister, data.getLabel(exprNode.value)))
             }
             is CharLiterNode -> {
-                loadInstruction.add(Move(dstRegister, exprNode.value[1]))
+                loadInstruction.add(Move(dstRegister, exprNode.value[0]))
             }
             is BoolLiterNode -> {
                 loadInstruction.add(Move(dstRegister, if (exprNode.value == "true") {
