@@ -1,5 +1,7 @@
 package AST
 
+import kotlin.Int
+
 // Class to store the symbol table with a reference to the parent symbol table
 class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
 
@@ -7,18 +9,25 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
     private val table: LinkedHashMap<String, Type> = linkedMapOf()
 
     // List of the other children tables (of functions)
-    private val childrenTables: LinkedHashMap<kotlin.Int, SymbolTable> = linkedMapOf()
+    private val childrenTables: LinkedHashMap<Int, SymbolTable> = linkedMapOf()
+
+    private var tableOffset = 0
 
     init {
         parentT?.addChildTable(ID, this)
     }
 
-    fun addChildTable(ID: kotlin.Int, child: SymbolTable) {
+    fun addChildTable(ID: Int, child: SymbolTable) {
         childrenTables[ID] = child
     }
 
     fun addNode(name: String, type: Type) {
-        table[name] = type
+        if (!type.isFunction() && !type.isParameter()) {
+            table[name] = type.setOffset(tableOffset)
+            tableOffset += type.getTypeSize()
+        } else {
+            table[name] = type
+        }
     }
 
     fun getNodeLocal(name: String): Type? {
@@ -60,9 +69,35 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
 
     fun printChildTables() {
         println(childrenTables)
+        println("Total Size: ${localStackSize()}")
         for (key in childrenTables.keys) {
             childrenTables[key]?.printChildTables()
         }
+    }
+
+    fun localStackSize(): Int {
+        return this.tableOffset
+    }
+
+    private fun offsetInTable(name: String): Int {
+        val entry = getNodeLocal(name)
+        assert(entry != null && !entry.isFunction() && !entry.isParameter())
+
+        return 0
+    }
+
+    fun getStackOffset(name: String): Int {
+        var offset = 0
+        var scopeST = this
+
+        // Get to the right scope
+        while (!scopeST.containsNodeLocal(name)) {
+            offset += scopeST.localStackSize()
+            scopeST = scopeST.parentT!!
+        }
+
+        // Now in the scope that has the variable we want
+        return offset + offsetInTable(name)
     }
 
 }

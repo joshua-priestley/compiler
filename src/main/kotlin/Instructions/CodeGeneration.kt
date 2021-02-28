@@ -49,8 +49,18 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         // PUSH {lr}
         instructions.add(Push(listOf(Register.LR)))
 
+        val spOffset = globalSymbolTable.localStackSize()
+
+        if (spOffset > 0) {
+            //instructions.add(SUB SP SP #spOffset)
+        }
+
         // Generate all the statements
         instructions.addAll(generateStat(stat))
+
+        if (spOffset > 0) {
+            //instructions.add(ADD SP SP #spOffset)
+        }
 
         // LDR r0, =0
         if (main) {
