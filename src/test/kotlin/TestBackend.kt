@@ -33,7 +33,10 @@ class TestBackend {
                 exec.getErrorStream()
             )
         )
-        println(errinput.toString())
+        var s: String? = null
+        while (errinput.readLine().also { s = it } != null) {
+            println(s)
+        }
         if(File(executableName).exists()) {
             println("successfully compiled a .o file..... :)")
         } else {
