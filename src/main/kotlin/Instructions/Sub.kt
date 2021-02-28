@@ -1,6 +1,6 @@
 package compiler.Instructions
 
-class Add : Instruction {
+class Sub {
     private val dstReg : Register
     private val srcReg1 : Register?
     private val srcReg2 : Register?
@@ -23,7 +23,7 @@ class Add : Instruction {
         this.imm = imm
     }
     override fun toString(): String {
-        val sb : StringBuilder = StringBuilder("ADD")
+        val sb : StringBuilder = StringBuilder("SUB")
         sb.append(if(s) "S " else " ")
         sb.append("$dstReg, ")
         sb.append(", ")
