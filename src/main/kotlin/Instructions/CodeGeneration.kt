@@ -88,12 +88,25 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generatePrintln(stat: PrintlnNode): List<Instruction> {
-        predefined.addFunc(PrintLn(data))
-        return emptyList()
+        // TODO find better way of arranging things to make adding the branch cleaner
+        val print = PrintLn(data)
+        predefined.addFunc(print)
+        val instructions = mutableListOf<Instruction>()
+        instructions.addAll(generatePrint(PrintNode(stat.expr)))
+        instructions.add(Branch(print.name, Conditions.L))
+        return instructions
     }
 
     private fun generatePrint(stat: PrintNode): List<Instruction> {
-        return emptyList()
+        val printInstruction = mutableListOf<Instruction>()
+        printInstruction.addAll(generateExpr(stat.expr))
+        printInstruction.add(Move(Register.R0, Register.R4))
+
+        /// TODO check and switch on expression type
+        val print = PrintString(data)
+        printInstruction.add(Branch(print.name, Conditions.L))
+        predefined.addFunc(print)
+        return printInstruction
     }
 
     private fun generateRead(stat: ReadNode): List<Instruction> {
@@ -177,7 +190,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generateExpr(expr: ExprNode): List<Instruction> {
-        return emptyList()
+        return when (expr) {
+            is LiterNode -> generateLiterNode(expr, Register.R4)
+            else -> emptyList()
+        }
     }
 
     private fun generateSeq(stat: SequenceNode): List<Instruction> {
@@ -226,7 +242,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 loadInstruction.add(Load(dstRegister, exprNode.value))
             }
             is StrLiterNode -> {
-                // TODO: Data segment stuff
+                data.addMessage(Message(exprNode.value))
+                loadInstruction.add(Load(dstRegister, data.getLabel(exprNode.value)))
             }
             is CharLiterNode -> {
                 loadInstruction.add(Move(dstRegister, exprNode.value[1]))

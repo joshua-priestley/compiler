@@ -2,14 +2,18 @@ package compiler.Instructions
 
 import java.lang.StringBuilder
 
+// Set of external functions that we are including in the program
 class PredefinedFuncs(private val data: DataSegment) {
     private val funcSet: MutableSet<Predefined> = HashSet()
 
     fun addFunc(func: Predefined) {
+        // Add the data string for the given function to the data segment
         data.addMessage(Message(func.msg))
+        // Add the function to the set of external functions
         funcSet.add(func)
     }
 
+    // Get the list of all instructions for external functions
     fun toInstructionList(): List<Instruction> =
         funcSet.toList()
             .map { it.instructions }
