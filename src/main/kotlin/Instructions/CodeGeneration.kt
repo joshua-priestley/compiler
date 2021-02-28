@@ -1,6 +1,7 @@
 package compiler.Instructions
 
 import AST.*
+import antlr.WACCParser
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
@@ -101,8 +102,16 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         printInstruction.addAll(generateExpr(stat.expr))
         printInstruction.add(Move(Register.R0, Register.R4))
 
-        /// TODO check and switch on expression type
-        val funcName = predefined.addFunc(PrintString())
+        val type = getType(stat.expr)
+
+        val funcName: String = when (type) {
+            Type(WACCParser.INT) -> predefined.addFunc(PrintInt())
+            Type(WACCParser.STRING) -> predefined.addFunc(PrintString())
+            Type(WACCParser.BOOL) -> predefined.addFunc(PrintBool())
+            Type(WACCParser.CHAR) -> "putchar"
+            else -> "dummy string"// TODO Handle reference printing
+        }
+
         printInstruction.add(Branch(funcName, Conditions.L))
 
         return printInstruction
@@ -265,4 +274,23 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return "L${labelCounter++}"
     }
 
+    // TODO find better way to get expression types than this - lots of duplication with ASTBuilder
+    // maybe add type member to expression nodes superclass and set during ast building?
+    private fun getType(expr:ExprNode): Type? {
+        return when (expr) {
+            is IntLiterNode -> Type(WACCParser.INT)
+            is StrLiterNode -> Type(WACCParser.STRING)
+            is BoolLiterNode -> Type(WACCParser.BOOL)
+            is CharLiterNode -> Type(WACCParser.CHAR)
+            is Ident -> globalSymbolTable.getNodeGlobal(expr.toString())
+            is ArrayElem -> globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
+            is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value)
+            is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value)
+            is PairLiterNode -> Type(PAIR_LITER)
+            else -> {
+                println("Shouldn't get here")
+                return Type(INVALID)
+            }
+        }
+    }
 }
