@@ -26,8 +26,10 @@ class TestBackend {
         val assemblyName = inputFile.absolutePath.replace(".wacc", ".s");
         val executableName = inputFile.absolutePath.replace(".wacc", "");
 
-        val exec = Runtime.getRuntime()
+        val exec1 = Runtime.getRuntime()
             .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
+        val exec = Runtime.getRuntime().exec("qemu-arm -L /usr/arm-linux-gnueabi/ $executableName")
+
         val stdInput = BufferedReader(InputStreamReader(exec.getInputStream()))
 
         val stdError = BufferedReader(InputStreamReader(exec.getErrorStream()))
