@@ -29,6 +29,8 @@ class TestBackend {
             .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
         if(File(executableName).exists()) {
             println("successfully compiled a .o file..... :)")
+        } else {
+            println("didn't compile t :(")
         }
 
     }
