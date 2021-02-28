@@ -43,7 +43,7 @@ class Move: Instruction {
         } else if (srcInt != null){
             instr.append("#$srcInt")
         } else {
-            instr.append("'#$srcChar'")
+            instr.append("#'$srcChar'")
         }
         return instr.toString()    }
 }
