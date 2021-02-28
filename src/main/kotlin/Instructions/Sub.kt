@@ -26,7 +26,6 @@ class Sub {
         val sb : StringBuilder = StringBuilder("SUB")
         sb.append(if(s) "S " else " ")
         sb.append("$dstReg, ")
-        sb.append(", ")
         if (srcReg1 != null) sb.append("$srcReg1, ")
         if (srcReg2 != null) sb.append("$srcReg2, ")
         if (imm != null) sb.append("#$imm")
