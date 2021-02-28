@@ -41,4 +41,4 @@ test-backend:
   stage: backend
   image: ev3dev/debian-stretch-cross
   script:
-    - ./gradlew test -i
+    - ./gradlew test -i -Dtest.type=backend

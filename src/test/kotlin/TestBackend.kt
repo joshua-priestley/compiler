@@ -20,22 +20,28 @@ class TestBackend {
         }.flatten()
 
     private fun runTest(inputFile: File) {
-        val compiler = Compiler(inputFile.canonicalPath, true)
+            val compiler = Compiler(inputFile.canonicalPath, true)
         val ret = compiler.compile()
         val assemblyName = inputFile.absolutePath.replace(".wacc", ".s");
         val executableName = inputFile.absolutePath.replace(".wacc", "");
 
-        Runtime.getRuntime().exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
+        Runtime.getRuntime()
+            .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
+
     }
 
     @TestFactory
     fun createTests(): List<DynamicTest> {
-        val files = when (System.getProperty("test.type")) {
-            "syntax" -> testFiles.filter { it.absolutePath.contains("/syntaxErr/") }
-            "semantic" -> testFiles.filter { it.absolutePath.contains("/semanticErr/") }
-            "valid" -> testFiles.filter { it.absolutePath.contains("/valid/") }
-            else -> testFiles
+        if(System.getProperty("test.type") == "backend") {
+            val files = when (System.getProperty("test.type")) {
+                "syntax" -> testFiles.filter { it.absolutePath.contains("/syntaxErr/") }
+                "semantic" -> testFiles.filter { it.absolutePath.contains("/semanticErr/") }
+                "valid" -> testFiles.filter { it.absolutePath.contains("/valid/") }
+                else -> testFiles
+            }
+            return files.map { f -> DynamicTest.dynamicTest(f.name) { runTest(f) } }
+        } else {
+            return mutableListOf()
         }
-        return files.map { f -> DynamicTest.dynamicTest(f.name) { runTest(f) } }
     }
 }
