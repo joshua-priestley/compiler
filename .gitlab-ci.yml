@@ -38,6 +38,6 @@ stages:
 test-backend:
   stage: backend
   script:
-    - sudo apt-get install libc6-armel-cross libc6-dev-armel-cross binutils-arm-linux-gnueabi libncurses5-dev build-essential bison flex libssl-dev bc
-    - sudo apt-get install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi
+    - apt-get install libc6-armel-cross libc6-dev-armel-cross binutils-arm-linux-gnueabi libncurses5-dev build-essential bison flex libssl-dev bc
+    - apt-get install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi
     - ./gradlew test -i -Dtest.type=backend
