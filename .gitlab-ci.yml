@@ -1,44 +1,43 @@
-image: java:8-jdk
-
 stages:
-  - compile
-  - test
+#  - compile
+#  - test
   - backend
 
-compile:
-  stage: compile
-  script:
-    - ./gradlew assemble
+#compile:
+#  stage: compile
+#  script:
+#    - ./gradlew assemble
 
-test-syntax:
-  stage: test
-  script:
-    - ./gradlew test -i -Dtest.type=syntax
-  artifacts:
-    when: always
-    reports:
-      junit: build/test-results/test/**/TEST-*.xml
-
-test-semantic:
-  stage: test
-  script:
-    - ./gradlew test -i -Dtest.type=semantic
-  artifacts:
-    when: always
-    reports:
-      junit: build/test-results/test/**/TEST-*.xml
-
-test-valid:
-  stage: test
-  script:
-    - ./gradlew test -i -Dtest.type=valid
-  artifacts:
-    when: always
-    reports:
-      junit: build/test-results/test/**/TEST-*.xml
+#test-syntax:
+#  stage: test
+#  script:
+#    - ./gradlew test -i -Dtest.type=syntax
+#  artifacts:
+#    when: always
+#    reports:
+#      junit: build/test-results/test/**/TEST-*.xml
+#
+#test-semantic:
+#  stage: test
+#  script:
+#    - ./gradlew test -i -Dtest.type=semantic
+#  artifacts:
+#    when: always
+#    reports:
+#      junit: build/test-results/test/**/TEST-*.xml
+#
+#test-valid:
+#  stage: test
+#  script:
+#    - ./gradlew test -i -Dtest.type=valid
+#  artifacts:
+#    when: always
+#    reports:
+#      junit: build/test-results/test/**/TEST-*.xml
 
 test-backend:
   stage: backend
-  image: ev3dev/debian-stretch-cross
   script:
+    - sudo apt-get install libc6-armel-cross libc6-dev-armel-cross binutils-arm-linux-gnueabi libncurses5-dev build-essential bison flex libssl-dev bc
+    - sudo apt-get install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi
     - ./gradlew test -i -Dtest.type=backend
