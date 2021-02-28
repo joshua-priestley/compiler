@@ -37,6 +37,8 @@ class Compiler(private val inputFile: String, private val assembly: Boolean = fa
             throw IllegalArgumentException("Cannot find input file at ${file.absolutePath}")
         }
 
+        println("Compiling...")
+
         val listener = SyntaxErrorHandler()
         val input = CharStreams.fromPath(file.toPath())
         val lexer = WACCLexer(input)

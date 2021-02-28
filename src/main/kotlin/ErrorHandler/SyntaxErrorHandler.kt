@@ -30,13 +30,9 @@ class SyntaxErrorHandler : BaseErrorListener() {
     }
 
     fun printSyntaxErrors() {
-        println("================================================================")
-        println("==================== SYNTACTIC ERRORS FOUND ====================")
-        println("================================================================")
-
         syntaxErrorList.forEach { println(it) }
 
-        println("\n\n ${syntaxErrorList.size} syntactic errors detected. No further compilation attempted.")
+        println("\n${syntaxErrorList.size} syntactic errors detected. No further compilation attempted.")
     }
 }
 
