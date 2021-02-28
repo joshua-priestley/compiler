@@ -14,9 +14,9 @@ class DataSegment : Instruction {
         }
     }
 
-    fun getLabel(value: String) : MessageLabel? {
+    fun getLabel(value: String) : String {
         val message: Message = Message(value)
-        return data[message]
+        return data[message].toString()
     }
 
     override fun toString(): String {

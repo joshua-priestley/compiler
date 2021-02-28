@@ -5,11 +5,10 @@ import AST.*
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private var labelCounter = 0
-    private val data : DataSegment = DataSegment()
+    private val data: DataSegment = DataSegment()
+    private val predefined: PredefinedFuncs = PredefinedFuncs(data)
 
     fun generateProgram(program: ProgramNode): List<Instruction> {
-        // Generate Data Segments
-        val dataSegmentInstructions = mutableListOf<Instruction>()
 
         val labelInstructions = mutableListOf<Instruction>()
         labelInstructions.add(GlobalLabel("text"))
@@ -28,10 +27,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         functionBodyInstructions(mainInstructions, program.stat, true)
 
-        return dataSegmentInstructions +
+        return listOf<Instruction>(data) +
                 labelInstructions +
                 funcInstructions +
-                mainInstructions
+                mainInstructions +
+                predefined.toInstructionList()
     }
 
     private fun generateFunction(function: FunctionNode): List<Instruction> {
@@ -88,6 +88,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generatePrintln(stat: PrintlnNode): List<Instruction> {
+        predefined.addFunc(PrintLn(data))
         return emptyList()
     }
 
