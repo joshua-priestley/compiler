@@ -89,7 +89,7 @@ class ASTBuilder(
             for (i in 0..ctx.param_list().childCount step 2) {
                 val p = visit(ctx.param_list().getChild(i)) as Param
                 parameterNodes.add(p)
-                functionSymbolTable.addNode(p.ident.toString(), p.type.type)
+                functionSymbolTable.addNode(p.ident.toString(), p.type.type.setParameter(true))
                 parameterTypes.add(p.type.type)
             }
         }
@@ -640,8 +640,10 @@ class ASTBuilder(
     override fun visitLiter(ctx: LiterContext): Node {
         return when {
             ctx.BOOL_LITER() != null -> BoolLiterNode(ctx.text)
-            ctx.CHAR_LITER() != null -> CharLiterNode(ctx.text)
-            ctx.STR_LITER() != null -> StrLiterNode(ctx.text)
+            // Remove single quotes from the literal
+            ctx.CHAR_LITER() != null -> CharLiterNode(ctx.text.substring(1, ctx.text.length-1))
+            // Remove double quotes from the literal
+            ctx.STR_LITER() != null -> StrLiterNode(ctx.text.substring(1, ctx.text.length-1))
             else -> {
                 val value = ctx.text.toLong()
                 // Check the integer is within the accepted range

@@ -7,6 +7,12 @@
 # Program:
 
 begin
-  int i = 0 ;
-  int x = 10
+  int a = 13;
+  if a == 13
+  then
+    bool a = true ;
+    println "correct"
+  else
+    println "incorrect"
+  fi
 end

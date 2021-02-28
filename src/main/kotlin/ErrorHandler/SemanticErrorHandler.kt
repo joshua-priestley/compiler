@@ -128,13 +128,9 @@ class SemanticErrorHandler {
 
     //Iterate through the list of errors and print out the error and the line and character where it occurs
     fun printSemanticErrors() {
-        println("================================================================")
-        println("==================== SEMANTIC ERRORS FOUND =====================")
-        println("================================================================")
-
         errorList.forEach { println(it) }
 
-        println("\n\n ${errorList.size} semantic errors detected. No further compilation attempted.")
+        println("\n${errorList.size} semantic errors detected. No further compilation attempted.")
     }
 
 }
