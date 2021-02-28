@@ -28,13 +28,24 @@ class TestBackend {
 
         val exec = Runtime.getRuntime()
             .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
-        val errinput: BufferedReader = BufferedReader(
-            InputStreamReader(
-                exec.getErrorStream()
-            )
-        )
+        val stdInput = BufferedReader(InputStreamReader(exec.getInputStream()))
+
+        val stdError = BufferedReader(InputStreamReader(exec.getErrorStream()))
+
+// Read the output from the command
+
+// Read the output from the command
+        println("Here is the standard output of the command:\n")
         var s: String? = null
-        while (errinput.readLine().also { s = it } != null) {
+        while (stdInput.readLine().also { s = it } != null) {
+            println(s)
+        }
+
+// Read any errors from the attempted command
+
+// Read any errors from the attempted command
+        println("Here is the standard error of the command (if any):\n")
+        while (stdError.readLine().also { s = it } != null) {
             println(s)
         }
         if(File(executableName).exists()) {
