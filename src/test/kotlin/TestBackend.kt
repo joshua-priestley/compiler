@@ -5,7 +5,7 @@ import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.DynamicTest
 import java.io.File
 
-class TestPrograms {
+class TestBackend {
     private val testDirsPath = "./src/test/kotlin/testDirs"
     private val examplesPath = "./wacc_examples/"
 
@@ -22,11 +22,10 @@ class TestPrograms {
     private fun runTest(inputFile: File) {
         val compiler = Compiler(inputFile.canonicalPath, true)
         val ret = compiler.compile()
-        when {
-            inputFile.canonicalPath.contains("syntax") -> assertEquals(100, ret)
-            inputFile.canonicalPath.contains("semantic") -> assertEquals(200, ret)
-            inputFile.canonicalPath.contains("valid") -> assertEquals(0, ret)
-        }
+        val assemblyName = inputFile.absolutePath.replace(".wacc", ".s");
+        val executableName = inputFile.absolutePath.replace(".wacc", "");
+
+        Runtime.getRuntime().exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
     }
 
     @TestFactory

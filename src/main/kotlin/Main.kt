@@ -73,7 +73,7 @@ class Compiler(private val inputFile: String, private val assembly: Boolean = fa
             val listOfInstructions = codeGeneration.generateProgram(root as ProgramNode)
             val instructions = listOfInstructions.joinToString(separator = "\n") + "\n"
 
-            val assemblyFileName = file.name.replace(".wacc", ".s")
+            val assemblyFileName = inputFile.replace(".wacc", ".s")
             println(instructions)
             File(assemblyFileName).writeText(instructions)
         }

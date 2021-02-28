@@ -3,6 +3,7 @@ image: java:8-jdk
 stages:
   - compile
   - test
+  - backend
 
 compile:
   stage: compile
@@ -35,3 +36,9 @@ test-valid:
     when: always
     reports:
       junit: build/test-results/test/**/TEST-*.xml
+
+test-backend:
+  stage: backend
+  image: ev3dev/debian-stretch-cross
+  script:
+    - ./gradlew test -i
