@@ -78,3 +78,77 @@ class PrintString() : Predefined() {
             Pop(listOf(Register.PC))
         )
 }
+
+class PrintInt() : Predefined() {
+    override val name = "p_print_int"
+    override val msg = "%d\\0"
+
+    override fun getInstructions(data: DataSegment): List<Instruction> =
+        listOf(
+            FunctionDeclaration(name),
+            Push(listOf(Register.LR)),
+            Move(Register.R1, Register.R0),
+            Load(Register.R0, data.getLabel(msg)),
+            //TODO Add(Register.R0, Register.R0, 4)
+            Branch("printf", Conditions.L),
+            Move(Register.R0, 0),
+            Branch("fflush", Conditions.L),
+            Pop(listOf(Register.PC))
+        )
+}
+
+
+class PrintBool() : Predefined() {
+    override val name = "p_print_string"
+    override val msg = "true\\0"
+    val msg2 = "false\\0"
+
+    override fun getInstructions(data: DataSegment): List<Instruction> {
+        data.addMessage(Message(msg2))
+        return listOf(
+            FunctionDeclaration(name),
+            Push(listOf(Register.LR)),
+            Compare(Register.R0, 0),
+            Load(Register.R0, data.getLabel(msg), Conditions.NE),
+            Load(Register.R0, data.getLabel(msg2), Conditions.EQ),
+            //TODO Add(Register.R0, Register.R0, 4)
+            Branch("printf", Conditions.L),
+            Move(Register.R0, 0),
+            Branch("fflush", Conditions.L),
+            Pop(listOf(Register.PC))
+        )
+    }
+}
+
+class ReadInt() : Predefined() {
+    override val name = "p_read_int"
+    override val msg = "%d\\0"
+
+    override fun getInstructions(data: DataSegment): List<Instruction> =
+        listOf(
+            FunctionDeclaration(name),
+            Push(listOf(Register.LR)),
+            Move(Register.R1, Register.R0),
+            Load(Register.R0, data.getLabel(msg)),
+            //TODO Add(Register.R0, Register.R0, 4)
+            Branch("scanf", Conditions.L),
+            Pop(listOf(Register.PC))
+        )
+}
+
+// TODO potentially combine with ReadInt to avoid duplication?
+class ReadChar() : Predefined() {
+    override val name = "p_read_char"
+    override val msg = "%c\\0"
+
+    override fun getInstructions(data: DataSegment): List<Instruction> =
+        listOf(
+            FunctionDeclaration(name),
+            Push(listOf(Register.LR)),
+            Move(Register.R1, Register.R0),
+            Load(Register.R0, data.getLabel(msg)),
+            //TODO Add(Register.R0, Register.R0, 4)
+            Branch("scanf", Conditions.L),
+            Pop(listOf(Register.PC))
+        )
+}
