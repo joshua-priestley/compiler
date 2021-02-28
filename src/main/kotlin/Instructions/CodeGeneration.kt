@@ -89,11 +89,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generatePrintln(stat: PrintlnNode): List<Instruction> {
         // TODO find better way of arranging things to make adding the branch cleaner
-        val print = PrintLn(data)
-        predefined.addFunc(print)
+        val funcName = predefined.addFunc(PrintLn())
         val instructions = mutableListOf<Instruction>()
         instructions.addAll(generatePrint(PrintNode(stat.expr)))
-        instructions.add(Branch(print.name, Conditions.L))
+        instructions.add(Branch(funcName, Conditions.L))
         return instructions
     }
 
@@ -103,9 +102,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         printInstruction.add(Move(Register.R0, Register.R4))
 
         /// TODO check and switch on expression type
-        val print = PrintString(data)
-        printInstruction.add(Branch(print.name, Conditions.L))
-        predefined.addFunc(print)
+        val funcName = predefined.addFunc(PrintString())
+        printInstruction.add(Branch(funcName, Conditions.L))
+
         return printInstruction
     }
 

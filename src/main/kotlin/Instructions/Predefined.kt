@@ -6,34 +6,29 @@ import java.lang.StringBuilder
 class PredefinedFuncs(private val data: DataSegment) {
     private val funcSet: MutableSet<Predefined> = HashSet()
 
-    fun addFunc(func: Predefined) {
+    // Add a predefined function to the set, return the string name
+    fun addFunc(func: Predefined): String {
         // Add the data string for the given function to the data segment
         data.addMessage(Message(func.msg))
         // Add the function to the set of external functions
         funcSet.add(func)
+        return func.name
     }
 
     // Get the list of all instructions for external functions
     fun toInstructionList(): List<Instruction> =
         funcSet.toList()
-            .map { it.instructions }
+            .map { it.getInstructions(data) }
             .flatten()
 }
 
 //TODO finish once arithmetic ops have been done
-abstract class Predefined(data: DataSegment) {
+abstract class Predefined() {
     // Superclasses should use "by lazy" to get the msg label after it is added
-    abstract val instructions: List<Instruction>
     abstract val name: String
     abstract val msg: String
 
-    override fun toString(): String {
-        val sb = StringBuilder()
-        for (instruction in instructions) {
-            sb.append(instruction.toString())
-        }
-        return sb.toString()
-    }
+    abstract fun getInstructions(data: DataSegment) : List<Instruction>
 
     override fun hashCode(): Int {
         return name.hashCode()
@@ -48,10 +43,11 @@ abstract class Predefined(data: DataSegment) {
     }
 }
 
-class PrintLn(data: DataSegment) : Predefined(data) {
+class PrintLn() : Predefined() {
     override val name = "p_print_ln"
     override val msg = "\\0"
-    override val instructions by lazy {
+
+    override fun getInstructions(data: DataSegment): List<Instruction> =
         listOf(
             FunctionDeclaration(name),
             Push(listOf(Register.LR)),
@@ -62,13 +58,13 @@ class PrintLn(data: DataSegment) : Predefined(data) {
             Branch("fflush", Conditions.L),
             Pop(listOf(Register.PC))
         )
-    }
 }
 
-class PrintString(data: DataSegment) : Predefined(data) {
+class PrintString() : Predefined() {
     override val name = "p_print_string"
     override val msg = "%.*s\\0"
-    override val instructions by lazy {
+
+    override fun getInstructions(data: DataSegment): List<Instruction> =
         listOf(
             FunctionDeclaration(name),
             Push(listOf(Register.LR)),
@@ -81,5 +77,4 @@ class PrintString(data: DataSegment) : Predefined(data) {
             Branch("fflush", Conditions.L),
             Pop(listOf(Register.PC))
         )
-    }
 }
