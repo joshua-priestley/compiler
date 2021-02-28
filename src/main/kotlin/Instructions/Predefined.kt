@@ -9,9 +9,14 @@ class PredefinedFuncs(private val data: DataSegment) {
     // Add a predefined function to the set, return the string name
     fun addFunc(func: Predefined): String {
         // Add the data string for the given function to the data segment
-        data.addMessage(Message(func.msg))
+        if (func.msg.isNotEmpty()) {
+            data.addMessage(Message(func.msg))
+        }
         // Add the function to the set of external functions
         funcSet.add(func)
+        if (func is RuntimeError) {
+            funcSet.add(ThrowRuntimeError())
+        }
         return func.name
     }
 
@@ -42,6 +47,9 @@ abstract class Predefined() {
         return false
     }
 }
+
+abstract class RuntimeError() : Predefined()
+
 
 class PrintLn() : Predefined() {
     override val name = "p_print_ln"
@@ -151,4 +159,80 @@ class ReadChar() : Predefined() {
             Branch("scanf", Conditions.L),
             Pop(listOf(Register.PC))
         )
+}
+
+class ThrowRuntimeError() : Predefined() {
+    override val name = "p_throw_runtime_error"
+    override val msg = ""
+
+    override fun getInstructions(data: DataSegment): List<Instruction> =
+        listOf(
+            FunctionDeclaration(name),
+            Move(Register.R0, -1),
+            Branch("exit", Conditions.L)
+        )
+}
+
+class DivideByZero() : RuntimeError() {
+    override val name = "p_check_divide_by_zero"
+    override val msg = "DivideByZeroError: divide or modulo by zero\\n\\0"
+
+    override fun getInstructions(data: DataSegment): List<Instruction> =
+        listOf(
+            FunctionDeclaration(name),
+            Push(listOf(Register.LR)),
+            Compare(Register.R1, 1),
+            Load(Register.R0, data.getLabel(msg), Conditions.EQ),
+            Branch(ThrowRuntimeError().name, Conditions.EQ), // TODO add link to Branch
+            Pop(listOf(Register.PC))
+        )
+}
+
+class Overflow() : RuntimeError() {
+    override val name = "p_throw_overflow_error"
+    override val msg = "OverflowError: the result is too small/large to store in a 4-byte signed-integer.\\n\\0"
+
+    override fun getInstructions(data: DataSegment): List<Instruction> =
+        listOf(
+            FunctionDeclaration(name),
+            Load(Register.R0, data.getLabel(msg)),
+            Branch(ThrowRuntimeError().name, Conditions.EQ) // TODO add link to Branch
+        )
+}
+
+class CheckNullPointer() : RuntimeError() {
+    override val name = "p_check_null_pointer"
+    override val msg = "NullReferenceError: dereference a null reference.\\n\\0"
+
+    override fun getInstructions(data: DataSegment): List<Instruction> =
+        listOf(
+            FunctionDeclaration(name),
+            Push(listOf(Register.LR)),
+            Compare(Register.R0, 0),
+            Load(Register.R0, data.getLabel(msg)),
+            Branch(ThrowRuntimeError().name, Conditions.EQ), // TODO add link to Branch
+            Pop(listOf(Register.PC))
+        )
+}
+
+class CheckArrayBounds() : RuntimeError() {
+    override val name = "p_check_null_pointer"
+    override val msg = "ArrayIndexOutOfBoundsError: negative index\\n\\0"
+    val msg2 = "ArrayIndexOutOfBoundsError: index too large\\n\\0"
+
+    override fun getInstructions(data: DataSegment): List<Instruction> {
+        data.addMessage(Message(msg2))
+        return listOf(
+            FunctionDeclaration(name),
+            Push(listOf(Register.LR)),
+            Compare(Register.R0, 0),
+            Load(Register.R0, data.getLabel(msg), Conditions.LT),
+            Branch(ThrowRuntimeError().name, Conditions.LT),
+            Load(Register.R1, Register.R1),
+            Compare(Register.R0, Register.R1),
+            Load(Register.R0, data.getLabel(msg2), Conditions.CS),
+            Branch(ThrowRuntimeError().name, Conditions.CS), // TODO add link to Branch
+            Pop(listOf(Register.PC))
+        )
+    }
 }
