@@ -27,7 +27,7 @@ open class AddSub: Instruction {
     }
 
     override fun toString(): String {
-        val sb : StringBuilder = StringBuilder(type)
+        val sb : StringBuilder = StringBuilder("\t$type")
         sb.append(if(s) "S " else " ")
         sb.append("$dstReg, ")
         if (srcReg1 != null) sb.append("$srcReg1, ")

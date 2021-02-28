@@ -60,7 +60,7 @@ class PrintLn() : Predefined() {
             FunctionDeclaration(name),
             Push(listOf(Register.LR)),
             Load(Register.R0, data.getLabel(msg)),
-            //TODO Add(Register.R0, Register.R0, 4)
+            Add(Register.R0, Register.R0, 4, false),
             Branch("puts", Conditions.L),
             Move(Register.R0, 0),
             Branch("fflush", Conditions.L),
@@ -77,9 +77,9 @@ class PrintString() : Predefined() {
             FunctionDeclaration(name),
             Push(listOf(Register.LR)),
             Load(Register.R1, Register.R0),
-            //TODO Add(Register.R2, Register.R0, 4)
+            Add(Register.R2, Register.R0, 4, false),
             Load(Register.R0, data.getLabel(msg)),
-            //TODO Add(Register.R0, Register.R0, 4)
+            Add(Register.R0, Register.R0, 4, false),
             Branch("printf", Conditions.L),
             Move(Register.R0, 0),
             Branch("fflush", Conditions.L),
@@ -97,7 +97,7 @@ class PrintInt() : Predefined() {
             Push(listOf(Register.LR)),
             Move(Register.R1, Register.R0),
             Load(Register.R0, data.getLabel(msg)),
-            //TODO Add(Register.R0, Register.R0, 4)
+            Add(Register.R0, Register.R0, 4, false),
             Branch("printf", Conditions.L),
             Move(Register.R0, 0),
             Branch("fflush", Conditions.L),
@@ -119,7 +119,7 @@ class PrintBool() : Predefined() {
             Compare(Register.R0, 0),
             Load(Register.R0, data.getLabel(msg), Conditions.NE),
             Load(Register.R0, data.getLabel(msg2), Conditions.EQ),
-            //TODO Add(Register.R0, Register.R0, 4)
+            Add(Register.R0, Register.R0, 4, false),
             Branch("printf", Conditions.L),
             Move(Register.R0, 0),
             Branch("fflush", Conditions.L),
@@ -138,7 +138,7 @@ class ReadInt() : Predefined() {
             Push(listOf(Register.LR)),
             Move(Register.R1, Register.R0),
             Load(Register.R0, data.getLabel(msg)),
-            //TODO Add(Register.R0, Register.R0, 4)
+            Add(Register.R0, Register.R0, 4, false),
             Branch("scanf", Conditions.L),
             Pop(listOf(Register.PC))
         )
@@ -155,7 +155,7 @@ class ReadChar() : Predefined() {
             Push(listOf(Register.LR)),
             Move(Register.R1, Register.R0),
             Load(Register.R0, data.getLabel(msg)),
-            //TODO Add(Register.R0, Register.R0, 4)
+            Add(Register.R0, Register.R0, 4, false),
             Branch("scanf", Conditions.L),
             Pop(listOf(Register.PC))
         )

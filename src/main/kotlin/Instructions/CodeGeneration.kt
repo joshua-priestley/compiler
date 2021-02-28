@@ -293,7 +293,14 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is BoolLiterNode -> Type(WACCParser.BOOL)
             is CharLiterNode -> Type(WACCParser.CHAR)
             is Ident -> globalSymbolTable.getNodeGlobal(expr.toString())
-            is ArrayElem -> globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
+            is ArrayElem -> {
+                val type = globalSymbolTable.getNodeGlobal(expr.ident.toString())
+                // TODO fix npe to do with scoping in:
+                // wacc_examples/valid/scope/printAllTypes.wacc
+                // set global symbol table to child when visiting begin/end node?
+                // but which child table do we set it to?
+                return type?.getBaseType() ?: Type(INVALID)
+            }
             is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value)
             is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value)
             is PairLiterNode -> Type(PAIR_LITER)
