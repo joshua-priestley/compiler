@@ -24,7 +24,7 @@ fun main(args: Array<String>) {
 
     val assembly = "-OC" in args
 
-    val compiler = Compiler(args[0], assembly)
+    val compiler = Compiler(args[0], true)
 
     exitProcess(compiler.compile())
 }
