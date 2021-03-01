@@ -3,13 +3,11 @@ import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
 import java.io.BufferedReader
 import java.io.File
-import java.io.IOException
 import java.io.InputStreamReader
 import java.util.concurrent.TimeUnit
 
 
 class TestBackend {
-
 
     private val testDirsPath = "./src/test/kotlin/testDirs"
     private val examplesPath = "./wacc_examples/"
@@ -30,21 +28,34 @@ class TestBackend {
         val assemblyName = inputFile.absolutePath.replace(".wacc", ".s");
         val executableName = inputFile.absolutePath.replace(".wacc", "");
 
-
-        val exec1 = Runtime.getRuntime()
+        Runtime.getRuntime()
             .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
-
-        val builder = ProcessBuilder("qemu-arm -L /usr/arm-linux-gnueabi/ $executableName")
-        builder.redirectErrorStream(true)
-        val process = builder.start()
-        val `is` = process.inputStream
-        val reader = BufferedReader(InputStreamReader(`is`))
-
-        var line: String? = null
-        while (reader.readLine().also { line = it } != null) {
-            println(line)
+        val process = ProcessBuilder("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", executableName).start()
+        process.inputStream.reader(Charsets.UTF_8).use {
+            println(it.readText())
         }
-
+        process.waitFor(10, TimeUnit.SECONDS)
+//        val exec = Runtime.getRuntime().exec("qemu-arm -L /usr/arm-linux-gnueabi/ $executableName")
+//        val stdInput = BufferedReader(InputStreamReader(exec.getInputStream()))
+//
+//        val stdError = BufferedReader(InputStreamReader(exec.getErrorStream()))
+//
+//// Read the output from the command
+//
+//// Read the output from the command
+//        println("Here is the standard output of the command:\n")
+//        var s: String? = null
+//        while (stdInput.readLine().also { s = it } != null) {
+//            println(s)
+//        }
+//
+//// Read any errors from the attempted command
+//
+//// Read any errors from the attempted command
+//        println("Here is the standard error of the command (if any):\n")
+//        while (stdError.readLine().also { s = it } != null) {
+//            println(s)
+//        }
         if(File(executableName).exists()) {
             println("successfully compiled a .o file..... :)")
         } else {
