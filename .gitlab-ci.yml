@@ -1,41 +1,41 @@
 stages:
-#  - compile
-#  - test
-  - backend
+  - compile
+  - test-frontend
+  - test-backend
 
-#compile:
-#  stage: compile
-#  script:
-#    - ./gradlew assemble
+compile:
+  stage: compile
+  script:
+    - ./gradlew assemble
 
-#test-syntax:
-#  stage: test
-#  script:
-#    - ./gradlew test -i -Dtest.type=syntax
-#  artifacts:
-#    when: always
-#    reports:
-#      junit: build/test-results/test/**/TEST-*.xml
-#
-#test-semantic:
-#  stage: test
-#  script:
-#    - ./gradlew test -i -Dtest.type=semantic
-#  artifacts:
-#    when: always
-#    reports:
-#      junit: build/test-results/test/**/TEST-*.xml
-#
-#test-valid:
-#  stage: test
-#  script:
-#    - ./gradlew test -i -Dtest.type=valid
-#  artifacts:
-#    when: always
-#    reports:
-#      junit: build/test-results/test/**/TEST-*.xml
+test-syntax:
+  stage: test-frontend
+  script:
+    - ./gradlew test -i -Dtest.type=syntax
+  artifacts:
+    when: always
+    reports:
+      junit: build/test-results/test/**/TEST-*.xml
+
+test-semantic:
+  stage: test-frontend
+  script:
+    - ./gradlew test -i -Dtest.type=semantic
+  artifacts:
+    when: always
+    reports:
+      junit: build/test-results/test/**/TEST-*.xml
+
+test-valid:
+  stage: test-frontend
+  script:
+    - ./gradlew test -i -Dtest.type=valid
+  artifacts:
+    when: always
+    reports:
+      junit: build/test-results/test/**/TEST-*.xml
 
 test-backend:
-  stage: backend
+  stage: test-backend
   script:
     - ./gradlew test -i -Dtest.type=backend
