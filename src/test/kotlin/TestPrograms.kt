@@ -52,6 +52,7 @@ class TestPrograms {
                 sb.append(it.readText())
             }
 
+            process.waitFor()
             println("EXIITITITITITI CODE ISSSS: ${process.exitValue()}")
 
             val a = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
