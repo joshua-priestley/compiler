@@ -9,22 +9,6 @@ import java.util.concurrent.TimeUnit
 
 
 class TestBackend {
-    fun String.runCommand(workingDir: File): String? {
-        try {
-            val parts = this.split("\\s".toRegex())
-            val proc = ProcessBuilder(*parts.toTypedArray())
-                .directory(workingDir)
-                .redirectOutput(ProcessBuilder.Redirect.PIPE)
-                .redirectError(ProcessBuilder.Redirect.PIPE)
-                .start()
-
-            proc.waitFor(60, TimeUnit.MINUTES)
-            return proc.inputStream.bufferedReader().readText()
-        } catch(e: IOException) {
-            e.printStackTrace()
-            return null
-        }
-    }
 
 
     private val testDirsPath = "./src/test/kotlin/testDirs"
@@ -46,17 +30,20 @@ class TestBackend {
         val assemblyName = inputFile.absolutePath.replace(".wacc", ".s");
         val executableName = inputFile.absolutePath.replace(".wacc", "");
 
-        "arm-"
 
         val exec1 = Runtime.getRuntime()
             .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
 
-        val exec = "qemu-arm -L /usr/arm-linux-gnueabi/ $executableName".runCommand(inputFile.parentFile);
-        println(exec)
+        val builder = ProcessBuilder("qemu-arm -L /usr/arm-linux-gnueabi/ $executableName")
+        builder.redirectErrorStream(true)
+        val process = builder.start()
+        val `is` = process.inputStream
+        val reader = BufferedReader(InputStreamReader(`is`))
 
-// Read the output from the command
-
-// Read the output from the command
+        var line: String? = null
+        while (reader.readLine().also { line = it } != null) {
+            println(line)
+        }
 
         if(File(executableName).exists()) {
             println("successfully compiled a .o file..... :)")
