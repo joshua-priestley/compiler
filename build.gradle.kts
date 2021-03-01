@@ -22,6 +22,10 @@ dependencies {
     // JUnit5
     testImplementation("org.junit.jupiter:junit-jupiter:$junitVer")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVer")
+
+    implementation("com.github.kittinunf.fuel:fuel:2.3.1")
+    implementation("com.github.kittinunf.fuel:fuel-gson:2.3.1")
+    implementation("com.google.code.gson:gson:2.8.5")
 }
 
 repositories {
