@@ -52,6 +52,8 @@ class TestPrograms {
                 sb.append(it.readText())
             }
 
+            println("EXIITITITITITI CODE ISSSS: ${process.exitValue()}")
+
             val a = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
                 .add(FileDataPart(inputFile, "testfile", inputFile.name, "application/octet-stream"))
                 .add(InlineDataPart("-x","options[]"))
