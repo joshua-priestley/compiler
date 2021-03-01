@@ -4,7 +4,8 @@ import java.lang.StringBuilder
 
 // Set of external functions that we are including in the program
 class PredefinedFuncs(private val data: DataSegment) {
-    private val funcSet: MutableSet<Predefined> = HashSet()
+    // Use list to preserve order of functions
+    private val funcSet: MutableList<Predefined> = ArrayList()
 
     // Add a predefined function to the set, return the string name
     fun addFunc(func: Predefined): String {
@@ -12,9 +13,14 @@ class PredefinedFuncs(private val data: DataSegment) {
         if (func.msg.isNotEmpty()) {
             data.addMessage(Message(func.msg))
         }
+        if (!func.msg2.isNullOrBlank()) {
+            data.addMessage(Message(func.msg2!!))
+        }
         // Add the function to the set of external functions
-        funcSet.add(func)
-        if (func is RuntimeError) {
+        if (!funcSet.contains(func)) {
+            funcSet.add(func)
+        }
+        if (func is RuntimeError && !funcSet.contains(ThrowRuntimeError())) {
             funcSet.add(ThrowRuntimeError())
         }
         return func.name
@@ -32,6 +38,7 @@ abstract class Predefined() {
     // Superclasses should use "by lazy" to get the msg label after it is added
     abstract val name: String
     abstract val msg: String
+    open val msg2: String? = null
 
     abstract fun getInstructions(data: DataSegment) : List<Instruction>
 
@@ -107,13 +114,12 @@ class PrintInt() : Predefined() {
 
 
 class PrintBool() : Predefined() {
-    override val name = "p_print_string"
+    override val name = "p_print_bool"
     override val msg = "true\\0"
-    val msg2 = "false\\0"
+    override val msg2 = "false\\0"
 
-    override fun getInstructions(data: DataSegment): List<Instruction> {
-        data.addMessage(Message(msg2))
-        return listOf(
+    override fun getInstructions(data: DataSegment): List<Instruction> =
+        listOf(
             FunctionDeclaration(name),
             Push(listOf(Register.LR)),
             Compare(Register.R0, 0),
@@ -125,7 +131,6 @@ class PrintBool() : Predefined() {
             Branch("fflush", Conditions.L),
             Pop(listOf(Register.PC))
         )
-    }
 }
 
 class ReadInt() : Predefined() {
@@ -218,11 +223,10 @@ class CheckNullPointer() : RuntimeError() {
 class CheckArrayBounds() : RuntimeError() {
     override val name = "p_check_null_pointer"
     override val msg = "ArrayIndexOutOfBoundsError: negative index\\n\\0"
-    val msg2 = "ArrayIndexOutOfBoundsError: index too large\\n\\0"
+    override val msg2 = "ArrayIndexOutOfBoundsError: index too large\\n\\0"
 
-    override fun getInstructions(data: DataSegment): List<Instruction> {
-        data.addMessage(Message(msg2))
-        return listOf(
+    override fun getInstructions(data: DataSegment): List<Instruction> =
+        listOf(
             FunctionDeclaration(name),
             Push(listOf(Register.LR)),
             Compare(Register.R0, 0),
@@ -234,5 +238,4 @@ class CheckArrayBounds() : RuntimeError() {
             Branch(ThrowRuntimeError().name, Conditions.CS), // TODO add link to Branch
             Pop(listOf(Register.PC))
         )
-    }
 }
