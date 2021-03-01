@@ -4,7 +4,6 @@ import org.junit.jupiter.api.TestFactory
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
-import java.util.concurrent.TimeUnit
 
 
 class TestBackend {
@@ -32,14 +31,22 @@ class TestBackend {
             .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
         val process = ProcessBuilder("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", executableName).start()
         println(process.outputStream.toString())
-
-        process.inputStream.reader(Charsets.UTF_8).use {
-            println(it.readText())
+        val reader = BufferedReader(InputStreamReader(process.inputStream))
+        val builder = StringBuilder()
+        var line: String? = null
+        while (reader.readLine().also { line = it } != null) {
+            builder.append(line)
+            builder.append(System.getProperty("line.separator"))
         }
-        println(process.outputStream.toString())
+        val result = builder.toString()
 
-        process.waitFor(10, TimeUnit.SECONDS)
-        println(process.outputStream.toString())
+//        process.inputStream.reader(Charsets.UTF_8).use {
+//            println(it.readText())
+//        }
+//        println(process.outputStream.toString())
+//
+//        process.waitFor(10, TimeUnit.SECONDS)
+//        println(process.outputStream.toString())
 //        val exec = Runtime.getRuntime().exec("qemu-arm -L /usr/arm-linux-gnueabi/ $executableName")
 //        val stdInput = BufferedReader(InputStreamReader(exec.getInputStream()))
 //
