@@ -227,8 +227,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         freeInstruction.addAll(generateLiterNode(stat.expr, Register.R4))
         freeInstruction.add(Move(Register.R0, Register.R4))
 
-        // TODO: Library Calls
-        freeInstruction.add(Branch("", Conditions.L))
+        val funcName = predefined.addFunc(Freepair())
+        freeInstruction.add(Branch(funcName, Conditions.L))
 
         return freeInstruction
     }

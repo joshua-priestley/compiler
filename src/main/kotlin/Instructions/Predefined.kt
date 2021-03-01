@@ -239,3 +239,26 @@ class CheckArrayBounds() : RuntimeError() {
             Pop(listOf(Register.PC))
         )
 }
+
+class Freepair() : RuntimeError() {
+    override val name = "p_free_pair"
+    override val msg = "NullReferenceError: dereference a null reference\\n\\0"
+
+    override fun getInstructions(data: DataSegment): List<Instruction> =
+        listOf(
+            FunctionDeclaration(name),
+            Push(listOf(Register.LR)),
+            Compare(Register.R0, 0),
+            Load(Register.R0, data.getLabel(msg), Conditions.EQ),
+            Branch(ThrowRuntimeError().name, Conditions.EQ),
+            Push(listOf(Register.R0)),
+            Load(Register.R0, Register.R0),
+            Branch("free", Conditions.L),
+            Load(Register.R0, Register.SP),
+            Load(Register.R0, Register.R0, 4),
+            Branch("free", Conditions.L),
+            Pop(listOf(Register.R0)),
+            Branch("free", Conditions.L),
+            Pop(listOf(Register.PC))
+        )
+}

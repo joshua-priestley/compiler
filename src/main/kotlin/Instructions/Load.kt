@@ -25,6 +25,14 @@ class Load : Instruction {
         this.cond = condition
     }
 
+    constructor(dstReg: Register, srcReg: Register, offset: Int, condition: Conditions? = null) {
+        this.dstReg = dstReg
+        this.srcReg = srcReg
+        this.srcValue = null
+        this.offset = offset
+        this.cond = condition
+    }
+
     override fun toString(): String {
         val instr = StringBuilder()
         instr.append("\tLDR")
