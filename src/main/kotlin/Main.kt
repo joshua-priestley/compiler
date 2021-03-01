@@ -24,7 +24,7 @@ fun main(args: Array<String>) {
 
     val assembly = "-OC" in args
 
-    val compiler = Compiler(args[0], assembly)
+    val compiler = Compiler(args[0], true)
 
     exitProcess(compiler.compile())
 }
@@ -36,6 +36,8 @@ class Compiler(private val inputFile: String, private val assembly: Boolean = fa
         if (!file.exists() || !file.isFile) {
             throw IllegalArgumentException("Cannot find input file at ${file.absolutePath}")
         }
+
+        println("Compiling...")
 
         val listener = SyntaxErrorHandler()
         val input = CharStreams.fromPath(file.toPath())

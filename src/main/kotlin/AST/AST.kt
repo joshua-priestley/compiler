@@ -21,7 +21,7 @@ data class FunctionNode(val type: TypeNode, val ident: Ident, val params: List<P
 interface StatementNode : Node {
     fun valid(): Boolean {
         return when (this) {
-            is IfElseNode -> this.then.valid() && this.else_.valid()
+            is IfElseNode -> !(!this.then.valid() || !this.else_.valid())
             is SequenceNode -> this.statList[this.statList.size - 1].valid()
             is ExitNode -> true
             is ReturnNode -> true

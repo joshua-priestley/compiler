@@ -20,6 +20,7 @@ class TestPrograms {
         }.flatten()
 
     private fun runTest(inputFile: File) {
+        println(inputFile.canonicalPath)
         val compiler = Compiler(inputFile.canonicalPath, true)
         val ret = compiler.compile()
         when {

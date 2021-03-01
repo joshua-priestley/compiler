@@ -1,14 +1,15 @@
 package compiler.Instructions
 
 import AST.*
+import antlr.WACCParser
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
-    var labelCounter = 0
+    private var labelCounter = 0
+    private val data: DataSegment = DataSegment()
+    private val predefined: PredefinedFuncs = PredefinedFuncs(data)
 
     fun generateProgram(program: ProgramNode): List<Instruction> {
-        // Generate Data Segments
-        val dataSegmentInstructions = mutableListOf<Instruction>()
 
         val labelInstructions = mutableListOf<Instruction>()
         labelInstructions.add(GlobalLabel("text"))
@@ -27,10 +28,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         functionBodyInstructions(mainInstructions, program.stat, true)
 
-        return dataSegmentInstructions +
+        return listOf<Instruction>(data) +
                 labelInstructions +
                 funcInstructions +
-                mainInstructions
+                mainInstructions +
+                predefined.toInstructionList()
     }
 
     private fun generateFunction(function: FunctionNode): List<Instruction> {
@@ -49,8 +51,18 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         // PUSH {lr}
         instructions.add(Push(listOf(Register.LR)))
 
+        val spOffset = globalSymbolTable.localStackSize()
+
+        if (spOffset > 0) {
+            //instructions.add(SUB SP SP #spOffset)
+        }
+
         // Generate all the statements
         instructions.addAll(generateStat(stat))
+
+        if (spOffset > 0) {
+            //instructions.add(ADD SP SP #spOffset)
+        }
 
         // LDR r0, =0
         if (main) {
@@ -87,11 +99,32 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generatePrintln(stat: PrintlnNode): List<Instruction> {
-        return emptyList()
+        // TODO find better way of arranging things to make adding the branch cleaner
+        val instructions = mutableListOf<Instruction>()
+        instructions.addAll(generatePrint(PrintNode(stat.expr)))
+        val funcName = predefined.addFunc(PrintLn())
+        instructions.add(Branch(funcName, Conditions.L))
+        return instructions
     }
 
     private fun generatePrint(stat: PrintNode): List<Instruction> {
-        return emptyList()
+        val printInstruction = mutableListOf<Instruction>()
+        printInstruction.addAll(generateExpr(stat.expr))
+        printInstruction.add(Move(Register.R0, Register.R4))
+
+        val type = getType(stat.expr)
+
+        val funcName: String = when (type) {
+            Type(WACCParser.INT) -> predefined.addFunc(PrintInt())
+            Type(WACCParser.STRING) -> predefined.addFunc(PrintString())
+            Type(WACCParser.BOOL) -> predefined.addFunc(PrintBool())
+            Type(WACCParser.CHAR) -> "putchar"
+            else -> "dummy string"// TODO Handle reference printing
+        }
+
+        printInstruction.add(Branch(funcName, Conditions.L))
+
+        return printInstruction
     }
 
     private fun generateRead(stat: ReadNode): List<Instruction> {
@@ -175,7 +208,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generateExpr(expr: ExprNode): List<Instruction> {
-        return emptyList()
+        return when (expr) {
+            is LiterNode -> generateLiterNode(expr, Register.R4)
+            else -> emptyList()
+        }
     }
 
     private fun generateSeq(stat: SequenceNode): List<Instruction> {
@@ -224,10 +260,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 loadInstruction.add(Load(dstRegister, exprNode.value))
             }
             is StrLiterNode -> {
-                // TODO: Data segment stuff
+                data.addMessage(Message(exprNode.value))
+                loadInstruction.add(Load(dstRegister, data.getLabel(exprNode.value)))
             }
             is CharLiterNode -> {
-                loadInstruction.add(Move(dstRegister, exprNode.value[1]))
+                loadInstruction.add(Move(dstRegister, exprNode.value[0]))
             }
             is BoolLiterNode -> {
                 loadInstruction.add(Move(dstRegister, if (exprNode.value == "true") {
@@ -247,4 +284,30 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return "L${labelCounter++}"
     }
 
+    // TODO find better way to get expression types than this - lots of duplication with ASTBuilder
+    // maybe add type member to expression nodes superclass and set during ast building?
+    private fun getType(expr:ExprNode): Type? {
+        return when (expr) {
+            is IntLiterNode -> Type(WACCParser.INT)
+            is StrLiterNode -> Type(WACCParser.STRING)
+            is BoolLiterNode -> Type(WACCParser.BOOL)
+            is CharLiterNode -> Type(WACCParser.CHAR)
+            is Ident -> globalSymbolTable.getNodeGlobal(expr.toString())
+            is ArrayElem -> {
+                val type = globalSymbolTable.getNodeGlobal(expr.ident.toString())
+                // TODO fix npe to do with scoping in:
+                // wacc_examples/valid/scope/printAllTypes.wacc
+                // set global symbol table to child when visiting begin/end node?
+                // but which child table do we set it to?
+                return type?.getBaseType() ?: Type(INVALID)
+            }
+            is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value)
+            is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value)
+            is PairLiterNode -> Type(PAIR_LITER)
+            else -> {
+                println("Shouldn't get here")
+                return Type(INVALID)
+            }
+        }
+    }
 }
