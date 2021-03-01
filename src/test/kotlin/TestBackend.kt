@@ -67,7 +67,7 @@ class TestBackend {
         if (a != null) {
             val strs = a.compiler_out.split("===========================================================").toTypedArray()
             println(strs[1])
-            assertEquals(strs[1] + "\n", sb)
+            assertEquals(strs[1], "\n" + sb)
         }
 
 
