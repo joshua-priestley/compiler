@@ -4,6 +4,7 @@ import org.junit.jupiter.api.TestFactory
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
+import java.lang.StringBuilder
 import java.util.concurrent.TimeUnit
 
 
@@ -30,44 +31,24 @@ class TestBackend {
 
         Runtime.getRuntime()
             .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
+        assert(File(executableName).exists())
+
         val process = ProcessBuilder("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", executableName).start()
-        println("1: ${process.outputStream.toString()}")
 
+        val sb = StringBuilder()
+        sb.append("-- Compiling...")
+        sb.append("-- Assembling and Linking...")
+        sb.append("-- Executing...")
+        sb.append("===========================================================\n")
         process.inputStream.reader(Charsets.UTF_8).use {
-            println("---")
-            println(it.readText())
-            println("-----")
+            sb.append(it.readText())
         }
-        println("2: ${process.outputStream.toString()}")
+        sb.append("===========================================================\n")
+        sb.append("The exit code is 0.")
+        sb.append("-- Finished")
 
-        process.waitFor(10, TimeUnit.SECONDS)
-        println("3: ${process.outputStream.toString()}")
-//        val exec = Runtime.getRuntime().exec("qemu-arm -L /usr/arm-linux-gnueabi/ $executableName")
-//        val stdInput = BufferedReader(InputStreamReader(exec.getInputStream()))
-//
-//        val stdError = BufferedReader(InputStreamReader(exec.getErrorStream()))
-//
-//// Read the output from the command
-//
-//// Read the output from the command
-//        println("Here is the standard output of the command:\n")
-//        var s: String? = null
-//        while (stdInput.readLine().also { s = it } != null) {
-//            println(s)
-//        }
-//
-//// Read any errors from the attempted command
-//
-//// Read any errors from the attempted command
-//        println("Here is the standard error of the command (if any):\n")
-//        while (stdError.readLine().also { s = it } != null) {
-//            println(s)
-//        }
-        if(File(executableName).exists()) {
-            println("successfully compiled a .o file..... :)")
-        } else {
-            println("didn't compile t :(")
-        }
+        println(sb.toString())
+        println("printed it")
 
     }
 
