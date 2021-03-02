@@ -11,5 +11,7 @@ begin
     return a2 + 1
   end
   int x = 0 ;
+  int y = 3 ;
+  y = 4 ;
   x = call inc(0, 1, 2)
 end

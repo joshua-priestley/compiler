@@ -56,15 +56,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         val spOffset = globalSymbolTable.localStackSize()
 
-        if (spOffset > 0) {
-            //instructions.add(SUB SP SP #spOffset)
+        if (spOffset > 0 && main) {
+            instructions.add(Sub(Register.SP, Register.SP, spOffset))
         }
 
         // Generate all the statements
         instructions.addAll(generateStat(stat))
 
-        if (spOffset > 0) {
-            //instructions.add(ADD SP SP #spOffset)
+        if (spOffset > 0 && main) {
+            instructions.add(Add(Register.SP, Register.SP, spOffset))
         }
 
         // LDR r0, =0
@@ -165,13 +165,19 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         if (call.argList.isNullOrEmpty()) return callInstructions
         val parameters = call.argList.reversed()
 
+        var totalOffset = 0
         for (param in parameters) {
-            // LDR R4 <expr>
-            val offset = getExprOffset(param) * -1
+            callInstructions.addAll(generateExpr(param))
+            val offset = getExprOffset(param)
+            totalOffset += offset
             assert(offset != 0)
-            val byte = offset == -1
-            callInstructions.add(Store(Register.R4, Register.SP, offset, parameter = true, byte = byte))
+            val byte = offset == 1
+            callInstructions.add(Store(Register.R4, Register.SP, offset * -1, parameter = true, byte = byte))
         }
+
+        val functionName = "f_${call.ident.name}"
+        callInstructions.add(Branch(functionName, true))
+        if (totalOffset != 0) callInstructions.add(Add(Register.SP, Register.SP, totalOffset))
 
         return callInstructions
     }
