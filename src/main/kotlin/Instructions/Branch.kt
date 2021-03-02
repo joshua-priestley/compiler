@@ -2,16 +2,7 @@ package compiler.Instructions
 
 import java.lang.StringBuilder
 
-class Branch: Instruction {
-    private val label: String
-    private val cond: Conditions?
-    private val link : Boolean
-    constructor(label: String, link : Boolean, cond: Conditions? = null) {
-        this.label = label
-        this.cond = cond
-        this.link = link
-    }
-
+class Branch(private val label: String, private val link: Boolean, private val cond: Conditions? = null) : Instruction {
 
 
     override fun toString(): String {
