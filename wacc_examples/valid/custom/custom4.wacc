@@ -13,5 +13,5 @@ begin
   int x = 0 ;
   int y = 3 ;
   y = 4 ;
-  x = call inc(0, 1, 2)
+  x = call inc(0, 1, y)
 end

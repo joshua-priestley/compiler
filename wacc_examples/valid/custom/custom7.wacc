@@ -1,0 +1,12 @@
+# a simple increment function definition and usage
+
+# Output:
+# 1
+# 4
+
+# Program:
+
+begin
+  int x = 4 ;
+  int y = x
+end

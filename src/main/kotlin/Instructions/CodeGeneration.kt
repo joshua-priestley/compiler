@@ -137,7 +137,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return emptyList()
     }
 
-    private fun getExprOffset(expr: ExprNode): Int {
+    private fun getExprParameterOffset(expr: ExprNode): Int {
         return when(expr) {
             is PairLiterNode -> 4
             is IntLiterNode -> 4
@@ -168,7 +168,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         var totalOffset = 0
         for (param in parameters) {
             callInstructions.addAll(generateExpr(param))
-            val offset = getExprOffset(param)
+            val offset = getExprParameterOffset(param)
             totalOffset += offset
             assert(offset != 0)
             val byte = offset == 1
@@ -343,7 +343,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 }))
             }
             is Ident -> {
-                // TODO: Stack offset stuff
+                val offset = globalSymbolTable.getStackOffset(exprNode.toString())
+                println(offset)
+                loadInstruction.add(Load(dstRegister, Register.SP, offset))
             }
         }
         return loadInstruction
