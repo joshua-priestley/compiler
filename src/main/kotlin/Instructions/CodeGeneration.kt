@@ -387,6 +387,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 list.add(Compare(operand2, reg, null, ArithmeticShiftRight(31)))
                 list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
             }
+
+            BinOp.AND -> {
+                list.add(AndOr("AND", reg, reg, operand2))
+            }
+            BinOp.OR -> {
+                list.add(AndOr("ORR", reg, reg, operand2))
+            }
             else -> {
                 // TODO
             }
