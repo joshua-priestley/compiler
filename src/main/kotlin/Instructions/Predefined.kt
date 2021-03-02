@@ -1,7 +1,5 @@
 package compiler.Instructions
 
-import java.lang.StringBuilder
-
 // Set of external functions that we are including in the program
 class PredefinedFuncs(private val data: DataSegment) {
     // Use list to preserve order of functions
@@ -65,13 +63,13 @@ class PrintLn() : Predefined() {
     override fun getInstructions(data: DataSegment): List<Instruction> =
         listOf(
             FunctionDeclaration(name),
-            Push(listOf(Register.LR)),
-            Load(Register.R0, data.getLabel(msg)),
-            Add(Register.R0, Register.R0, 4, false),
+            Push(listOf(Register.lr)),
+            Load(Register.r0, data.getLabel(msg)),
+            Add(Register.r0, Register.r0, 4, false),
             Branch("puts", true),
-            Move(Register.R0, 0),
+            Move(Register.r0, 0),
             Branch("fflush", true),
-            Pop(listOf(Register.PC))
+            Pop(listOf(Register.pc))
         )
 }
 
@@ -82,15 +80,15 @@ class PrintString() : Predefined() {
     override fun getInstructions(data: DataSegment): List<Instruction> =
         listOf(
             FunctionDeclaration(name),
-            Push(listOf(Register.LR)),
-            Load(Register.R1, Register.R0),
-            Add(Register.R2, Register.R0, 4, false),
-            Load(Register.R0, data.getLabel(msg)),
-            Add(Register.R0, Register.R0, 4, false),
+            Push(listOf(Register.lr)),
+            Load(Register.r1, Register.r0),
+            Add(Register.r2, Register.r0, 4, false),
+            Load(Register.r0, data.getLabel(msg)),
+            Add(Register.r0, Register.r0, 4, false),
             Branch("printf", true),
-            Move(Register.R0, 0),
+            Move(Register.r0, 0),
             Branch("fflush", true),
-            Pop(listOf(Register.PC))
+            Pop(listOf(Register.pc))
         )
 }
 
@@ -101,14 +99,14 @@ class PrintInt() : Predefined() {
     override fun getInstructions(data: DataSegment): List<Instruction> =
         listOf(
             FunctionDeclaration(name),
-            Push(listOf(Register.LR)),
-            Move(Register.R1, Register.R0),
-            Load(Register.R0, data.getLabel(msg)),
-            Add(Register.R0, Register.R0, 4, false),
+            Push(listOf(Register.lr)),
+            Move(Register.r1, Register.r0),
+            Load(Register.r0, data.getLabel(msg)),
+            Add(Register.r0, Register.r0, 4, false),
             Branch("printf", true),
-            Move(Register.R0, 0),
+            Move(Register.r0, 0),
             Branch("fflush", true),
-            Pop(listOf(Register.PC))
+            Pop(listOf(Register.pc))
         )
 }
 
@@ -121,15 +119,15 @@ class PrintBool() : Predefined() {
     override fun getInstructions(data: DataSegment): List<Instruction> =
         listOf(
             FunctionDeclaration(name),
-            Push(listOf(Register.LR)),
-            Compare(Register.R0, 0),
-            Load(Register.R0, data.getLabel(msg), Conditions.NE),
-            Load(Register.R0, data.getLabel(msg2), Conditions.EQ),
-            Add(Register.R0, Register.R0, 4, false),
+            Push(listOf(Register.lr)),
+            Compare(Register.r0, 0),
+            Load(Register.r0, data.getLabel(msg), Conditions.NE),
+            Load(Register.r0, data.getLabel(msg2), Conditions.EQ),
+            Add(Register.r0, Register.r0, 4, false),
             Branch("printf", true),
-            Move(Register.R0, 0),
+            Move(Register.r0, 0),
             Branch("fflush", true),
-            Pop(listOf(Register.PC))
+            Pop(listOf(Register.pc))
         )
 }
 
@@ -140,12 +138,12 @@ class ReadInt() : Predefined() {
     override fun getInstructions(data: DataSegment): List<Instruction> =
         listOf(
             FunctionDeclaration(name),
-            Push(listOf(Register.LR)),
-            Move(Register.R1, Register.R0),
-            Load(Register.R0, data.getLabel(msg)),
-            Add(Register.R0, Register.R0, 4, false),
+            Push(listOf(Register.lr)),
+            Move(Register.r1, Register.r0),
+            Load(Register.r0, data.getLabel(msg)),
+            Add(Register.r0, Register.r0, 4, false),
             Branch("scanf", true),
-            Pop(listOf(Register.PC))
+            Pop(listOf(Register.pc))
         )
 }
 
@@ -157,12 +155,12 @@ class ReadChar() : Predefined() {
     override fun getInstructions(data: DataSegment): List<Instruction> =
         listOf(
             FunctionDeclaration(name),
-            Push(listOf(Register.LR)),
-            Move(Register.R1, Register.R0),
-            Load(Register.R0, data.getLabel(msg)),
-            Add(Register.R0, Register.R0, 4, false),
+            Push(listOf(Register.lr)),
+            Move(Register.r1, Register.r0),
+            Load(Register.r0, data.getLabel(msg)),
+            Add(Register.r0, Register.r0, 4, false),
             Branch("scanf", true),
-            Pop(listOf(Register.PC))
+            Pop(listOf(Register.pc))
         )
 }
 
@@ -173,7 +171,7 @@ class ThrowRuntimeError() : Predefined() {
     override fun getInstructions(data: DataSegment): List<Instruction> =
         listOf(
             FunctionDeclaration(name),
-            Move(Register.R0, -1),
+            Move(Register.r0, -1),
             Branch("exit", true)
         )
 }
@@ -185,11 +183,11 @@ class DivideByZero() : RuntimeError() {
     override fun getInstructions(data: DataSegment): List<Instruction> =
         listOf(
             FunctionDeclaration(name),
-            Push(listOf(Register.LR)),
-            Compare(Register.R1, 1),
-            Load(Register.R0, data.getLabel(msg), Conditions.EQ),
+            Push(listOf(Register.lr)),
+            Compare(Register.r1, 1),
+            Load(Register.r0, data.getLabel(msg), Conditions.EQ),
             Branch(ThrowRuntimeError().name, true, Conditions.EQ),
-            Pop(listOf(Register.PC))
+            Pop(listOf(Register.pc))
         )
 }
 
@@ -200,7 +198,7 @@ class Overflow() : RuntimeError() {
     override fun getInstructions(data: DataSegment): List<Instruction> =
         listOf(
             FunctionDeclaration(name),
-            Load(Register.R0, data.getLabel(msg)),
+            Load(Register.r0, data.getLabel(msg)),
             Branch(ThrowRuntimeError().name, true, Conditions.EQ)
         )
 }
@@ -212,11 +210,11 @@ class CheckNullPointer() : RuntimeError() {
     override fun getInstructions(data: DataSegment): List<Instruction> =
         listOf(
             FunctionDeclaration(name),
-            Push(listOf(Register.LR)),
-            Compare(Register.R0, 0),
-            Load(Register.R0, data.getLabel(msg)),
+            Push(listOf(Register.lr)),
+            Compare(Register.r0, 0),
+            Load(Register.r0, data.getLabel(msg)),
             Branch(ThrowRuntimeError().name, true, Conditions.EQ),
-            Pop(listOf(Register.PC))
+            Pop(listOf(Register.pc))
         )
 }
 
@@ -228,15 +226,15 @@ class CheckArrayBounds() : RuntimeError() {
     override fun getInstructions(data: DataSegment): List<Instruction> =
         listOf(
             FunctionDeclaration(name),
-            Push(listOf(Register.LR)),
-            Compare(Register.R0, 0),
-            Load(Register.R0, data.getLabel(msg), Conditions.LT),
+            Push(listOf(Register.lr)),
+            Compare(Register.r0, 0),
+            Load(Register.r0, data.getLabel(msg), Conditions.LT),
             Branch(ThrowRuntimeError().name, true, Conditions.LT),
-            Load(Register.R1, Register.R1),
-            Compare(Register.R0, Register.R1),
-            Load(Register.R0, data.getLabel(msg2), Conditions.CS),
+            Load(Register.r1, Register.r1),
+            Compare(Register.r0, Register.r1),
+            Load(Register.r0, data.getLabel(msg2), Conditions.CS),
             Branch(ThrowRuntimeError().name, true, Conditions.CS),
-            Pop(listOf(Register.PC))
+            Pop(listOf(Register.pc))
         )
 }
 
@@ -247,18 +245,18 @@ class Freepair() : RuntimeError() {
     override fun getInstructions(data: DataSegment): List<Instruction> =
         listOf(
             FunctionDeclaration(name),
-            Push(listOf(Register.LR)),
-            Compare(Register.R0, 0),
-            Load(Register.R0, data.getLabel(msg), Conditions.EQ),
+            Push(listOf(Register.lr)),
+            Compare(Register.r0, 0),
+            Load(Register.r0, data.getLabel(msg), Conditions.EQ),
             Branch(ThrowRuntimeError().name, false, Conditions.EQ),
-            Push(listOf(Register.R0)),
-            Load(Register.R0, Register.R0),
+            Push(listOf(Register.r0)),
+            Load(Register.r0, Register.r0),
             Branch("free", true),
-            Load(Register.R0, Register.SP),
-            Load(Register.R0, Register.R0, 4),
+            Load(Register.r0, Register.sp),
+            Load(Register.r0, Register.r0, 4),
             Branch("free", true),
-            Pop(listOf(Register.R0)),
+            Pop(listOf(Register.r0)),
             Branch("free", true),
-            Pop(listOf(Register.PC))
+            Pop(listOf(Register.pc))
         )
 }

@@ -3,9 +3,10 @@ package compiler.Instructions
 const val NO_GEN_PURPOSE_REG = 11
 
 enum class Register {
-    R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, SP, LR, PC, CPSR;
+    r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, sp, lr, pc, cpsr;
 
     fun nextAvailable(): Register {
         return values()[(this.ordinal + 1) % NO_GEN_PURPOSE_REG]
+
     }
 }
