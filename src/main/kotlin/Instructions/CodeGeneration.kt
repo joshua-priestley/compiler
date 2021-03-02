@@ -12,6 +12,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private val predefined: PredefinedFuncs = PredefinedFuncs(data)
 
     fun generateProgram(program: ProgramNode): List<Instruction> {
+        globalSymbolTable.printEntries()
         val labelInstructions = mutableListOf<Instruction>()
         labelInstructions.add(GlobalLabel("text"))
         labelInstructions.add(GlobalLabel("global main"))
@@ -343,8 +344,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 }))
             }
             is Ident -> {
-                val offset = globalSymbolTable.getStackOffset(exprNode.toString())
-                println(offset)
+                val offset = globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(exprNode.toString())
                 loadInstruction.add(Load(dstRegister, Register.SP, offset))
             }
         }
@@ -357,28 +357,29 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generateBinOp(binOp: BinaryOpNode, reg: Register = Register.R4): List<Instruction> {
         val list = mutableListOf<Instruction>()
-        val operand1 = reg
         val operand2 = reg.nextAvailable()
-        val dst = operand1
-        val expr1 = generateExpr(binOp.expr1, operand1)
+        val expr1 = generateExpr(binOp.expr1, reg)
         val expr2 = generateExpr(binOp.expr2, operand2)
         list.addAll(expr1)
         list.addAll(expr2)
 
         when (binOp.operator) {
             BinOp.PLUS -> {
-                list.add(AddSub("ADD", dst, operand1, operand2, true))
-                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
+
+                list.add(AddSub("ADD", reg, reg, operand2, true))
+                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
             }
             BinOp.MINUS -> {
-                list.add(AddSub("SUB", dst, operand1, operand2, true))
-                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
+                list.add(AddSub("SUB", reg, reg, operand2, true))
+                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
             }
             BinOp.MUL -> {
-                val dstLo = operand2
-                list.add(Multiply(dst, dstLo, operand1, operand2, true))
-                list.add(Compare(dstLo, dst, null, ArithmeticShiftRight(31)))
+                list.add(Multiply(reg, operand2, reg, operand2, true))
+                list.add(Compare(operand2, reg, null, ArithmeticShiftRight(31)))
                 list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
+            }
+            else -> {
+                // TODO
             }
         }
         return list

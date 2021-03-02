@@ -27,8 +27,8 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
 
     fun addNode(name: String, type: Type) {
         if (!type.isFunction() && !type.isParameter()) {
-            table[name] = type.setOffset(tableOffset)
             tableOffset += type.getTypeSize()
+            table[name] = type.setOffset(tableOffset)
         } else {
             table[name] = type
         }
@@ -71,14 +71,6 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
         return false
     }
 
-    fun printChildTables() {
-        println(childrenTables)
-        println("Total Size: ${localStackSize()}")
-        for (key in childrenTables.keys) {
-            childrenTables[key]?.printChildTables()
-        }
-    }
-
     fun localStackSize(): Int {
         return this.tableOffset
     }
@@ -102,6 +94,20 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
 
         // Now in the scope that has the variable we want
         return offset + offsetInTable(name)
+    }
+
+    fun printEntries() {
+        for (entry in table.keys) {
+            println("Key: $entry     Value: ${table[entry]}      Offset: ${table[entry]!!.getOffset()}")
+        }
+    }
+
+    fun printChildTables() {
+        println(childrenTables)
+        println("Total Size: ${localStackSize()}")
+        for (key in childrenTables.keys) {
+            childrenTables[key]?.printChildTables()
+        }
     }
 
 }
