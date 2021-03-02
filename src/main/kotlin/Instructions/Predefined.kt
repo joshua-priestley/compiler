@@ -188,7 +188,7 @@ class DivideByZero() : RuntimeError() {
             Push(listOf(Register.LR)),
             Compare(Register.R1, 1),
             Load(Register.R0, data.getLabel(msg), Conditions.EQ),
-            Branch(ThrowRuntimeError().name, false, Conditions.EQ), // TODO add link to Branch
+            Branch(ThrowRuntimeError().name, true, Conditions.EQ),
             Pop(listOf(Register.PC))
         )
 }
@@ -201,7 +201,7 @@ class Overflow() : RuntimeError() {
         listOf(
             FunctionDeclaration(name),
             Load(Register.R0, data.getLabel(msg)),
-            Branch(ThrowRuntimeError().name, false, Conditions.EQ) // TODO add link to Branch
+            Branch(ThrowRuntimeError().name, true, Conditions.EQ)
         )
 }
 
@@ -215,7 +215,7 @@ class CheckNullPointer() : RuntimeError() {
             Push(listOf(Register.LR)),
             Compare(Register.R0, 0),
             Load(Register.R0, data.getLabel(msg)),
-            Branch(ThrowRuntimeError().name, false,Conditions.EQ), // TODO add link to Branch
+            Branch(ThrowRuntimeError().name, true, Conditions.EQ),
             Pop(listOf(Register.PC))
         )
 }
@@ -231,11 +231,11 @@ class CheckArrayBounds() : RuntimeError() {
             Push(listOf(Register.LR)),
             Compare(Register.R0, 0),
             Load(Register.R0, data.getLabel(msg), Conditions.LT),
-            Branch(ThrowRuntimeError().name, false, Conditions.LT),
+            Branch(ThrowRuntimeError().name, true, Conditions.LT),
             Load(Register.R1, Register.R1),
             Compare(Register.R0, Register.R1),
             Load(Register.R0, data.getLabel(msg2), Conditions.CS),
-            Branch(ThrowRuntimeError().name, false, Conditions.CS), // TODO add link to Branch
+            Branch(ThrowRuntimeError().name, true, Conditions.CS),
             Pop(listOf(Register.PC))
         )
 }
