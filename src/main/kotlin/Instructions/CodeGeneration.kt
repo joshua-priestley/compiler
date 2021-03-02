@@ -139,7 +139,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun getExprParameterOffset(expr: ExprNode): Int {
-        return when(expr) {
+        return when (expr) {
             is PairLiterNode -> 4
             is IntLiterNode -> 4
             is StrLiterNode -> 4
@@ -188,6 +188,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         if (stat.rhs is RHSCallNode) {
             assignInstructions.addAll(generateCallNode(stat.rhs))
+        } else if (stat.rhs is RHSExprNode) {
+            assignInstructions.addAll(generateExpr(stat.rhs.expr))
+        }
+        if (stat.lhs is AssignLHSIdentNode) {
+            assignInstructions.add(Store(Register.R4, Register.SP, globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.lhs.ident.toString())))
         }
 
         return assignInstructions
@@ -198,9 +203,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         if (stat.value is RHSCallNode) {
             declareInstructions.addAll(generateCallNode(stat.value))
+        } else if (stat.value is RHSExprNode) {
+            declareInstructions.addAll(generateExpr(stat.value.expr))
         }
+        declareInstructions.add(Store(Register.R4, Register.SP, globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.ident.toString())))
 
-        return declareInstructions    }
+        return declareInstructions
+    }
 
     private fun generateIf(stat: IfElseNode): List<Instruction> {
         val ifInstruction = mutableListOf<Instruction>()
