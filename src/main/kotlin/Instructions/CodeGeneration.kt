@@ -428,9 +428,18 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             BinOp.MOD -> {
                 list.add(Move(Register.r0, reg))
                 list.add(Move(Register.r1, operand2))
-                list.add(Branch("p_check_divide_by_zero",true))
+                val funcName = predefined.addFunc(DivideByZero())
+                list.add(Branch(funcName,true))
                 list.add(Branch("__aeabi_idivmod",true))
                 list.add(Move(reg, Register.r1))
+            }
+            BinOp.DIV -> {
+                list.add(Move(Register.r0, reg))
+                list.add(Move(Register.r1, operand2))
+                val funcName = predefined.addFunc(DivideByZero())
+                list.add(Branch(funcName,true))
+                list.add(Branch("__aeabi_idiv",true))
+                list.add(Move(reg, Register.r0))
             }
             else -> {
                 // TODO
