@@ -12,8 +12,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private val predefined: PredefinedFuncs = PredefinedFuncs(data)
 
     fun generateProgram(program: ProgramNode): List<Instruction> {
-        println("This is the first integer: $currentSymbolID")
-
         val labelInstructions = mutableListOf<Instruction>()
         labelInstructions.add(GlobalLabel("text"))
         labelInstructions.add(GlobalLabel("global main"))
@@ -139,13 +137,63 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return emptyList()
     }
 
+    private fun getExprOffset(expr: ExprNode): Int {
+        return when(expr) {
+            is PairLiterNode -> 4
+            is IntLiterNode -> 4
+            is StrLiterNode -> 4
+            is CharLiterNode -> 1
+            is BoolLiterNode -> 1
+            is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value).getTypeSize()
+            is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value).getTypeSize()
+            is ArrayElem -> {
+                val type = globalSymbolTable.getNodeGlobal(expr.ident.toString())
+                type!!.getBaseType().getTypeSize()
+            }
+            is Ident -> {
+                val type = globalSymbolTable.getNodeGlobal(expr.toString())
+                return type!!.getTypeSize()
+            }
+            else -> {
+                0
+            }
+        }
+    }
+
+    private fun generateCallNode(call: RHSCallNode): List<Instruction> {
+        val callInstructions = mutableListOf<Instruction>()
+        if (call.argList.isNullOrEmpty()) return callInstructions
+        val parameters = call.argList.reversed()
+
+        for (param in parameters) {
+            // LDR R4 <expr>
+            val offset = getExprOffset(param) * -1
+            assert(offset != 0)
+            val byte = offset == -1
+            callInstructions.add(Store(Register.R4, Register.SP, offset, parameter = true, byte = byte))
+        }
+
+        return callInstructions
+    }
+
     private fun generateAssign(stat: AssignNode): List<Instruction> {
-        return emptyList()
+        val assignInstructions = mutableListOf<Instruction>()
+
+        if (stat.rhs is RHSCallNode) {
+            assignInstructions.addAll(generateCallNode(stat.rhs))
+        }
+
+        return assignInstructions
     }
 
     private fun generateDeclaration(stat: DeclarationNode): List<Instruction> {
-        return emptyList()
-    }
+        val declareInstructions = mutableListOf<Instruction>()
+
+        if (stat.value is RHSCallNode) {
+            declareInstructions.addAll(generateCallNode(stat.value))
+        }
+
+        return declareInstructions    }
 
     private fun generateIf(stat: IfElseNode): List<Instruction> {
         val ifInstruction = mutableListOf<Instruction>()

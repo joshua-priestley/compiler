@@ -33,8 +33,6 @@ class ASTBuilder(
 
     // Visits the main program to build the AST
     override fun visitProgram(ctx: ProgramContext): Node {
-        println("This is the first integer: $nextSymbolID")
-
         // First add all the functions to the map
         addAllFunctions(ctx.func())
 
