@@ -2,13 +2,17 @@ package compiler.Instructions
 
 import AST.*
 import antlr.WACCParser
+import java.util.concurrent.atomic.AtomicInteger
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
+    private val currentSymbolID = AtomicInteger()
+
     private var labelCounter = 0
     private val data: DataSegment = DataSegment()
     private val predefined: PredefinedFuncs = PredefinedFuncs(data)
 
     fun generateProgram(program: ProgramNode): List<Instruction> {
+        println("This is the first integer: $currentSymbolID")
 
         val labelInstructions = mutableListOf<Instruction>()
         labelInstructions.add(GlobalLabel("text"))
@@ -17,7 +21,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         // Generate the functions
         val funcInstructions = mutableListOf<Instruction>()
         for (func in program.funcs) {
+            globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
             funcInstructions.addAll(generateFunction(func))
+            globalSymbolTable = globalSymbolTable.parentT!!
         }
 
         // Generate the main function
@@ -91,7 +97,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is PrintlnNode -> generatePrintln(stat)// TODO
             is IfElseNode -> generateIf(stat)
             is WhileNode -> generateWhile(stat)
-            is BeginEndNode -> generateStat(stat.stat)
+            is BeginEndNode -> {
+                globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
+                val statInstructions = generateStat(stat.stat)
+                globalSymbolTable = globalSymbolTable.parentT!!
+                statInstructions
+            }
             else -> generateSeq(stat as SequenceNode) // SequenceNode
 
         }
@@ -151,15 +162,19 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         // Compare the conditional
         ifInstruction.add(Compare(Register.R4, 0))
-        ifInstruction.add(Branch(elseLabel, false,Conditions.EQ))
+        ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
 
         // Then Branch
+        globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         ifInstruction.addAll(generateStat(stat.then))
-        ifInstruction.add(Branch(endLabel,false))
+        ifInstruction.add(Branch(endLabel, false))
+        globalSymbolTable = globalSymbolTable.parentT!!
 
         // Else Branch
+        globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         ifInstruction.add(FunctionDeclaration(elseLabel))
         ifInstruction.addAll(generateStat(stat.else_))
+        globalSymbolTable = globalSymbolTable.parentT!!
 
         ifInstruction.add(FunctionDeclaration(endLabel))
 
@@ -175,8 +190,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         whileInstruction.add(Branch(conditionLabel, false))
 
         // Loop body
+        globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         whileInstruction.add(FunctionDeclaration(bodyLabel))
         whileInstruction.addAll(generateStat(stat.do_))
+        globalSymbolTable = globalSymbolTable.parentT!!
 
         // Conditional
         whileInstruction.add(FunctionDeclaration(conditionLabel))
@@ -295,17 +312,17 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         when (binOp.operator) {
             BinOp.PLUS -> {
                 list.add(AddSub("ADD", dst, operand1, operand2, true))
-                list.add(Branch("p_throw_overflow_error",true,Conditions.VS))
+                list.add(Branch("p_throw_overflow_error", true, Conditions.VS))
             }
             BinOp.MINUS -> {
                 list.add(AddSub("SUB", dst, operand1, operand2, true))
-                list.add(Branch("p_throw_overflow_error",true,Conditions.VS))
+                list.add(Branch("p_throw_overflow_error", true, Conditions.VS))
             }
             BinOp.MUL -> {
                 val dstLo = operand2
-                list.add(Multiply(dst,dstLo,operand1,operand2,true))
-                list.add(Compare(dstLo,dst,null,ArithmeticShiftRight(31)))
-                list.add(Branch("p_throw_overflow_error", true,Conditions.NE))
+                list.add(Multiply(dst, dstLo, operand1, operand2, true))
+                list.add(Compare(dstLo, dst, null, ArithmeticShiftRight(31)))
+                list.add(Branch("p_throw_overflow_error", true, Conditions.NE))
             }
         }
         return list

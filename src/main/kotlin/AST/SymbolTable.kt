@@ -21,6 +21,10 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
         childrenTables[ID] = child
     }
 
+    fun getChildTable(ID: Int): SymbolTable? {
+        return childrenTables[ID]
+    }
+
     fun addNode(name: String, type: Type) {
         if (!type.isFunction() && !type.isParameter()) {
             table[name] = type.setOffset(tableOffset)
