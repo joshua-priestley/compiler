@@ -7,20 +7,23 @@ class Compare: Instruction {
     private val secondReg: Register?
     private val secondInt: Int?
     private val cond: Conditions?
-
-    constructor(firstReg: Register, secondReg: Register, cond: Conditions? = null) {
+    private val shift : Shift?
+    constructor(firstReg: Register, secondReg: Register, cond: Conditions? = null, shift: Shift? = null) {
         this.firstReg = firstReg
         this.secondReg = secondReg
         this.secondInt = null
         this.cond = cond
+        this.shift = shift
     }
 
-    constructor(firstReg: Register, secondInt: Int, cond: Conditions? = null) {
+    constructor(firstReg: Register, secondInt: Int, cond: Conditions? = null, shift: Shift? = null) {
         this.firstReg = firstReg
         this.secondReg = null
         this.secondInt = secondInt
         this.cond = cond
+        this.shift = shift
     }
+
 
     override fun toString(): String {
         val instr = StringBuilder()
@@ -32,6 +35,7 @@ class Compare: Instruction {
         } else {
             instr.append("#$secondInt")
         }
+        if (shift != null) instr.append(", $shift")
         return instr.toString()
     }
 }

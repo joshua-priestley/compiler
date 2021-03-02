@@ -4,7 +4,6 @@ import AST.*
 import antlr.WACCParser
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
-
     private var labelCounter = 0
     private val data: DataSegment = DataSegment()
     private val predefined: PredefinedFuncs = PredefinedFuncs(data)
@@ -112,9 +111,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         printInstruction.addAll(generateExpr(stat.expr))
         printInstruction.add(Move(Register.R0, Register.R4))
 
-        val type = getType(stat.expr)
-
-        val funcName: String = when (type) {
+        val funcName: String = when (getType(stat.expr)) {
             Type(WACCParser.INT) -> predefined.addFunc(PrintInt())
             Type(WACCParser.STRING) -> predefined.addFunc(PrintString())
             Type(WACCParser.BOOL) -> predefined.addFunc(PrintBool())
@@ -207,9 +204,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return returnInstruction
     }
 
-    private fun generateExpr(expr: ExprNode): List<Instruction> {
+    private fun generateExpr(expr: ExprNode, reg: Register = Register.R4): List<Instruction> {
         return when (expr) {
-            is LiterNode -> generateLiterNode(expr, Register.R4)
+            is LiterNode -> generateLiterNode(expr, reg)
+            is BinaryOpNode -> generateBinOp(expr, reg)
             else -> emptyList()
         }
     }
@@ -284,9 +282,39 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return "L${labelCounter++}"
     }
 
+    private fun generateBinOp(binOp: BinaryOpNode, reg: Register = Register.R4): List<Instruction> {
+        val list = mutableListOf<Instruction>()
+        val operand1 = reg
+        val operand2 = reg.nextAvailable()
+        val dst = operand1
+        val expr1 = generateExpr(binOp.expr1, operand1)
+        val expr2 = generateExpr(binOp.expr2, operand2)
+        list.addAll(expr1)
+        list.addAll(expr2)
+
+        when (binOp.operator) {
+            BinOp.PLUS -> {
+                list.add(AddSub("ADD", dst, operand1, operand2, true))
+                list.add(Branch("p_throw_overflow_error",Conditions.VS))
+            }
+            BinOp.MINUS -> {
+                list.add(AddSub("SUB", dst, operand1, operand2, true))
+                list.add(Branch("p_throw_overflow_error",Conditions.VS))
+            }
+            BinOp.MUL -> {
+                val dstLo = operand2
+                list.add(Multiply(dst,dstLo,operand1,operand2,true))
+                list.add(Compare(dstLo,dst,null,ArithmeticShiftRight(31)))
+                list.add(Branch("p_throw_overflow_error", Conditions.NE))
+            }
+        }
+        return list
+
+    }
+
     // TODO find better way to get expression types than this - lots of duplication with ASTBuilder
     // maybe add type member to expression nodes superclass and set during ast building?
-    private fun getType(expr:ExprNode): Type? {
+    private fun getType(expr: ExprNode): Type? {
         return when (expr) {
             is IntLiterNode -> Type(WACCParser.INT)
             is StrLiterNode -> Type(WACCParser.STRING)

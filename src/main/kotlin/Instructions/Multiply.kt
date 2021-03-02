@@ -1,9 +1,9 @@
 package compiler.Instructions
 
-class Multiply(private val dstHi: Register, private val dstLo: Register, private val srcReg1: Register, private val srcReg2: Register, private val s: Boolean) {
+class Multiply(private val dstHi: Register, private val dstLo: Register, private val srcReg1: Register, private val srcReg2: Register, private val s: Boolean) : Instruction{
 
     override fun toString(): String {
-        val sb : StringBuilder = StringBuilder("SMULL")
+        val sb : StringBuilder = StringBuilder("\tSMULL")
         sb.append(if(s) "S " else " ")
         sb.append("$dstHi, ")
         sb.append("$dstLo, ")
