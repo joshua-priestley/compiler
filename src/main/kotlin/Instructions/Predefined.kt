@@ -68,9 +68,9 @@ class PrintLn() : Predefined() {
             Push(listOf(Register.LR)),
             Load(Register.R0, data.getLabel(msg)),
             Add(Register.R0, Register.R0, 4, false),
-            Branch("puts", Conditions.L),
+            Branch("puts", true),
             Move(Register.R0, 0),
-            Branch("fflush", Conditions.L),
+            Branch("fflush", true),
             Pop(listOf(Register.PC))
         )
 }
@@ -87,9 +87,9 @@ class PrintString() : Predefined() {
             Add(Register.R2, Register.R0, 4, false),
             Load(Register.R0, data.getLabel(msg)),
             Add(Register.R0, Register.R0, 4, false),
-            Branch("printf", Conditions.L),
+            Branch("printf", true),
             Move(Register.R0, 0),
-            Branch("fflush", Conditions.L),
+            Branch("fflush", true),
             Pop(listOf(Register.PC))
         )
 }
@@ -105,9 +105,9 @@ class PrintInt() : Predefined() {
             Move(Register.R1, Register.R0),
             Load(Register.R0, data.getLabel(msg)),
             Add(Register.R0, Register.R0, 4, false),
-            Branch("printf", Conditions.L),
+            Branch("printf", true),
             Move(Register.R0, 0),
-            Branch("fflush", Conditions.L),
+            Branch("fflush", true),
             Pop(listOf(Register.PC))
         )
 }
@@ -126,9 +126,9 @@ class PrintBool() : Predefined() {
             Load(Register.R0, data.getLabel(msg), Conditions.NE),
             Load(Register.R0, data.getLabel(msg2), Conditions.EQ),
             Add(Register.R0, Register.R0, 4, false),
-            Branch("printf", Conditions.L),
+            Branch("printf", true),
             Move(Register.R0, 0),
-            Branch("fflush", Conditions.L),
+            Branch("fflush", true),
             Pop(listOf(Register.PC))
         )
 }
@@ -144,7 +144,7 @@ class ReadInt() : Predefined() {
             Move(Register.R1, Register.R0),
             Load(Register.R0, data.getLabel(msg)),
             Add(Register.R0, Register.R0, 4, false),
-            Branch("scanf", Conditions.L),
+            Branch("scanf", true),
             Pop(listOf(Register.PC))
         )
 }
@@ -161,7 +161,7 @@ class ReadChar() : Predefined() {
             Move(Register.R1, Register.R0),
             Load(Register.R0, data.getLabel(msg)),
             Add(Register.R0, Register.R0, 4, false),
-            Branch("scanf", Conditions.L),
+            Branch("scanf", true),
             Pop(listOf(Register.PC))
         )
 }
@@ -174,7 +174,7 @@ class ThrowRuntimeError() : Predefined() {
         listOf(
             FunctionDeclaration(name),
             Move(Register.R0, -1),
-            Branch("exit", Conditions.L)
+            Branch("exit", true)
         )
 }
 
@@ -188,7 +188,7 @@ class DivideByZero() : RuntimeError() {
             Push(listOf(Register.LR)),
             Compare(Register.R1, 1),
             Load(Register.R0, data.getLabel(msg), Conditions.EQ),
-            Branch(ThrowRuntimeError().name, Conditions.EQ), // TODO add link to Branch
+            Branch(ThrowRuntimeError().name, false, Conditions.EQ), // TODO add link to Branch
             Pop(listOf(Register.PC))
         )
 }
@@ -201,7 +201,7 @@ class Overflow() : RuntimeError() {
         listOf(
             FunctionDeclaration(name),
             Load(Register.R0, data.getLabel(msg)),
-            Branch(ThrowRuntimeError().name, Conditions.EQ) // TODO add link to Branch
+            Branch(ThrowRuntimeError().name, false, Conditions.EQ) // TODO add link to Branch
         )
 }
 
@@ -215,7 +215,7 @@ class CheckNullPointer() : RuntimeError() {
             Push(listOf(Register.LR)),
             Compare(Register.R0, 0),
             Load(Register.R0, data.getLabel(msg)),
-            Branch(ThrowRuntimeError().name, Conditions.EQ), // TODO add link to Branch
+            Branch(ThrowRuntimeError().name, false,Conditions.EQ), // TODO add link to Branch
             Pop(listOf(Register.PC))
         )
 }
@@ -231,11 +231,11 @@ class CheckArrayBounds() : RuntimeError() {
             Push(listOf(Register.LR)),
             Compare(Register.R0, 0),
             Load(Register.R0, data.getLabel(msg), Conditions.LT),
-            Branch(ThrowRuntimeError().name, Conditions.LT),
+            Branch(ThrowRuntimeError().name, false, Conditions.LT),
             Load(Register.R1, Register.R1),
             Compare(Register.R0, Register.R1),
             Load(Register.R0, data.getLabel(msg2), Conditions.CS),
-            Branch(ThrowRuntimeError().name, Conditions.CS), // TODO add link to Branch
+            Branch(ThrowRuntimeError().name, false, Conditions.CS), // TODO add link to Branch
             Pop(listOf(Register.PC))
         )
 }
@@ -250,15 +250,15 @@ class Freepair() : RuntimeError() {
             Push(listOf(Register.LR)),
             Compare(Register.R0, 0),
             Load(Register.R0, data.getLabel(msg), Conditions.EQ),
-            Branch(ThrowRuntimeError().name, Conditions.EQ),
+            Branch(ThrowRuntimeError().name, false, Conditions.EQ),
             Push(listOf(Register.R0)),
             Load(Register.R0, Register.R0),
-            Branch("free", Conditions.L),
+            Branch("free", true),
             Load(Register.R0, Register.SP),
             Load(Register.R0, Register.R0, 4),
-            Branch("free", Conditions.L),
+            Branch("free", true),
             Pop(listOf(Register.R0)),
-            Branch("free", Conditions.L),
+            Branch("free", true),
             Pop(listOf(Register.PC))
         )
 }

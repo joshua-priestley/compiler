@@ -102,7 +102,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val instructions = mutableListOf<Instruction>()
         instructions.addAll(generatePrint(PrintNode(stat.expr)))
         val funcName = predefined.addFunc(PrintLn())
-        instructions.add(Branch(funcName, Conditions.L))
+        instructions.add(Branch(funcName, true))
         return instructions
     }
 
@@ -119,7 +119,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             else -> "dummy string"// TODO Handle reference printing
         }
 
-        printInstruction.add(Branch(funcName, Conditions.L))
+        printInstruction.add(Branch(funcName, true))
 
         return printInstruction
     }
@@ -151,11 +151,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         // Compare the conditional
         ifInstruction.add(Compare(Register.R4, 0))
-        ifInstruction.add(Branch(elseLabel, Conditions.EQ))
+        ifInstruction.add(Branch(elseLabel, false,Conditions.EQ))
 
         // Then Branch
         ifInstruction.addAll(generateStat(stat.then))
-        ifInstruction.add(Branch(endLabel))
+        ifInstruction.add(Branch(endLabel,false))
 
         // Else Branch
         ifInstruction.add(FunctionDeclaration(elseLabel))
@@ -172,7 +172,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val conditionLabel = nextLabel()
         val bodyLabel = nextLabel()
 
-        whileInstruction.add(Branch(conditionLabel))
+        whileInstruction.add(Branch(conditionLabel, false))
 
         // Loop body
         whileInstruction.add(FunctionDeclaration(bodyLabel))
@@ -186,7 +186,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             whileInstruction.addAll(generateExpr(stat.expr))
         }
         whileInstruction.add(Compare(Register.R4, 1))
-        whileInstruction.add(Branch(bodyLabel, Conditions.EQ))
+        whileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
 
         return whileInstruction
     }
@@ -226,7 +226,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         freeInstruction.add(Move(Register.R0, Register.R4))
 
         val funcName = predefined.addFunc(Freepair())
-        freeInstruction.add(Branch(funcName, Conditions.L))
+        freeInstruction.add(Branch(funcName, true))
 
         return freeInstruction
     }
@@ -242,7 +242,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
 
         exitInstruction.add(Move(Register.R0, Register.R4))
-        exitInstruction.add(Branch("exit", Conditions.L))
+        exitInstruction.add(Branch("exit", true))
 
         return exitInstruction
     }
@@ -295,17 +295,17 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         when (binOp.operator) {
             BinOp.PLUS -> {
                 list.add(AddSub("ADD", dst, operand1, operand2, true))
-                list.add(Branch("p_throw_overflow_error",Conditions.VS))
+                list.add(Branch("p_throw_overflow_error",true,Conditions.VS))
             }
             BinOp.MINUS -> {
                 list.add(AddSub("SUB", dst, operand1, operand2, true))
-                list.add(Branch("p_throw_overflow_error",Conditions.VS))
+                list.add(Branch("p_throw_overflow_error",true,Conditions.VS))
             }
             BinOp.MUL -> {
                 val dstLo = operand2
                 list.add(Multiply(dst,dstLo,operand1,operand2,true))
                 list.add(Compare(dstLo,dst,null,ArithmeticShiftRight(31)))
-                list.add(Branch("p_throw_overflow_error", Conditions.NE))
+                list.add(Branch("p_throw_overflow_error", true,Conditions.NE))
             }
         }
         return list
