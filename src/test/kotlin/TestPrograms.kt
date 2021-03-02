@@ -45,7 +45,7 @@ class TestPrograms {
             Runtime.getRuntime()
                 .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
 
-            val process = ProcessBuilder("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", executableName).start()
+            val process = ProcessBuilder("/bin/sh", "-c", "qemu-arm", "-L", "/usr/arm-linux-gnueabi/", executableName).start()
 
             val sb = StringBuilder()
             process.inputStream.reader(Charsets.UTF_8).use {
