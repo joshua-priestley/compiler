@@ -404,6 +404,26 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 list.add(Move(reg, 1, Conditions.NE))
                 list.add(Move(reg, 0, Conditions.EQ))
             }
+            BinOp.LT -> {
+                list.add(Compare(reg, operand2))
+                list.add(Move(reg, 1, Conditions.LT))
+                list.add(Move(reg, 0, Conditions.GE))
+            }
+            BinOp.GT -> {
+                list.add(Compare(reg, operand2))
+                list.add(Move(reg, 1, Conditions.GT))
+                list.add(Move(reg, 0, Conditions.LE))
+            }
+            BinOp.GTE -> {
+                list.add(Compare(reg, operand2))
+                list.add(Move(reg, 1, Conditions.GE))
+                list.add(Move(reg, 0, Conditions.LT))
+            }
+            BinOp.LTE -> {
+                list.add(Compare(reg, operand2))
+                list.add(Move(reg, 1, Conditions.LE))
+                list.add(Move(reg, 0, Conditions.GT))
+            }
             else -> {
                 // TODO
             }
