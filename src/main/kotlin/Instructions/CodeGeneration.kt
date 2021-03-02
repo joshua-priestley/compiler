@@ -394,6 +394,16 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             BinOp.OR -> {
                 list.add(AndOr("ORR", reg, reg, operand2))
             }
+            BinOp.EQ -> {
+                list.add(Compare(reg, operand2))
+                list.add(Move(reg, 1, Conditions.EQ))
+                list.add(Move(reg, 0, Conditions.NE))
+            }
+            BinOp.NEQ -> {
+                list.add(Compare(reg, operand2))
+                list.add(Move(reg, 1, Conditions.NE))
+                list.add(Move(reg, 0, Conditions.EQ))
+            }
             else -> {
                 // TODO
             }
