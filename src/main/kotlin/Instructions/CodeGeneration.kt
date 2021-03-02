@@ -368,17 +368,17 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         when (binOp.operator) {
             BinOp.PLUS -> {
                 list.add(AddSub("ADD", dst, operand1, operand2, true))
-                list.add(Branch("p_throw_overflow_error", true, Conditions.VS))
+                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
             }
             BinOp.MINUS -> {
                 list.add(AddSub("SUB", dst, operand1, operand2, true))
-                list.add(Branch("p_throw_overflow_error", true, Conditions.VS))
+                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
             }
             BinOp.MUL -> {
                 val dstLo = operand2
                 list.add(Multiply(dst, dstLo, operand1, operand2, true))
                 list.add(Compare(dstLo, dst, null, ArithmeticShiftRight(31)))
-                list.add(Branch("p_throw_overflow_error", true, Conditions.NE))
+                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
             }
         }
         return list
