@@ -45,7 +45,7 @@ class TestPrograms {
             Runtime.getRuntime()
                 .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
 
-            val process = ProcessBuilder("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", executableName).inheritIO().start()
+            val process = ProcessBuilder("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", executableName).start()
 
             val sb = StringBuilder()
             process.inputStream.reader(Charsets.UTF_8).use {
@@ -54,14 +54,6 @@ class TestPrograms {
 
             val x = process.waitFor()
             println("EXIITITITITITI CODE ISSSS: ${x}")
-            val process2 = ProcessBuilder("echo $?").inheritIO().start()
-
-            val sb2 = StringBuilder()
-            process.inputStream.reader(Charsets.UTF_8).use {
-                sb2.append(it.readText())
-            }
-            process2.waitFor()
-            println(sb2.toString())
 
             val a = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
                 .add(FileDataPart(inputFile, "testfile", inputFile.name, "application/octet-stream"))
