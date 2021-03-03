@@ -81,10 +81,17 @@ class TestPrograms {
         val cachedName = "./wacc_examples/cached_outputs/${inputFile.name.replace(".wacc", "")}.output"
         val cachedFile = File(cachedName)
         if(!cachedFile.exists()) {
+                val stdinDataName = "./wacc_examples/inputs/${inputFile.name.replace(".wacc", ".input")}"
+            var stdin = ""
+            if(File(stdinDataName).exists()) {
+                stdin = File(stdinDataName).readText()
+            }
+            println(stdin)
             // Contact the reference compiler using Fuel and gson
             val referenceCompiler = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
                 .add(FileDataPart(inputFile, "testfile", inputFile.name, "text/plain"))
                 .add(InlineDataPart("-x","options[]"))
+                .add(InlineDataPart(stdin, "stdin"))
                 .responseObject<CompilerOutput>(gson).third
                 .component1()
 
