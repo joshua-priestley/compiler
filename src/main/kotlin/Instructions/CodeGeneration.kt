@@ -375,6 +375,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val expr = generateExpr(unOp.expr, reg)
         list.addAll(expr)
         when (unOp.operator){
+            //ORD and CHR are handled by print_int and print_char
             UnOp.NOT -> {
                 list.add(Not(reg,reg))
             }
