@@ -11,7 +11,7 @@ import org.junit.jupiter.api.DynamicTest
 import java.io.File
 import java.lang.StringBuilder
 
-data class CompilerReply(val testName: String, val uploadFileContent: String, val compilerOutput: String)
+data class CompilerReply(val test: String, val upload: String, val compiler_out: String)
 
 class TestPrograms {
     private val testDirsPath = "./src/test/kotlin/testDirs"
@@ -86,16 +86,13 @@ class TestPrograms {
             .component1()
 
         assert(referenceCompiler != null)
-        println("test field: ${referenceCompiler!!.testName}")
-        println("upload field: ${referenceCompiler.uploadFileContent}")
-        println("out field: ${referenceCompiler.compilerOutput}")
 
         // Done with the files. Delete them.
         File(assemblyName).delete()
         File(executableName).delete()
 
         if (referenceCompiler != null) {
-            val output = referenceCompiler.compilerOutput.
+            val output = referenceCompiler.compiler_out.
                         split("===========================================================").toTypedArray()
             val exit = output[2].split(" ").toTypedArray()[4].split(".").toTypedArray()
             assertEquals(output[1], "\n" + sb)
