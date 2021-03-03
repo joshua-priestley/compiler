@@ -67,8 +67,16 @@ class TestPrograms {
         assert(assemblyFile.exists())
         assert(executableFile.exists())
 
+        // Get the value we should pass to stdin
+        val stdinDataName = "./wacc_examples/inputs/${inputFile.name.replace(".wacc", ".input")}"
+        var stdin = ""
+        if(File(stdinDataName).exists()) {
+            stdin = File(stdinDataName).readText()
+        }
+        println(stdin)
+
         // Run QEMU on the created executable file
-        val qemu = ProcessBuilder("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", executableName).start()
+        val qemu = ProcessBuilder("echo", stdin, "|", "qemu-arm", "-L", "/usr/arm-linux-gnueabi/", executableName).start()
 
         // Read the content produced by qemu
         val outputContent = StringBuilder()
@@ -81,12 +89,6 @@ class TestPrograms {
         val cachedName = "./wacc_examples/cached_outputs/${inputFile.name.replace(".wacc", "")}.output"
         val cachedFile = File(cachedName)
         if(!cachedFile.exists()) {
-                val stdinDataName = "./wacc_examples/inputs/${inputFile.name.replace(".wacc", ".input")}"
-            var stdin = ""
-            if(File(stdinDataName).exists()) {
-                stdin = File(stdinDataName).readText()
-            }
-            println(stdin)
             // Contact the reference compiler using Fuel and gson
             val referenceCompiler = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
                 .add(FileDataPart(inputFile, "testfile", inputFile.name, "text/plain"))
