@@ -190,21 +190,21 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is RHSExprNode -> rhsInstruction.addAll(generateExpr(rhs.expr))
             is RHSArrayLitNode -> rhsInstruction.addAll(generateArrayLitNode(rhs.exprs))
             is RHSNewPairNode -> rhsInstruction.addAll(generateNewPair(rhs))
-            is RHSPairElemNode -> rhsInstruction.addAll(generatePairAccess(rhs))
+            is RHSPairElemNode -> rhsInstruction.addAll(generatePairAccess(rhs.pairElem, false))
             else -> throw Error("Does not exist")
         }
 
         return rhsInstruction
     }
 
-    private fun generatePairAccess(rhs: RHSPairElemNode): List<Instruction> {
+    private fun generatePairAccess(pairElem: PairElemNode, assign: Boolean): List<Instruction> {
         val pairAccessInstructions = mutableListOf<Instruction>()
-        val first = rhs.pairElem is FstExpr
+        val first = pairElem is FstExpr
 
         val offset = if (first) {
-            getStackOffsetValue((rhs.pairElem as FstExpr).expr.toString())
+            getStackOffsetValue((pairElem as FstExpr).expr.toString())
         } else {
-            getStackOffsetValue((rhs.pairElem as SndExpr).expr.toString())
+            getStackOffsetValue((pairElem as SndExpr).expr.toString())
 
         }
         pairAccessInstructions.add(Load(Register.r4, Register.sp, offset))
@@ -212,13 +212,17 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         pairAccessInstructions.add(Branch("p_check_null_pointer", true))
 
         val type = if (first) {
-            globalSymbolTable.getNodeGlobal(((rhs.pairElem) as FstExpr).expr.toString())!!.getPairFst()
+            globalSymbolTable.getNodeGlobal(((pairElem) as FstExpr).expr.toString())!!.getPairFst()
         } else {
-            globalSymbolTable.getNodeGlobal(((rhs.pairElem) as SndExpr).expr.toString())!!.getPairSnd()
+            globalSymbolTable.getNodeGlobal(((pairElem) as SndExpr).expr.toString())!!.getPairSnd()
         }
 
         pairAccessInstructions.add(Load(Register.r4, Register.r4, if (first) 0 else 4))
-        pairAccessInstructions.add(Load(Register.r4, Register.r4, sb = type!!.getTypeSize() == 1))
+        if (assign) {
+            pairAccessInstructions.add(Store(Register.r4, Register.r4, byte = type!!.getTypeSize() == 1))
+        } else {
+            pairAccessInstructions.add(Load(Register.r4, Register.r4, sb = type!!.getTypeSize() == 1))
+        }
         return pairAccessInstructions
     }
 
@@ -288,14 +292,27 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return loadInstructions
     }
 
+    private fun generateLHSAssign(lhs: AssignLHSNode): List<Instruction> {
+        val lhsInstructions = mutableListOf<Instruction>()
+
+        when (lhs) {
+            is AssignLHSIdentNode -> lhsInstructions.addAll(loadIdentValue(lhs.ident))
+            is LHSArrayElemNode -> {
+                lhsInstructions.addAll(generateExpr(lhs.arrayElem))
+            }
+            is LHSPairElemNode -> {
+                lhsInstructions.addAll(generatePairAccess(lhs.pairElem, true))
+            }
+        }
+
+        return lhsInstructions
+    }
+
     private fun generateAssign(stat: AssignNode): List<Instruction> {
         val assignInstructions = mutableListOf<Instruction>()
 
         assignInstructions.addAll(generateRHSNode(stat.rhs))
-
-        if (stat.lhs is AssignLHSIdentNode) {
-            assignInstructions.addAll(loadIdentValue(stat.lhs.ident))
-        }
+        assignInstructions.addAll(generateLHSAssign(stat.lhs))
 
         return assignInstructions
     }
