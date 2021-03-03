@@ -387,7 +387,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         arrayElemInstructions.add(Move(Register.r0, Register.r5))
         arrayElemInstructions.add(Move(Register.r1, Register.r4))
         // TODO Data Segments
-        arrayElemInstructions.add(Branch("p_check_array_bounds", true))
+        arrayElemInstructions.add(Branch(predefined.addFunc(CheckArrayBounds()), true))
 
         arrayElemInstructions.add(Add(Register.r4, Register.r4, 4))
         // ADD r4, r4, r5, LSL #2

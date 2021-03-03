@@ -21,8 +21,7 @@ class PredefinedFuncs(private val data: DataSegment) {
         // Adds other necessary functions for runtime errors
         if (func is RuntimeError && !funcSet.contains(ThrowRuntimeError())) {
             funcSet.add(ThrowRuntimeError())
-            funcSet.add(PrintString())
-            data.addMessage(Message(PrintString().msg))
+            addFunc(PrintString())
         }
         return func.name
     }
@@ -223,7 +222,7 @@ class CheckNullPointer() : RuntimeError() {
 }
 
 class CheckArrayBounds() : RuntimeError() {
-    override val name = "p_check_null_pointer"
+    override val name = "p_check_array_bounds"
     override val msg = "ArrayIndexOutOfBoundsError: negative index\\n\\0"
     override val msg2 = "ArrayIndexOutOfBoundsError: index too large\\n\\0"
 
