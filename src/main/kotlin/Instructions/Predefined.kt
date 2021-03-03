@@ -7,7 +7,7 @@ class PredefinedFuncs(private val data: DataSegment) {
 
     // Add a predefined function to the set, return the string name
     fun addFunc(func: Predefined): String {
-        // Add the data string for the given function to the data segment
+        // Add the data strings for the given function to the data segment
         if (func.msg.isNotEmpty()) {
             data.addMessage(Message(func.msg))
         }
@@ -18,8 +18,10 @@ class PredefinedFuncs(private val data: DataSegment) {
         if (!funcSet.contains(func)) {
             funcSet.add(func)
         }
+        // Adds other necessary functions for runtime errors
         if (func is RuntimeError && !funcSet.contains(ThrowRuntimeError())) {
             funcSet.add(ThrowRuntimeError())
+            addFunc(PrintString())
         }
         return func.name
     }
@@ -171,6 +173,7 @@ class ThrowRuntimeError() : Predefined() {
     override fun getInstructions(data: DataSegment): List<Instruction> =
         listOf(
             FunctionDeclaration(name),
+            Branch(PrintString().name, true),
             Move(Register.r0, -1),
             Branch("exit", true)
         )
@@ -219,7 +222,7 @@ class CheckNullPointer() : RuntimeError() {
 }
 
 class CheckArrayBounds() : RuntimeError() {
-    override val name = "p_check_null_pointer"
+    override val name = "p_check_array_bounds"
     override val msg = "ArrayIndexOutOfBoundsError: negative index\\n\\0"
     override val msg2 = "ArrayIndexOutOfBoundsError: index too large\\n\\0"
 
