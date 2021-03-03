@@ -79,6 +79,7 @@ class TestPrograms {
                 println(exit[1])
                 println(exit[2])
                 println(exit[3])
+                println(exit[4])
                 assertEquals(strs[1], "\n" + sb)
             }
 
