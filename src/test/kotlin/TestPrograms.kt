@@ -29,7 +29,7 @@ class TestPrograms {
         }.flatten()
 
     private fun runTest(inputFile: File) {
-        println(inputFile.canonicalPath)
+        println(inputFile.absolutePath)
         val compiler = Compiler(inputFile.canonicalPath, true)
         val ret = compiler.compile()
         when {
@@ -44,6 +44,8 @@ class TestPrograms {
 
             Runtime.getRuntime()
                 .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
+            println("Does the executable exist? ${File(executableName).exists()} $assemblyName")
+            println("Does the assembly exist? ${File(assemblyName).exists()} $executableName")
 
             val process = ProcessBuilder("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", executableName).start()
 
