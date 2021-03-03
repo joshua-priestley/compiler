@@ -398,22 +398,27 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val arrayElemInstructions = mutableListOf<Instruction>()
         val offset = getStackOffsetValue(expr.ident.toString())
         // TODO Registers dont work correctly - need to implement next register section
+        var type: Type? = null
         arrayElemInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
-        arrayElemInstructions.addAll(generateExpr(expr.expr[0], Register.r5))
-        arrayElemInstructions.add(Load(Register.r4, Register.r4))
+        for (element in expr.expr) {
+            arrayElemInstructions.addAll(generateExpr(element, Register.r5))
+            arrayElemInstructions.add(Load(Register.r4, Register.r4))
 
-        arrayElemInstructions.add(Move(Register.r0, Register.r5))
-        arrayElemInstructions.add(Move(Register.r1, Register.r4))
-        arrayElemInstructions.add(Branch(predefined.addFunc(CheckArrayBounds()), true))
+            arrayElemInstructions.add(Move(Register.r0, Register.r5))
+            arrayElemInstructions.add(Move(Register.r1, Register.r4))
+            arrayElemInstructions.add(Branch(predefined.addFunc(CheckArrayBounds()), true))
 
-        val type = globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
-        arrayElemInstructions.add(Add(Register.r4, Register.r4, ImmOp(4)))
-        if (type.getTypeSize() == 1) {
-            arrayElemInstructions.add(Add(Register.r4, Register.r4, RegOp(Register.r5)))
-        } else {
-            arrayElemInstructions.add(Add(Register.r4, Register.r4, ShiftInstruction(Register.r5, ShiftType.LSL, 2)))
+            type = globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
+            arrayElemInstructions.add(Add(Register.r4, Register.r4, ImmOp(4)))
+            if (type.getTypeSize() == 1) {
+                arrayElemInstructions.add(Add(Register.r4, Register.r4, RegOp(Register.r5)))
+            } else {
+                arrayElemInstructions.add(Add(Register.r4, Register.r4, ShiftInstruction(Register.r5, ShiftType.LSL, 2)))
+            }
         }
-        arrayElemInstructions.add(Load(Register.r4, Register.r4, sb = type.getTypeSize() == 1))
+        if (type != null) {
+            arrayElemInstructions.add(Load(Register.r4, Register.r4, sb = type.getTypeSize() == 1))
+        }
 
         return arrayElemInstructions
     }
