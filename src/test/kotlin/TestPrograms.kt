@@ -75,7 +75,7 @@ class TestPrograms {
             sb.append(it.readText())
         }
 
-        val exitCode = qemu.waitFor()
+        val exitCode = qemu.waitFor().toString()
 
         val referenceCompiler = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
             .add(FileDataPart(inputFile, "testfile", inputFile.name, "text/plain"))
@@ -89,13 +89,11 @@ class TestPrograms {
         assemblyFile.delete()
         executableFile.delete()
 
-        if (referenceCompiler != null) {
-            val output = referenceCompiler.compiler_out.
+        val output = referenceCompiler!!.compiler_out.
                         split("===========================================================").toTypedArray()
-            val exit = output[2].split(" ").toTypedArray()[4].split(".").toTypedArray()
-            assertEquals(output[1], "\n" + sb)
-            assertEquals(exit[0], exitCode.toString())
-        }
+        val exitCodeRef = output[2].split(" ").toTypedArray()[4].split(".").toTypedArray()
+        assertEquals(output[1], "\n" + sb)
+        assertEquals(exitCodeRef[0], exitCode)
     }
 }
 
