@@ -76,7 +76,7 @@ class TestPrograms {
         println(stdin)
 
         // Run QEMU on the created executable file
-        val qemu = ProcessBuilder("echo", stdin, "|", "qemu-arm", "-L", "/usr/arm-linux-gnueabi/", executableName).start()
+        val qemu = ProcessBuilder("echo", "\"$stdin\"", "|", "qemu-arm", "-L", "/usr/arm-linux-gnueabi/", executableName).start()
 
         // Read the content produced by qemu
         val outputContent = StringBuilder()
