@@ -29,7 +29,7 @@ class TestPrograms {
         }.flatten()
 
     private fun runTest(inputFile: File) {
-        println(inputFile.absolutePath)
+        println(inputFile.canonicalPath)
         val compiler = Compiler(inputFile.canonicalPath, true)
         val ret = compiler.compile()
         when {
@@ -39,8 +39,8 @@ class TestPrograms {
         }
 
         if(System.getProperty("test.type") == "backend") {
-            val assemblyName = inputFile.absolutePath.replace(".wacc", ".s");
-            val executableName = inputFile.absolutePath.replace(".wacc", "");
+            val assemblyName = inputFile.canonicalPath.replace(".wacc", ".s");
+            val executableName = inputFile.canonicalPath.replace(".wacc", "");
 
             Runtime.getRuntime()
                 .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
