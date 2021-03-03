@@ -212,8 +212,14 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         pairAccessInstructions.add(Move(Register.r0, Register.r4))
         pairAccessInstructions.add(Branch("p_check_null_pointer", true))
 
+        val type = if (first) {
+            globalSymbolTable.getNodeGlobal(((rhs.pairElem) as FstExpr).expr.toString())!!.getPairFst()
+        } else {
+            globalSymbolTable.getNodeGlobal(((rhs.pairElem) as SndExpr).expr.toString())!!.getPairSnd()
+        }
+
         pairAccessInstructions.add(Load(Register.r4, Register.r4, if (first) 0 else 4))
-        pairAccessInstructions.add(Load(Register.r4, Register.r4))
+        pairAccessInstructions.add(Load(Register.r4, Register.r4, sb = type!!.getTypeSize() == 1))
         return pairAccessInstructions
     }
 
@@ -400,9 +406,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         arrayElemInstructions.add(Move(Register.r1, Register.r4))
         arrayElemInstructions.add(Branch(predefined.addFunc(CheckArrayBounds()), true))
 
+        val type = globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
         arrayElemInstructions.add(Add(Register.r4, Register.r4, 4))
         // ADD r4, r4, r5, LSL #2
-        arrayElemInstructions.add(Load(Register.r4, Register.r4))
+        arrayElemInstructions.add(Load(Register.r4, Register.r4, sb = type.getTypeSize() == 1))
 
         return arrayElemInstructions
     }
