@@ -64,16 +64,12 @@ class TestPrograms {
         val assemblyFile = File("./$assemblyName")
         val executableFile = File("./$executableName")
 
-        println("Does assembly exist? ${assemblyFile.exists()} ${assemblyFile.canonicalPath}")
-        println("Does executable exist? ${executableFile.exists()} ${executableFile.canonicalPath}")
-
         // Get the value we should pass to stdin
         val stdinDataName = "./wacc_examples/inputs/${inputFile.name.replace(".wacc", ".input")}"
         var stdin = ""
         if(File(stdinDataName).exists()) {
             stdin = File(stdinDataName).readText()
         }
-        println(stdin)
 
         // Run QEMU on the created executable file
         val qemu = ProcessBuilder("/bin/sh", "-c", "echo \"$stdin\" | qemu-arm -L /usr/arm-linux-gnueabi/ $executableName").start()
@@ -96,15 +92,11 @@ class TestPrograms {
                 .add(InlineDataPart(stdin, "stdin"))
                 .responseObject<CompilerOutput>(gson).third
                 .component1()
-
-            println("got here")
             cachedFile.writeText(referenceCompiler!!.compiler_out)
         }
 
         val expectedContent = cachedFile.readText()
-        println(expectedContent)
         val actualContent = formatToReferenceStyle(outputContent.toString(), exitCode)
-        println(actualContent)
 
         //assert(referenceCompiler != null)
 
