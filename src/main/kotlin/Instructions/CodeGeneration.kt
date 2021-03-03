@@ -398,8 +398,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateArrayElem(expr: ArrayElem, reg: Register): List<Instruction> {
         // TODO im not sure if this will work with arrays from parameters
         val arrayElemInstructions = mutableListOf<Instruction>()
-        val offset = globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(expr.ident.toString())
-
+        val parameter = globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.isParameter()
+        val offset = if (parameter) {
+            globalSymbolTable.getStackOffset(expr.ident.toString()) + globalSymbolTable.localStackSize()
+        } else {
+            globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(expr.ident.toString())
+        }
         // TODO Registers dont work correctly - need to implement next register section
         arrayElemInstructions.add(Add(Register.r4, Register.sp, offset))
         arrayElemInstructions.addAll(generateExpr(expr.expr[0], Register.r5))
