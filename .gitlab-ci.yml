@@ -39,3 +39,7 @@ test-backend:
   stage: test-backend
   script:
     - ./gradlew test -i -Dtest.type=backend
+  artifacts:
+    when: always
+    reports:
+      junit: build/test-results/test/**/TEST-*.xml
