@@ -76,6 +76,7 @@ class Compiler(private val inputFile: String, private val assembly: Boolean = fa
             val instructions = listOfInstructions.joinToString(separator = "\n") + "\n"
 
             val assemblyFileName = file.canonicalPath.replace(".wacc", ".s")
+            println("assembly is at $assemblyFileName")
             println(instructions)
             File(assemblyFileName).writeText(instructions)
         }

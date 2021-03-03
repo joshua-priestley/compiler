@@ -71,6 +71,9 @@ class TestPrograms {
                 println(strs[1])
                 assertEquals(strs[1], "\n" + sb)
             }
+
+            File(assemblyName).delete()
+            File(executableName).delete()
         }
     }
 
