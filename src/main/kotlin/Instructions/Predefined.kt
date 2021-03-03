@@ -69,7 +69,7 @@ class PrintLn() : Predefined() {
             Load(Register.r0, data.getLabel(msg)),
             Add(Register.r0, Register.r0, ImmOp(4), false),
             Branch("puts", true),
-            Move(Register.r0, 0),
+            Move(Register.r0, ImmOp(0)),
             Branch("fflush", true),
             Pop(listOf(Register.pc))
         )
@@ -88,7 +88,7 @@ class PrintString() : Predefined() {
             Load(Register.r0, data.getLabel(msg)),
             Add(Register.r0, Register.r0, ImmOp(4), false),
             Branch("printf", true),
-            Move(Register.r0, 0),
+            Move(Register.r0, ImmOp(0)),
             Branch("fflush", true),
             Pop(listOf(Register.pc))
         )
@@ -106,7 +106,7 @@ class PrintInt() : Predefined() {
             Load(Register.r0, data.getLabel(msg)),
             Add(Register.r0, Register.r0, ImmOp(4), false),
             Branch("printf", true),
-            Move(Register.r0, 0),
+            Move(Register.r0, ImmOp(0)),
             Branch("fflush", true),
             Pop(listOf(Register.pc))
         )
@@ -127,7 +127,7 @@ class PrintBool() : Predefined() {
             Load(Register.r0, data.getLabel(msg2), Conditions.EQ),
             Add(Register.r0, Register.r0, ImmOp(4), false),
             Branch("printf", true),
-            Move(Register.r0, 0),
+            Move(Register.r0, ImmOp(0)),
             Branch("fflush", true),
             Pop(listOf(Register.pc))
         )
@@ -174,7 +174,7 @@ class ThrowRuntimeError() : Predefined() {
         listOf(
             FunctionDeclaration(name),
             Branch(PrintString().name, true),
-            Move(Register.r0, -1),
+            Move(Register.r0, ImmOp(-1)),
             Branch("exit", true)
         )
 }

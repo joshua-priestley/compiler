@@ -451,13 +451,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 loadInstruction.add(Load(dstRegister, data.getLabel(exprNode.value)))
             }
             is CharLiterNode -> {
-                loadInstruction.add(Move(dstRegister, exprNode.value[0]))
+                loadInstruction.add(Move(dstRegister, CharOp(exprNode.value[0])))
             }
             is BoolLiterNode -> {
                 loadInstruction.add(Move(dstRegister, if (exprNode.value == "true") {
-                    1
+                    ImmOp(1)
                 } else {
-                    0
+                    ImmOp(0)
                 }))
             }
             is Ident -> {
@@ -531,33 +531,33 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
             BinOp.EQ -> {
                 list.add(Compare(reg, operand2))
-                list.add(Move(reg, 1, Conditions.EQ))
-                list.add(Move(reg, 0, Conditions.NE))
+                list.add(Move(reg, ImmOp(1), Conditions.EQ))
+                list.add(Move(reg, ImmOp(0), Conditions.NE))
             }
             BinOp.NEQ -> {
                 list.add(Compare(reg, operand2))
-                list.add(Move(reg, 1, Conditions.NE))
-                list.add(Move(reg, 0, Conditions.EQ))
+                list.add(Move(reg, ImmOp(1), Conditions.NE))
+                list.add(Move(reg, ImmOp(0), Conditions.EQ))
             }
             BinOp.LT -> {
                 list.add(Compare(reg, operand2))
-                list.add(Move(reg, 1, Conditions.LT))
-                list.add(Move(reg, 0, Conditions.GE))
+                list.add(Move(reg, ImmOp(1), Conditions.LT))
+                list.add(Move(reg, ImmOp(0), Conditions.GE))
             }
             BinOp.GT -> {
                 list.add(Compare(reg, operand2))
-                list.add(Move(reg, 1, Conditions.GT))
-                list.add(Move(reg, 0, Conditions.LE))
+                list.add(Move(reg, ImmOp(1), Conditions.GT))
+                list.add(Move(reg, ImmOp(0), Conditions.LE))
             }
             BinOp.GTE -> {
                 list.add(Compare(reg, operand2))
-                list.add(Move(reg, 1, Conditions.GE))
-                list.add(Move(reg, 0, Conditions.LT))
+                list.add(Move(reg, ImmOp(1), Conditions.GE))
+                list.add(Move(reg, ImmOp(0), Conditions.LT))
             }
             BinOp.LTE -> {
                 list.add(Compare(reg, operand2))
-                list.add(Move(reg, 1, Conditions.LE))
-                list.add(Move(reg, 0, Conditions.GT))
+                list.add(Move(reg, ImmOp(1), Conditions.LE))
+                list.add(Move(reg, ImmOp(0), Conditions.GT))
             }
 
             BinOp.MOD -> {
