@@ -12,6 +12,7 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
     private val childrenTables: LinkedHashMap<Int, SymbolTable> = linkedMapOf()
 
     private var tableOffset = 0
+    private var parameterOffset = 0
 
     init {
         parentT?.addChildTable(ID, this)
@@ -29,6 +30,9 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
         if (!type.isFunction() && !type.isParameter()) {
             tableOffset += type.getTypeSize()
             table[name] = type.setOffset(tableOffset)
+        } else if (type.isParameter()) {
+            parameterOffset += type.getTypeSize()
+            table[name] = type.setOffset(parameterOffset)
         } else {
             table[name] = type
         }
@@ -75,10 +79,13 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
         return this.tableOffset
     }
 
-    private fun offsetInTable(name: String): Int {
-        val entry = getNodeLocal(name)
-        //assert(entry != null && !entry.isFunction() && !entry.isParameter())
+    fun parameterStackSize(): Int {
+        return this.parameterOffset
+    }
 
+    private fun offsetInTable(name: String): Int {
+        val entry = getNodeGlobal(name)
+        assert(entry != null && !entry.isFunction())
         return entry!!.getOffset()
     }
 
