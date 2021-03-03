@@ -64,8 +64,8 @@ class TestPrograms {
         val assemblyFile = File("./$assemblyName")
         val executableFile = File("./$executableName")
 
-        println("Does assembly exist? ${assemblyFile.exists()}")
-        println("Does executable exist? ${executableFile.exists()}")
+        println("Does assembly exist? ${assemblyFile.exists()} ${assemblyFile.canonicalPath}")
+        println("Does executable exist? ${executableFile.exists()} ${executableFile.canonicalPath}")
 
         // Get the value we should pass to stdin
         val stdinDataName = "./wacc_examples/inputs/${inputFile.name.replace(".wacc", ".input")}"
