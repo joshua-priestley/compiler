@@ -7,6 +7,6 @@
 # Program:
 
 begin
-  bool[] b = [true, false, true] ;
-  bool c = b[1]
+  int[] b = [1, 2, 3] ;
+  int c = b[1]
 end

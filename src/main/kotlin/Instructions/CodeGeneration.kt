@@ -266,9 +266,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         // Add each element
         var count = 0
         for (expr in elements) {
-            count++
             arrayLitInstructions.addAll(generateExpr(expr, Register.r5))
-            arrayLitInstructions.add(Store(Register.r5, Register.r4, count * typeSize))
+            arrayLitInstructions.add(Store(Register.r5, Register.r4, 4 + count * typeSize, byte = typeSize == 1))
+            count++
         }
 
         // Add the size of the array
