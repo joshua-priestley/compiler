@@ -46,7 +46,7 @@ class Load : Instruction {
         if (srcReg != null) {
             instr.append("[$srcReg")
             if (offset != 0) {
-                instr.append(" , #$offset")
+                instr.append(", #$offset")
             }
             instr.append("]")
         } else {
