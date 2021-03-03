@@ -2,87 +2,55 @@ package compiler.Instructions
 
 import java.lang.StringBuilder
 
-abstract class Shift {
+abstract class Shift : Operand2 {
+
     private val imm: Int?
     private val reg: Register?
 
-    constructor() {
+    constructor(reg: Register) {
+        this.reg = reg
         this.imm = null
-        this.reg = null
     }
 
     constructor(imm: Int) {
-        this.imm = imm
         this.reg = null
+        this.imm = imm
     }
 
-    constructor(reg: Register) {
-        this.imm = null
+    constructor(reg: Register, imm: Int) {
         this.reg = reg
+        this.imm = imm
     }
 
     abstract fun getType(): ShiftType
 
     override fun toString(): String {
         val instr = StringBuilder()
+        if (reg != null) instr.append("$reg, ")
         instr.append(getType())
-        when {
-            imm != null -> instr.append(" #$imm")
-            else -> instr.append(" $reg")
-        }
+        if (imm != null) instr.append(" #$imm")
         return instr.toString()
     }
 }
 
-class LogicalShiftLeft : Shift {
-    constructor(imm: Int) : super(imm)
-    constructor(reg: Register) : super(reg)
-
-    override fun getType(): ShiftType {
-        return ShiftType.LSL
-    }
-
+class LogicalShiftLeft(private val reg: Register, private val imm: Int) : Shift(reg, imm) {
+    override fun getType(): ShiftType = ShiftType.LSL
 }
 
-class LogicalShiftRight : Shift {
-    constructor(imm: Int) : super(imm)
-    constructor(reg: Register) : super(reg)
-
-    override fun getType(): ShiftType {
-        return ShiftType.LSR
-    }
-
+class LogicalShiftRight(private val reg: Register, private val imm: Int) : Shift(reg, imm) {
+    override fun getType(): ShiftType = ShiftType.LSR
 }
 
-class ArithmeticShiftRight : Shift {
-    constructor(imm: Int) : super(imm)
-    constructor(reg: Register) : super(reg)
-
-    override fun getType(): ShiftType {
-        return ShiftType.ASR
-    }
-
+class ArithmeticShiftRight(private val reg: Register, private val imm: Int) : Shift(reg, imm) {
+    override fun getType(): ShiftType = ShiftType.ASR
 }
 
-class RotateRight : Shift {
-    constructor(imm: Int) : super(imm)
-    constructor(reg: Register) : super(reg)
-
-    override fun getType(): ShiftType {
-        return ShiftType.ROR
-    }
-
+class RotateRight(private val reg: Register, private val imm: Int) : Shift(reg, imm) {
+    override fun getType(): ShiftType = ShiftType.ROR
 }
 
-class RotateRightExtend : Shift() {
-
-    override fun toString(): String {
-        return "RRX"
-    }
-
-    override fun getType(): ShiftType {
-        return ShiftType.RRX
-    }
+class RotateRightExtend(private val reg: Register) : Shift(reg) {
+    override fun getType(): ShiftType = ShiftType.RRX
 }
 
 enum class ShiftType {

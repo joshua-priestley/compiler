@@ -56,15 +56,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         val spOffset = globalSymbolTable.localStackSize()
 
-        if (spOffset > 0) {
-            instructions.add(Sub(Register.sp, Register.sp, spOffset))
+        if (spOffset > 0 && main) {
+            instructions.add(Sub(Register.sp, Register.sp, ImmOp(spOffset)))
         }
 
         // Generate all the statements
         instructions.addAll(generateStat(stat))
 
-        if (spOffset > 0) {
-            instructions.add(Add(Register.sp, Register.sp, spOffset))
+        if (spOffset > 0 && main) {
+            instructions.add(Add(Register.sp, Register.sp, ImmOp(spOffset)))
         }
 
         // LDR r0, =0
@@ -177,7 +177,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         val functionName = "f_${call.ident.name}"
         callInstructions.add(Branch(functionName, true))
-        if (totalOffset != 0) callInstructions.add(Add(Register.sp, Register.sp, totalOffset))
+        if (totalOffset != 0) callInstructions.add(Add(Register.sp, Register.sp, ImmOp(totalOffset)))
 
         callInstructions.add(Move(Register.r4, Register.r0))
 
@@ -324,7 +324,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
 
         // Compare the conditional
-        ifInstruction.add(Compare(Register.r4, 0))
+        ifInstruction.add(Compare(Register.r4, ImmOp(0)))
         ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
 
         // Then Branch
@@ -365,7 +365,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         } else {
             whileInstruction.addAll(generateExpr(stat.expr))
         }
-        whileInstruction.add(Compare(Register.r4, 1))
+        whileInstruction.add(Compare(Register.r4, ImmOp(1)))
         whileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
 
         return whileInstruction
@@ -398,7 +398,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val arrayElemInstructions = mutableListOf<Instruction>()
         val offset = getStackOffsetValue(expr.ident.toString())
         // TODO Registers dont work correctly - need to implement next register section
-        arrayElemInstructions.add(Add(Register.r4, Register.sp, offset))
+        arrayElemInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
         arrayElemInstructions.addAll(generateExpr(expr.expr[0], Register.r5))
         arrayElemInstructions.add(Load(Register.r4, Register.r4))
 
@@ -407,7 +407,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         arrayElemInstructions.add(Branch(predefined.addFunc(CheckArrayBounds()), true))
 
         val type = globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
-        arrayElemInstructions.add(Add(Register.r4, Register.r4, 4))
+        arrayElemInstructions.add(Add(Register.r4, Register.r4, ImmOp(4)))
         // ADD r4, r4, r5, LSL #2
         arrayElemInstructions.add(Load(Register.r4, Register.r4, sb = type.getTypeSize() == 1))
 
@@ -464,13 +464,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 loadInstruction.add(Load(dstRegister, data.getLabel(exprNode.value)))
             }
             is CharLiterNode -> {
-                loadInstruction.add(Move(dstRegister, exprNode.value[0]))
+                loadInstruction.add(Move(dstRegister, CharOp(exprNode.value[0])))
             }
             is BoolLiterNode -> {
                 loadInstruction.add(Move(dstRegister, if (exprNode.value == "true") {
-                    1
+                    ImmOp(1)
                 } else {
-                    0
+                    ImmOp(0)
                 }))
             }
             is Ident -> {
@@ -550,7 +550,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
             BinOp.MUL -> {
                 list.add(Multiply(operand1, operand2, operand1, operand2, true))
-                list.add(Compare(operand2, operand1, null, ArithmeticShiftRight(31)))
+                list.add(Compare(operand2, ArithmeticShiftRight(reg, 31)))
                 list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
             }
 
@@ -562,33 +562,33 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
             BinOp.EQ -> {
                 list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, 1, Conditions.EQ))
-                list.add(Move(dstRegister, 0, Conditions.NE))
+                list.add(Move(dstRegister, ImmOp(1), Conditions.EQ))
+                list.add(Move(dstRegister, ImmOp(0), Conditions.NE))
             }
             BinOp.NEQ -> {
                 list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, 1, Conditions.NE))
-                list.add(Move(dstRegister, 0, Conditions.EQ))
+                list.add(Move(dstRegister, ImmOp(1), Conditions.NE))
+                list.add(Move(dstRegister, ImmOp(0), Conditions.EQ))
             }
             BinOp.LT -> {
                 list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, 1, Conditions.LT))
-                list.add(Move(dstRegister, 0, Conditions.GE))
+                list.add(Move(dstRegister, ImmOp(1), Conditions.LT))
+                list.add(Move(dstRegister, ImmOp(0), Conditions.GE))
             }
             BinOp.GT -> {
                 list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, 1, Conditions.GT))
-                list.add(Move(dstRegister, 0, Conditions.LE))
+                list.add(Move(dstRegister, ImmOp(1), Conditions.GT))
+                list.add(Move(dstRegister, ImmOp(0), Conditions.LE))
             }
             BinOp.GTE -> {
                 list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, 1, Conditions.GE))
-                list.add(Move(dstRegister, 0, Conditions.LT))
+                list.add(Move(dstRegister, ImmOp(1), Conditions.GE))
+                list.add(Move(dstRegister, ImmOp(0), Conditions.LT))
             }
             BinOp.LTE -> {
                 list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, 1, Conditions.LE))
-                list.add(Move(dstRegister, 0, Conditions.GT))
+                list.add(Move(dstRegister, ImmOp(1), Conditions.LE))
+                list.add(Move(dstRegister, ImmOp(0), Conditions.GT))
             }
 
             BinOp.MOD -> {
