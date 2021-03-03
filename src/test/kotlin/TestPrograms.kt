@@ -111,11 +111,11 @@ class TestPrograms {
         str.append("-- Compiling...\n")
         str.append("-- Assembling and Linking...\n")
         str.append("-- Executing...\n")
-        str.append("===========================================================")
+        str.append("===========================================================\n")
         str.append(outputContent)
         str.append("===========================================================\n")
         str.append("The exit code is $exitCode.\n")
-        str.append("-- Finished")
+        str.append("-- Finished\n")
         return str.toString()
     }
 }
