@@ -191,12 +191,40 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is RHSCallNode -> rhsInstruction.addAll(generateCallNode(rhs))
             is RHSExprNode -> rhsInstruction.addAll(generateExpr(rhs.expr))
             is RHSArrayLitNode -> rhsInstruction.addAll(generateArrayLitNode(rhs.exprs))
-            is RHSNewPairNode -> 1 + 2
+            is RHSNewPairNode -> rhsInstruction.addAll(generateNewPair(rhs))
             is RHSPairElemNode -> 1 + 2
             else -> throw Error("Does not exist")
         }
 
         return rhsInstruction
+    }
+
+    private fun generateNewPair(pair: RHSNewPairNode): List<Instruction> {
+        val newPairInstructions = mutableListOf<Instruction>()
+
+        // Initialisation
+        newPairInstructions.add(Load(Register.r0, 8))
+        // TODO Data Segments
+        newPairInstructions.add(Branch("malloc", true))
+        newPairInstructions.add(Move(Register.r4, Register.r0))
+
+        // First element
+        newPairInstructions.addAll(generateExpr(pair.expr1, Register.r5))
+        newPairInstructions.add(Load(Register.r0, getExprParameterOffset(pair.expr1)))
+        // TODO Data Segments
+        newPairInstructions.add(Branch("malloc", true))
+        newPairInstructions.add(Store(Register.r5, Register.r0, byte = (getExprParameterOffset(pair.expr1) == 1)))
+        newPairInstructions.add(Store(Register.r0, Register.r4))
+
+        // Second element
+        newPairInstructions.addAll(generateExpr(pair.expr2, Register.r5))
+        newPairInstructions.add(Load(Register.r0, getExprParameterOffset(pair.expr2)))
+        // TODO Data Segments
+        newPairInstructions.add(Branch("malloc", true))
+        newPairInstructions.add(Store(Register.r5, Register.r0, byte = (getExprParameterOffset(pair.expr2) == 1)))
+        newPairInstructions.add(Store(Register.r0, Register.r4, 4))
+
+        return newPairInstructions
     }
 
     private fun generateArrayLitNode(elements: List<ExprNode>): List<Instruction> {
@@ -354,7 +382,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateArrayElem(expr: ArrayElem, reg: Register): List<Instruction> {
         // TODO im not sure if this will work with arrays from parameters
         val arrayElemInstructions = mutableListOf<Instruction>()
-        println("Array: $expr")
         val offset = globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(expr.ident.toString())
 
         // TODO Registers dont work correctly - need to implement next register section
