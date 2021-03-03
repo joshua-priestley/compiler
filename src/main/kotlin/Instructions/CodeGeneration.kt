@@ -132,7 +132,39 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generateRead(stat: ReadNode): List<Instruction> {
-        return emptyList()
+        val readInstructions = mutableListOf<Instruction>()
+
+        val expr : ExprNode = when (stat.lhs) {
+            is LHSPairElemNode -> {
+                readInstructions.addAll(generatePairAccess(stat.lhs.pairElem, true))
+                stat.lhs.pairElem.expr
+            }
+            is AssignLHSIdentNode -> {
+                println("aaa")
+                val offset = getStackOffsetValue(stat.lhs.ident.toString())
+                //TODO change value of register
+                readInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
+                stat.lhs.ident
+            }
+            is LHSArrayElemNode -> {
+                println("aaa2")
+                val offset = getStackOffsetValue(stat.lhs.arrayElem.ident.toString())
+                //TODO change value of register
+                readInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
+                stat.lhs.arrayElem
+            }
+            else -> throw Error("Does not exist")
+        }
+
+        val type = getType(expr)
+        readInstructions.add(Move(Register.r0, Register.r4))
+
+        if (type == Type(WACCParser.CHAR)) {
+            readInstructions.add(Branch(predefined.addFunc(ReadChar()), true))
+        } else {
+            readInstructions.add(Branch(predefined.addFunc(ReadInt()), true))
+        }
+        return readInstructions
     }
 
     private fun getExprParameterOffset(expr: ExprNode): Int {
@@ -659,6 +691,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value)
             is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value)
             is PairLiterNode -> Type(PAIR_LITER)
+            is PairElemNode -> getType(expr.expr)
             else -> {
                 throw Error("Should not get here")
             }
