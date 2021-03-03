@@ -78,24 +78,45 @@ class TestPrograms {
 
         val exitCode = qemu.waitFor().toString()
 
-        // Contact the reference compiler using Fuel and gson
-        val referenceCompiler = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
-            .add(FileDataPart(inputFile, "testfile", inputFile.name, "text/plain"))
-            .add(InlineDataPart("-x","options[]"))
-            .responseObject<CompilerOutput>(gson).third
-            .component1()
+        val cachedName = "./wacc_examples/cached_outputs/${inputFile.name.replace(".wacc", "")}.output"
+        val cachedFile = File(cachedName)
+        if(!cachedFile.exists()) {
+            // Contact the reference compiler using Fuel and gson
+            val referenceCompiler = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
+                .add(FileDataPart(inputFile, "testfile", inputFile.name, "text/plain"))
+                .add(InlineDataPart("-x","options[]"))
+                .responseObject<CompilerOutput>(gson).third
+                .component1()
 
-        assert(referenceCompiler != null)
+            println("got here")
+            cachedFile.writeText(referenceCompiler!!.compiler_out)
+        }
+
+        val expectedContent = cachedFile.inputStream().readBytes().toString(Charsets.UTF_8)
+        println(expectedContent)
+        val actualContent = formatToReferenceStyle(outputContent.toString(), exitCode)
+        println(actualContent)
+
+        //assert(referenceCompiler != null)
 
         // Done with the files. Delete them.
         assemblyFile.delete()
         executableFile.delete()
 
-        val output = referenceCompiler!!.compiler_out.
-                        split("===========================================================").toTypedArray()
-        val exitCodeRef = output[2].split(" ").toTypedArray()[4].split(".").toTypedArray()
-        assertEquals(output[1], "\n" + outputContent)
-        assertEquals(exitCodeRef[0], exitCode)
+        assertEquals(expectedContent, actualContent)
+    }
+
+    fun formatToReferenceStyle(outputContent: String, exitCode: String): String {
+        val str = StringBuilder()
+        str.append("-- Compiling...\n")
+        str.append("-- Assembling and Linking...\n")
+        str.append("-- Executing...\n")
+        str.append("===========================================================")
+        str.append(outputContent)
+        str.append("===========================================================\n")
+        str.append("The exit code is $exitCode.\n")
+        str.append("-- Finished")
+        return str.toString()
     }
 }
 
