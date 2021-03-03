@@ -58,14 +58,14 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val spOffset = globalSymbolTable.localStackSize()
 
         if (spOffset > 0 && main) {
-            instructions.add(Sub(Register.sp, Register.sp, spOffset))
+            instructions.add(Sub(Register.sp, Register.sp, ImmOp(spOffset)))
         }
 
         // Generate all the statements
         instructions.addAll(generateStat(stat))
 
         if (spOffset > 0 && main) {
-            instructions.add(Add(Register.sp, Register.sp, spOffset))
+            instructions.add(Add(Register.sp, Register.sp, ImmOp(spOffset)))
         }
 
         // LDR r0, =0
@@ -178,7 +178,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         val functionName = "f_${call.ident.name}"
         callInstructions.add(Branch(functionName, true))
-        if (totalOffset != 0) callInstructions.add(Add(Register.sp, Register.sp, totalOffset))
+        if (totalOffset != 0) callInstructions.add(Add(Register.sp, Register.sp, ImmOp(totalOffset)))
 
         callInstructions.add(Move(Register.r4, Register.r0))
 
@@ -380,7 +380,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val offset = globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(expr.ident.toString())
 
         // TODO Registers dont work correctly - need to implement next register section
-        arrayElemInstructions.add(Add(Register.r4, Register.sp, offset))
+        arrayElemInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
         arrayElemInstructions.addAll(generateExpr(expr.expr[0], Register.r5))
         arrayElemInstructions.add(Load(Register.r4, Register.r4))
 
@@ -389,7 +389,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         // TODO Data Segments
         arrayElemInstructions.add(Branch(predefined.addFunc(CheckArrayBounds()), true))
 
-        arrayElemInstructions.add(Add(Register.r4, Register.r4, 4))
+        arrayElemInstructions.add(Add(Register.r4, Register.r4, ImmOp(4)))
         // ADD r4, r4, r5, LSL #2
         arrayElemInstructions.add(Load(Register.r4, Register.r4))
 

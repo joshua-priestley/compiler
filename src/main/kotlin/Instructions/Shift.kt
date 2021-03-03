@@ -2,7 +2,7 @@ package compiler.Instructions
 
 import java.lang.StringBuilder
 
-abstract class Shift {
+abstract class Shift : Operand2 {
     private val imm: Int?
     private val reg: Register?
 
