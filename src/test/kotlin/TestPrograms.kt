@@ -54,18 +54,18 @@ class TestPrograms {
     }
 
     fun runBackendTests(inputFile: File) {
-        val assemblyName = inputFile.canonicalPath.replace(".wacc", ".s");
-        val executableName = inputFile.canonicalPath.replace(".wacc", "");
+        val assemblyName = inputFile.name.replace(".wacc", ".s");
+        val executableName = inputFile.nameWithoutExtension
 
         // Create the executable file
         Runtime.getRuntime()
-            .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName").waitFor()
+            .exec("arm-linux-gnueabi-gcc -o ./$executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s ./$assemblyName").waitFor()
 
-        val assemblyFile = File(assemblyName)
-        val executableFile = File(executableName)
+        val assemblyFile = File("./$assemblyName")
+        val executableFile = File("./$executableName")
 
-        assert(assemblyFile.exists())
-        assert(executableFile.exists())
+        println("Does assembly exist? ${assemblyFile.exists()}")
+        println("Does executable exist? ${executableFile.exists()}")
 
         // Get the value we should pass to stdin
         val stdinDataName = "./wacc_examples/inputs/${inputFile.name.replace(".wacc", ".input")}"
@@ -76,7 +76,7 @@ class TestPrograms {
         println(stdin)
 
         // Run QEMU on the created executable file
-        val qemu = ProcessBuilder("/bin/sh", "-c", "echo \"$stdin\" | qemu-arm -L /usr/arm-linux-gnueabi/ executableName").start()
+        val qemu = ProcessBuilder("/bin/sh", "-c", "echo \"$stdin\" | qemu-arm -L /usr/arm-linux-gnueabi/ $executableName").start()
 
         // Read the content produced by qemu
         val outputContent = StringBuilder()
@@ -101,7 +101,7 @@ class TestPrograms {
             cachedFile.writeText(referenceCompiler!!.compiler_out)
         }
 
-        val expectedContent = cachedFile.inputStream().readBytes().toString(Charsets.UTF_8)
+        val expectedContent = cachedFile.readText()
         println(expectedContent)
         val actualContent = formatToReferenceStyle(outputContent.toString(), exitCode)
         println(actualContent)
