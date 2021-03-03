@@ -199,30 +199,26 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return rhsInstruction
     }
 
+    private fun addPairElem(elem: ExprNode, second: Boolean = false): List<Instruction> {
+        val pairElemInstructions = mutableListOf<Instruction>()
+        pairElemInstructions.addAll(generateExpr(elem, Register.r5))
+        pairElemInstructions.add(Load(Register.r0, getExprParameterOffset(elem)))
+        pairElemInstructions.add(Branch("malloc", true))
+        pairElemInstructions.add(Store(Register.r5, Register.r0, byte = (getExprParameterOffset(elem) == 1)))
+        pairElemInstructions.add(Store(Register.r0, Register.r4, if (second) 0 else 4))
+        return pairElemInstructions
+    }
+
     private fun generateNewPair(pair: RHSNewPairNode): List<Instruction> {
         val newPairInstructions = mutableListOf<Instruction>()
 
         // Initialisation
         newPairInstructions.add(Load(Register.r0, 8))
-        // TODO Data Segments
         newPairInstructions.add(Branch("malloc", true))
         newPairInstructions.add(Move(Register.r4, Register.r0))
 
-        // First element
-        newPairInstructions.addAll(generateExpr(pair.expr1, Register.r5))
-        newPairInstructions.add(Load(Register.r0, getExprParameterOffset(pair.expr1)))
-        // TODO Data Segments
-        newPairInstructions.add(Branch("malloc", true))
-        newPairInstructions.add(Store(Register.r5, Register.r0, byte = (getExprParameterOffset(pair.expr1) == 1)))
-        newPairInstructions.add(Store(Register.r0, Register.r4))
-
-        // Second element
-        newPairInstructions.addAll(generateExpr(pair.expr2, Register.r5))
-        newPairInstructions.add(Load(Register.r0, getExprParameterOffset(pair.expr2)))
-        // TODO Data Segments
-        newPairInstructions.add(Branch("malloc", true))
-        newPairInstructions.add(Store(Register.r5, Register.r0, byte = (getExprParameterOffset(pair.expr2) == 1)))
-        newPairInstructions.add(Store(Register.r0, Register.r4, 4))
+        newPairInstructions.addAll(addPairElem(pair.expr1))
+        newPairInstructions.addAll(addPairElem(pair.expr2, true))
 
         return newPairInstructions
     }
@@ -240,7 +236,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         // Instructions for allocating space for array
         arrayLitInstructions.add(Load(Register.r0, arraySize))
-        // TODO Data Segments
         arrayLitInstructions.add(Branch("malloc", true))
         arrayLitInstructions.add(Move(Register.r4, Register.r0))
 
