@@ -183,6 +183,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generateRHSNode(rhs: AssignRHSNode): List<Instruction> {
+        println(rhs)
         val rhsInstruction = mutableListOf<Instruction>()
         when (rhs) {
             is RHSCallNode -> rhsInstruction.addAll(generateCallNode(rhs))
@@ -301,6 +302,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generateDeclaration(stat: DeclarationNode): List<Instruction> {
         val declareInstructions = mutableListOf<Instruction>()
+        println(stat)
 
         declareInstructions.addAll(generateRHSNode(stat.value))
         declareInstructions.addAll(loadIdentValue(stat.ident))
@@ -388,6 +390,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is BinaryOpNode -> generateBinOp(expr, reg)
             is UnaryOpNode -> generateUnOp(expr, reg)
             is ArrayElem -> generateArrayElem(expr, reg)
+            is PairLiterNode -> mutableListOf(Load(Register.r4, 0))
             else -> emptyList()
         }
     }
