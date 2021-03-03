@@ -7,7 +7,5 @@
 # Program:
 
 begin
-  int x = 4 ;
-  int y = 6 ;
-  int z = 3
+  pair(bool, bool) p = newpair(false, true)
 end

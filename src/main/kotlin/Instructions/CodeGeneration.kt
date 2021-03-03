@@ -180,21 +180,102 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         callInstructions.add(Branch(functionName, true))
         if (totalOffset != 0) callInstructions.add(Add(Register.sp, Register.sp, totalOffset))
 
+        callInstructions.add(Move(Register.r4, Register.r0))
+
         return callInstructions
+    }
+
+    private fun generateRHSNode(rhs: AssignRHSNode): List<Instruction> {
+        val rhsInstruction = mutableListOf<Instruction>()
+        when (rhs) {
+            is RHSCallNode -> rhsInstruction.addAll(generateCallNode(rhs))
+            is RHSExprNode -> rhsInstruction.addAll(generateExpr(rhs.expr))
+            is RHSArrayLitNode -> rhsInstruction.addAll(generateArrayLitNode(rhs.exprs))
+            is RHSNewPairNode -> rhsInstruction.addAll(generateNewPair(rhs))
+            is RHSPairElemNode -> 1 + 2
+            else -> throw Error("Does not exist")
+        }
+
+        return rhsInstruction
+    }
+
+    private fun addPairElem(elem: ExprNode, second: Boolean = false): List<Instruction> {
+        val pairElemInstructions = mutableListOf<Instruction>()
+        pairElemInstructions.addAll(generateExpr(elem, Register.r5))
+        pairElemInstructions.add(Load(Register.r0, getExprParameterOffset(elem)))
+        pairElemInstructions.add(Branch("malloc", true))
+        pairElemInstructions.add(Store(Register.r5, Register.r0, byte = (getExprParameterOffset(elem) == 1)))
+        pairElemInstructions.add(Store(Register.r0, Register.r4, if (second) 0 else 4))
+        return pairElemInstructions
+    }
+
+    private fun generateNewPair(pair: RHSNewPairNode): List<Instruction> {
+        val newPairInstructions = mutableListOf<Instruction>()
+
+        // Initialisation
+        newPairInstructions.add(Load(Register.r0, 8))
+        newPairInstructions.add(Branch("malloc", true))
+        newPairInstructions.add(Move(Register.r4, Register.r0))
+
+        newPairInstructions.addAll(addPairElem(pair.expr1))
+        newPairInstructions.addAll(addPairElem(pair.expr2, true))
+
+        return newPairInstructions
+    }
+
+    private fun generateArrayLitNode(elements: List<ExprNode>): List<Instruction> {
+        val arrayLitInstructions = mutableListOf<Instruction>()
+
+        var typeSize = 4
+        val arraySize = if (elements.isEmpty()) {
+            4
+        } else {
+            typeSize = getExprParameterOffset(elements[0])
+            4 + elements.size * typeSize
+        }
+
+        // Instructions for allocating space for array
+        arrayLitInstructions.add(Load(Register.r0, arraySize))
+        arrayLitInstructions.add(Branch("malloc", true))
+        arrayLitInstructions.add(Move(Register.r4, Register.r0))
+
+        // Add each element
+        var count = 0
+        for (expr in elements) {
+            count++
+            arrayLitInstructions.addAll(generateExpr(expr, Register.r5))
+            arrayLitInstructions.add(Store(Register.r5, Register.r4, count * typeSize))
+        }
+
+        // Add the size of the array
+        arrayLitInstructions.add(Load(Register.r5, count))
+        arrayLitInstructions.add(Store(Register.r5, Register.r4))
+
+        return arrayLitInstructions
+    }
+
+    private fun loadIdentValue(ident: Ident): List<Instruction> {
+        val loadInstructions = mutableListOf<Instruction>()
+
+        val type = globalSymbolTable.getNodeGlobal(ident.toString())!!
+        val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
+        val offset = if (type.isParameter()) {
+            globalSymbolTable.getStackOffset(ident.toString())
+        } else {
+            globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(ident.toString())
+        }
+        loadInstructions.add(Store(Register.r4, Register.sp, offset, byte = byte))
+
+        return loadInstructions
     }
 
     private fun generateAssign(stat: AssignNode): List<Instruction> {
         val assignInstructions = mutableListOf<Instruction>()
 
-        if (stat.rhs is RHSCallNode) {
-            assignInstructions.addAll(generateCallNode(stat.rhs))
-        } else if (stat.rhs is RHSExprNode) {
-            assignInstructions.addAll(generateExpr(stat.rhs.expr))
-        }
+        assignInstructions.addAll(generateRHSNode(stat.rhs))
+
         if (stat.lhs is AssignLHSIdentNode) {
-            val type = globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString())!!
-            val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
-            assignInstructions.add(Store(Register.r4, Register.sp, globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.lhs.ident.toString()), byte = byte))
+            assignInstructions.addAll(loadIdentValue(stat.lhs.ident))
         }
 
         return assignInstructions
@@ -203,14 +284,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateDeclaration(stat: DeclarationNode): List<Instruction> {
         val declareInstructions = mutableListOf<Instruction>()
 
-        if (stat.value is RHSCallNode) {
-            declareInstructions.addAll(generateCallNode(stat.value))
-        } else if (stat.value is RHSExprNode) {
-            declareInstructions.addAll(generateExpr(stat.value.expr))
-        }
-        val type = globalSymbolTable.getNodeGlobal(stat.ident.toString())!!
-        val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
-        declareInstructions.add(Store(Register.r4, Register.sp, globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.ident.toString()), byte = byte))
+        declareInstructions.addAll(generateRHSNode(stat.value))
+        declareInstructions.addAll(loadIdentValue(stat.ident))
 
         return declareInstructions
     }
@@ -294,8 +369,31 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is LiterNode -> generateLiterNode(expr, reg)
             is BinaryOpNode -> generateBinOp(expr, reg)
             is UnaryOpNode -> generateUnOp(expr, reg)
+            is ArrayElem -> generateArrayElem(expr, reg)
             else -> emptyList()
         }
+    }
+
+    private fun generateArrayElem(expr: ArrayElem, reg: Register): List<Instruction> {
+        // TODO im not sure if this will work with arrays from parameters
+        val arrayElemInstructions = mutableListOf<Instruction>()
+        val offset = globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(expr.ident.toString())
+
+        // TODO Registers dont work correctly - need to implement next register section
+        arrayElemInstructions.add(Add(Register.r4, Register.sp, offset))
+        arrayElemInstructions.addAll(generateExpr(expr.expr[0], Register.r5))
+        arrayElemInstructions.add(Load(Register.r4, Register.r4))
+
+        arrayElemInstructions.add(Move(Register.r0, Register.r5))
+        arrayElemInstructions.add(Move(Register.r1, Register.r4))
+        // TODO Data Segments
+        arrayElemInstructions.add(Branch("p_check_array_bounds", true))
+
+        arrayElemInstructions.add(Add(Register.r4, Register.r4, 4))
+        // ADD r4, r4, r5, LSL #2
+        arrayElemInstructions.add(Load(Register.r4, Register.r4))
+
+        return arrayElemInstructions
     }
 
     private fun generateSeq(stat: SequenceNode): List<Instruction> {
@@ -323,8 +421,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         if (exitNode.expr is IntLiterNode) {
             exitInstruction.add(Load(Register.r4, exitNode.expr.value.toInt()))
         } else if (exitNode.expr is Ident) {
-            // TODO
-            // Get variable's value from stack
+            val type = globalSymbolTable.getNodeGlobal(exitNode.expr.toString())!!
+            val offset = if (type.isParameter()) {
+                globalSymbolTable.getStackOffset(exitNode.expr.toString())
+            } else {
+                globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(exitNode.expr.toString())
+            }
+            exitInstruction.add(Load(Register.r4, Register.sp, offset))
         }
 
         exitInstruction.add(Move(Register.r0, Register.r4))
@@ -358,8 +461,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 }))
             }
             is Ident -> {
-                val offset = globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(exprNode.toString())
                 val type = globalSymbolTable.getNodeGlobal(exprNode.toString())!!
+                val offset = if (type.isParameter()) {
+                    globalSymbolTable.getStackOffset(exprNode.toString())
+                } else {
+                    globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(exprNode.toString())
+                }
+
                 val sb = type == Type(WACCParser.BOOL) || type == Type(WACCParser.CHAR)
                 loadInstruction.add(Load(dstRegister, Register.sp, offset, sb = sb))
             }
@@ -487,10 +595,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is Ident -> globalSymbolTable.getNodeGlobal(expr.toString())
             is ArrayElem -> {
                 val type = globalSymbolTable.getNodeGlobal(expr.ident.toString())
-                // TODO fix npe to do with scoping in:
-                // wacc_examples/valid/scope/printAllTypes.wacc
-                // set global symbol table to child when visiting begin/end node?
-                // but which child table do we set it to?
                 return type?.getBaseType() ?: Type(INVALID)
             }
             is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value)
