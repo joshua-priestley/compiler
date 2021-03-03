@@ -11,8 +11,6 @@ import org.junit.jupiter.api.DynamicTest
 import java.io.File
 import java.lang.StringBuilder
 
-data class CompilerReply(val test: String, val upload: String, val compiler_out: String)
-
 class TestPrograms {
     private val testDirsPath = "./src/test/kotlin/testDirs"
     private val examplesPath = "./wacc_examples/"
@@ -61,7 +59,8 @@ class TestPrograms {
 
         // Create the executable file
         Runtime.getRuntime()
-            .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName").waitFor()
+            .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
+            .waitFor()
 
         val assemblyFile = File(assemblyName)
         val executableFile = File(executableName)
@@ -82,20 +81,16 @@ class TestPrograms {
         val referenceCompiler = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
             .add(FileDataPart(inputFile, "testfile", inputFile.name, "application/octet-stream"))
             .add(InlineDataPart("-x","options[]"))
-            .responseObject<CompilerReply>(gson).third
+            .responseObject<RefCompileData>(gson)
+            .third
             .component1()
 
-        assert(referenceCompiler != null)
-        println("test field: ${referenceCompiler!!.test}")
-        println("upload field: ${referenceCompiler.upload}")
-        println("out field: ${referenceCompiler.compiler_out}")
-
         // Done with the files. Delete them.
-        File(assemblyName).delete()
-        File(executableName).delete()
+        assemblyFile.delete()
+        executableFile.delete()
 
         if (referenceCompiler != null) {
-            val output = referenceCompiler.compiler_out.
+            val output = referenceCompiler.compilerOutput.
                         split("===========================================================").toTypedArray()
             val exit = output[2].split(" ").toTypedArray()[4].split(".").toTypedArray()
             assertEquals(output[1], "\n" + sb)
@@ -103,3 +98,5 @@ class TestPrograms {
         }
     }
 }
+
+data class RefCompileData(val testName: String, val uploadFileContent: String, val compilerOutput: String)
