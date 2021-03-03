@@ -2,23 +2,13 @@ package compiler.Instructions
 
 import java.lang.StringBuilder
 
-class Branch: Instruction {
-    private val label: String
-    private val cond: Conditions?
+class Branch(private val label: String, private val link: Boolean, private val cond: Conditions? = null) : Instruction {
 
-    constructor(label: String, cond: Conditions) {
-        this.label = label
-        this.cond = cond
-    }
-
-    constructor(label: String) {
-        this.label = label
-        this.cond = null
-    }
 
     override fun toString(): String {
         val instr = StringBuilder()
         instr.append("\tB")
+        if (link) instr.append("L")
         if (cond != null) instr.append(cond)
         instr.append(" $label")
         return instr.toString()

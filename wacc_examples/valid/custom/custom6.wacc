@@ -1,0 +1,17 @@
+# a simple increment function definition and usage
+
+# Output:
+# 1
+# 4
+
+# Program:
+
+begin
+  int inc(int a, bool a1, bool a2, bool a3, int a4) is
+    return a + 1
+  end
+  bool[] b = [true, false, true] ;
+  int[] c = [1, 2, 3, 4] ;
+  int x = 0 ;
+  x = call inc(0, false && true, b[0], true, c[2])
+end
