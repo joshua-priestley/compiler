@@ -102,8 +102,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 globalSymbolTable = globalSymbolTable.parentT!!
                 statInstructions
             }
-            else -> generateSeq(stat as SequenceNode) // SequenceNode
-
+            is SequenceNode -> generateSeq(stat)
+            else -> throw Error("Should not get here")
         }
     }
 
@@ -193,8 +193,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
         if (stat.lhs is AssignLHSIdentNode) {
             val type = globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString())!!
-            val byte : Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
-            assignInstructions.add(Store(Register.r4, Register.sp, globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.lhs.ident.toString()),byte = byte))
+            val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
+            assignInstructions.add(Store(Register.r4, Register.sp, globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.lhs.ident.toString()), byte = byte))
         }
 
         return assignInstructions
@@ -209,7 +209,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             declareInstructions.addAll(generateExpr(stat.value.expr))
         }
         val type = globalSymbolTable.getNodeGlobal(stat.ident.toString())!!
-        val byte : Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
+        val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
         declareInstructions.add(Store(Register.r4, Register.sp, globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.ident.toString()), byte = byte))
 
         return declareInstructions
@@ -293,7 +293,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return when (expr) {
             is LiterNode -> generateLiterNode(expr, reg)
             is BinaryOpNode -> generateBinOp(expr, reg)
-            is UnaryOpNode -> generateUnOp(expr,reg)
+            is UnaryOpNode -> generateUnOp(expr, reg)
             else -> emptyList()
         }
     }
@@ -370,21 +370,22 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun nextLabel(): String {
         return "L${labelCounter++}"
     }
-    private fun generateUnOp(unOp: UnaryOpNode, reg: Register = Register.r4): List<Instruction>{
+
+    private fun generateUnOp(unOp: UnaryOpNode, reg: Register = Register.r4): List<Instruction> {
         val list = mutableListOf<Instruction>()
         val expr = generateExpr(unOp.expr, reg)
         list.addAll(expr)
-        when (unOp.operator){
+        when (unOp.operator) {
             //ORD and CHR are handled by print_int and print_char
             UnOp.NOT -> {
-                list.add(Not(reg,reg))
+                list.add(Not(reg, reg))
             }
             UnOp.MINUS -> {
                 list.add(Minus(reg))
                 list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
             }
             UnOp.LEN -> {
-                list.add(Load(Register.r4,reg))
+                list.add(Load(Register.r4, reg))
             }
         }
         return list
@@ -401,11 +402,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         when (binOp.operator) {
             BinOp.PLUS -> {
 
-                list.add(AddSub("ADD", reg, reg, operand2, true))
+                list.add(Add(reg, reg, operand2, true))
                 list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
             }
             BinOp.MINUS -> {
-                list.add(AddSub("SUB", reg, reg, operand2, true))
+                list.add(Sub(reg, reg, operand2, true))
                 list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
             }
             BinOp.MUL -> {
@@ -415,10 +416,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
 
             BinOp.AND -> {
-                list.add(AndOr("AND", reg, reg, operand2))
+                list.add(And(reg, reg, operand2))
             }
             BinOp.OR -> {
-                list.add(AndOr("ORR", reg, reg, operand2))
+                list.add(Or(reg, reg, operand2))
             }
             BinOp.EQ -> {
                 list.add(Compare(reg, operand2))
@@ -455,20 +456,20 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 list.add(Move(Register.r0, reg))
                 list.add(Move(Register.r1, operand2))
                 val funcName = predefined.addFunc(DivideByZero())
-                list.add(Branch(funcName,true))
-                list.add(Branch("__aeabi_idivmod",true))
+                list.add(Branch(funcName, true))
+                list.add(Branch("__aeabi_idivmod", true))
                 list.add(Move(reg, Register.r1))
             }
             BinOp.DIV -> {
                 list.add(Move(Register.r0, reg))
                 list.add(Move(Register.r1, operand2))
                 val funcName = predefined.addFunc(DivideByZero())
-                list.add(Branch(funcName,true))
-                list.add(Branch("__aeabi_idiv",true))
+                list.add(Branch(funcName, true))
+                list.add(Branch("__aeabi_idiv", true))
                 list.add(Move(reg, Register.r0))
             }
             else -> {
-                // TODO
+                throw Error("Should not get here")
             }
         }
         return list
@@ -496,8 +497,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value)
             is PairLiterNode -> Type(PAIR_LITER)
             else -> {
-                println("Shouldn't get here")
-                return Type(INVALID)
+                throw Error("Should not get here")
             }
         }
     }
