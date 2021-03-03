@@ -378,6 +378,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             UnOp.NOT -> {
                 list.add(Not(reg,reg))
             }
+            UnOp.MINUS -> {
+                list.add(Minus(reg))
+                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
+            }
         }
         return list
     }
@@ -394,11 +398,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             BinOp.PLUS -> {
 
                 list.add(AddSub("ADD", reg, reg, operand2, true))
-                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
+                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
             }
             BinOp.MINUS -> {
                 list.add(AddSub("SUB", reg, reg, operand2, true))
-                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
+                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
             }
             BinOp.MUL -> {
                 list.add(Multiply(reg, operand2, reg, operand2, true))
