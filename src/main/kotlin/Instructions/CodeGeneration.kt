@@ -382,6 +382,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 list.add(Minus(reg))
                 list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
             }
+            UnOp.LEN -> {
+                list.add(Load(Register.r4,reg))
+            }
         }
         return list
     }
