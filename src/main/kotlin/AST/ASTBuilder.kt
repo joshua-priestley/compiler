@@ -11,13 +11,13 @@ import ErrorHandler.SemanticErrorHandler
 import ErrorHandler.SyntaxErrorHandler
 import java.util.concurrent.atomic.AtomicInteger
 
-val nextSymbolID = AtomicInteger()
 
 class ASTBuilder(
         private val semanticListener: SemanticErrorHandler,
         private val syntaxHandler: SyntaxErrorHandler,
         private var globalSymbolTable: SymbolTable
 ) : WACCParserBaseVisitor<Node>() {
+    private val nextSymbolID = AtomicInteger()
 
     // A map to store all the functions and their parameters for semantic checking
     private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()

@@ -13,5 +13,4 @@ enum class Conditions {
     MI,     // Negative
     PL,     // Positive or Zero
     CS,     // Carry set
-    L       // Link
 }

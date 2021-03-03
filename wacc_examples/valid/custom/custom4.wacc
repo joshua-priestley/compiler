@@ -1,0 +1,17 @@
+# a simple increment function definition and usage
+
+# Output:
+# 1
+# 4
+
+# Program:
+
+begin
+  int inc(int a, int a1, int a2) is
+    return a2 + 1
+  end
+  int x = 0 ;
+  int y = 3 ;
+  y = 4 ;
+  x = call inc(0, 1, y)
+end
