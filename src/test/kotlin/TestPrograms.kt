@@ -39,46 +39,7 @@ class TestPrograms {
         }
 
         if(System.getProperty("test.type") == "backend") {
-            val assemblyName = inputFile.canonicalPath.replace(".wacc", ".s");
-            val executableName = inputFile.canonicalPath.replace(".wacc", "");
-
-            Runtime.getRuntime()
-                .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName").waitFor()
-
-            println("Does the .s file exist? ${File(assemblyName).exists()} $assemblyName")
-            println("Does the executable exist? ${File(executableName).exists()} $executableName")
-
-            val process = ProcessBuilder("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", executableName).start()
-
-            val sb = StringBuilder()
-            process.inputStream.reader(Charsets.UTF_8).use {
-                sb.append(it.readText())
-            }
-
-            println("printing:    kkfkkfkfkfkfkfkfkf $sb")
-
-            val x = process.waitFor()
-            println("EXIITITITITITI CODE ISSSS: ${x}")
-            println("is the process alive? ${process.isAlive}")
-
-            val a = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
-                .add(FileDataPart(inputFile, "testfile", inputFile.name, "application/octet-stream"))
-                .add(InlineDataPart("-x","options[]"))
-                .responseObject<CompilerReply>(gson).third
-                .component1()
-
-            // Done with the files. Delete them.
-            File(assemblyName).delete()
-            File(executableName).delete()
-
-            if (a != null) {
-                val strs = a.compiler_out.split("===========================================================").toTypedArray()
-                val exit = strs[2].split(" ").toTypedArray()[4].split(".").toTypedArray()
-                println(exit[0])
-                assertEquals(strs[1], "\n" + sb)
-                assertEquals(exit[0], x.toString())
-            }
-
+            runBackendTests(inputFile)
         }
     }
 
@@ -92,5 +53,53 @@ class TestPrograms {
             else -> testFiles
         }
         return files.map { f -> DynamicTest.dynamicTest(f.name) { runTest(f) } }
+    }
+
+    fun runBackendTests(inputFile: File) {
+        val assemblyName = inputFile.canonicalPath.replace(".wacc", ".s");
+        val executableName = inputFile.canonicalPath.replace(".wacc", "");
+
+        // Create the executable file
+        Runtime.getRuntime()
+            .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName").waitFor()
+
+        val assemblyFile = File(assemblyName)
+        val executableFile = File(executableName)
+
+        assert(assemblyFile.exists())
+        assert(executableFile.exists())
+
+        // Run QEMU on the created executable file
+        val qemu = ProcessBuilder("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", executableName).start()
+
+        val sb = StringBuilder()
+        qemu.inputStream.reader(Charsets.UTF_8).use {
+            sb.append(it.readText())
+        }
+
+        val exitCode = qemu.waitFor()
+
+        val referenceCompiler = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
+            .add(FileDataPart(inputFile, "testfile", inputFile.name, "application/octet-stream"))
+            .add(InlineDataPart("-x","options[]"))
+            .responseObject<CompilerReply>(gson).third
+            .component1()
+
+        assert(referenceCompiler != null)
+        println("test field: ${referenceCompiler!!.test}")
+        println("upload field: ${referenceCompiler.upload}")
+        println("out field: ${referenceCompiler.compiler_out}")
+
+        // Done with the files. Delete them.
+        File(assemblyName).delete()
+        File(executableName).delete()
+
+        if (referenceCompiler != null) {
+            val output = referenceCompiler.compiler_out.
+                        split("===========================================================").toTypedArray()
+            val exit = output[2].split(" ").toTypedArray()[4].split(".").toTypedArray()
+            assertEquals(output[1], "\n" + sb)
+            assertEquals(exit[0], exitCode.toString())
+        }
     }
 }
