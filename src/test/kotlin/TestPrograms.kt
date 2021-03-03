@@ -73,11 +73,10 @@ class TestPrograms {
 
             if (a != null) {
                 val strs = a.compiler_out.split("===========================================================").toTypedArray()
-                println(strs[1])
-                println(strs[2])
                 val exit = strs[2].split(" ").toTypedArray()[4].split(".").toTypedArray()
                 println(exit[0])
                 assertEquals(strs[1], "\n" + sb)
+                assertEquals(exit[0], x)
             }
 
         }
