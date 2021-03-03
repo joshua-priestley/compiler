@@ -202,13 +202,24 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val pairAccessInstructions = mutableListOf<Instruction>()
         val first = rhs.pairElem is FstExpr
 
-        val offset = getStackOffsetValue((rhs.pairElem as FstExpr).expr.toString())
+        val offset = if (first) {
+            getStackOffsetValue((rhs.pairElem as FstExpr).expr.toString())
+        } else {
+            getStackOffsetValue((rhs.pairElem as SndExpr).expr.toString())
+
+        }
         pairAccessInstructions.add(Load(Register.r4, Register.sp, offset))
         pairAccessInstructions.add(Move(Register.r0, Register.r4))
         pairAccessInstructions.add(Branch("p_check_null_pointer", true))
 
+        val type = if (first) {
+            globalSymbolTable.getNodeGlobal(((rhs.pairElem) as FstExpr).expr.toString())!!.getPairFst()
+        } else {
+            globalSymbolTable.getNodeGlobal(((rhs.pairElem) as SndExpr).expr.toString())!!.getPairSnd()
+        }
+
         pairAccessInstructions.add(Load(Register.r4, Register.r4, if (first) 0 else 4))
-        pairAccessInstructions.add(Load(Register.r4, Register.r4))
+        pairAccessInstructions.add(Load(Register.r4, Register.r4, sb = type!!.getTypeSize() == 1))
         return pairAccessInstructions
     }
 
@@ -255,9 +266,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         // Add each element
         var count = 0
         for (expr in elements) {
-            count++
             arrayLitInstructions.addAll(generateExpr(expr, Register.r5))
-            arrayLitInstructions.add(Store(Register.r5, Register.r4, count * typeSize))
+            arrayLitInstructions.add(Store(Register.r5, Register.r4, 4 + count * typeSize, byte = typeSize == 1))
+            count++
         }
 
         // Add the size of the array
@@ -395,9 +406,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         arrayElemInstructions.add(Move(Register.r1, Register.r4))
         arrayElemInstructions.add(Branch(predefined.addFunc(CheckArrayBounds()), true))
 
+        val type = globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
         arrayElemInstructions.add(Add(Register.r4, Register.r4, 4))
         // ADD r4, r4, r5, LSL #2
-        arrayElemInstructions.add(Load(Register.r4, Register.r4))
+        arrayElemInstructions.add(Load(Register.r4, Register.r4, sb = type.getTypeSize() == 1))
 
         return arrayElemInstructions
     }
