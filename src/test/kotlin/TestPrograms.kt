@@ -72,8 +72,8 @@ class TestPrograms {
                 assertEquals(strs[1], "\n" + sb)
             }
 
-            File(assemblyName).delete()
-            File(executableName).delete()
+//            File(assemblyName).delete()
+//            File(executableName).delete()
         }
     }
 
