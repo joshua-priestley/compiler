@@ -33,10 +33,8 @@ class PredefinedFuncs(private val data: DataSegment) {
             .flatten()
 }
 
-//TODO finish once arithmetic ops have been done
 abstract class Predefined() {
-    // Superclasses should use "by lazy" to get the msg label after it is added
-    abstract val name: String
+   abstract val name: String
     abstract val msg: String
     open val msg2: String? = null
 
@@ -54,9 +52,6 @@ abstract class Predefined() {
         return false
     }
 }
-
-abstract class RuntimeError() : Predefined()
-
 
 class PrintLn() : Predefined() {
     override val name = "p_print_ln"
@@ -133,6 +128,24 @@ class PrintBool() : Predefined() {
         )
 }
 
+class PrintReference() : Predefined() {
+    override val name = "p_print_reference"
+    override val msg = "%p\\0"
+
+    override fun getInstructions(data: DataSegment): List<Instruction> =
+        listOf(
+            FunctionDeclaration(name),
+            Push(listOf(Register.lr)),
+            Move(Register.r1, Register.r0),
+            Load(Register.r0, data.getLabel(msg)),
+            Add(Register.r0, Register.r0, ImmOp(4)),
+            Branch("printf", true),
+            Move(Register.r0, ImmOp(0)),
+            Branch("fflush", true),
+            Pop(listOf(Register.pc))
+        )
+}
+
 class ReadInt() : Predefined() {
     override val name = "p_read_int"
     override val msg = "%d\\0"
@@ -178,6 +191,8 @@ class ThrowRuntimeError() : Predefined() {
             Branch("exit", true)
         )
 }
+
+abstract class RuntimeError() : Predefined()
 
 class DivideByZero() : RuntimeError() {
     override val name = "p_check_divide_by_zero"

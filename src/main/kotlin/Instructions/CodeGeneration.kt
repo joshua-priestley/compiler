@@ -107,11 +107,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generatePrintln(stat: PrintlnNode): List<Instruction> {
-        // TODO find better way of arranging things to make adding the branch cleaner
         val instructions = mutableListOf<Instruction>()
         instructions.addAll(generatePrint(PrintNode(stat.expr)))
-        val funcName = predefined.addFunc(PrintLn())
-        instructions.add(Branch(funcName, true))
+        instructions.add(Branch(predefined.addFunc(PrintLn()), true))
         return instructions
     }
 
@@ -125,7 +123,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             Type(WACCParser.STRING) -> predefined.addFunc(PrintString())
             Type(WACCParser.BOOL) -> predefined.addFunc(PrintBool())
             Type(WACCParser.CHAR) -> "putchar"
-            else -> "dummy string"// TODO Handle reference printing
+            else -> predefined.addFunc(PrintReference())
         }
 
         printInstruction.add(Branch(funcName, true))
@@ -411,9 +409,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             type = globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
             arrayElemInstructions.add(Add(Register.r4, Register.r4, ImmOp(4)))
             if (type.getTypeSize() == 1) {
-                arrayElemInstructions.add(Add(Register.r4, Register.r4, RegOp(Register.r5)))
+                arrayElemInstructions.add(Add(Register.r4, Register.r4, Register.r5))
             } else {
-                arrayElemInstructions.add(Add(Register.r4, Register.r4, ShiftInstruction(Register.r5, ShiftType.LSL, 2)))
+                arrayElemInstructions.add(Add(Register.r4, Register.r4, LogicalShiftLeft(Register.r5, 2)))
             }
         }
         if (type != null) {
