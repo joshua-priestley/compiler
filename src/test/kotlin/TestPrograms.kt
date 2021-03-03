@@ -11,7 +11,7 @@ import org.junit.jupiter.api.DynamicTest
 import java.io.File
 import java.lang.StringBuilder
 
-data class RefCompileData(val testName: String, val uploadFileContent: String, val compilerOutput: String)
+data class CompilerReply(val testName: String, val uploadFileContent: String, val compilerOutput: String)
 
 class TestPrograms {
     private val testDirsPath = "./src/test/kotlin/testDirs"
@@ -61,8 +61,7 @@ class TestPrograms {
 
         // Create the executable file
         Runtime.getRuntime()
-            .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
-            .waitFor()
+            .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName").waitFor()
 
         val assemblyFile = File(assemblyName)
         val executableFile = File(executableName)
@@ -83,13 +82,17 @@ class TestPrograms {
         val referenceCompiler = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
             .add(FileDataPart(inputFile, "testfile", inputFile.name, "application/octet-stream"))
             .add(InlineDataPart("-x","options[]"))
-            .responseObject<RefCompileData>(gson)
-            .third
+            .responseObject<CompilerReply>(gson).third
             .component1()
 
+        assert(referenceCompiler != null)
+        println("test field: ${referenceCompiler!!.testName}")
+        println("upload field: ${referenceCompiler.uploadFileContent}")
+        println("out field: ${referenceCompiler.compilerOutput}")
+
         // Done with the files. Delete them.
-        assemblyFile.delete()
-        executableFile.delete()
+        File(assemblyName).delete()
+        File(executableName).delete()
 
         if (referenceCompiler != null) {
             val output = referenceCompiler.compilerOutput.
