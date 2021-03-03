@@ -56,6 +56,7 @@ class TestPrograms {
 
             val x = process.waitFor()
             println("EXIITITITITITI CODE ISSSS: ${x}")
+            println("is the process alive? ${process.isAlive}")
 
             val a = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
                 .add(FileDataPart(inputFile, "testfile", inputFile.name, "application/octet-stream"))
