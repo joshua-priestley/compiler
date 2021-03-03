@@ -57,14 +57,14 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         val spOffset = globalSymbolTable.localStackSize()
 
-        if (spOffset > 0 && main) {
+        if (spOffset > 0) {
             instructions.add(Sub(Register.sp, Register.sp, spOffset))
         }
 
         // Generate all the statements
         instructions.addAll(generateStat(stat))
 
-        if (spOffset > 0 && main) {
+        if (spOffset > 0) {
             instructions.add(Add(Register.sp, Register.sp, spOffset))
         }
 
@@ -202,12 +202,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generatePairAccess(rhs: RHSPairElemNode): List<Instruction> {
         val pairAccessInstructions = mutableListOf<Instruction>()
         val first = rhs.pairElem is FstExpr
-        val pairType = if (first) {
-            globalSymbolTable.getNodeGlobal(((rhs.pairElem as FstExpr).expr as Ident).toString())!!.getPairFst()!!
+        var parameter = false
+        parameter = globalSymbolTable.getNodeGlobal(((rhs.pairElem as FstExpr).expr as Ident).toString())!!.isParameter()
+        val pairType = globalSymbolTable.getNodeGlobal((rhs.pairElem.expr as Ident).toString())!!.getPairFst()!!
+
+        val offset = if (parameter) {
+            globalSymbolTable.getStackOffset(rhs.pairElem.expr.toString()) + globalSymbolTable.localStackSize()
         } else {
-            globalSymbolTable.getNodeGlobal(((rhs.pairElem as SndExpr).expr as Ident).toString())!!.getPairSnd()!!
+            globalSymbolTable.localStackSize() - pairType.getTypeSize()
         }
-        val offset = globalSymbolTable.localStackSize() - pairType.getTypeSize()
         pairAccessInstructions.add(Load(Register.r4, Register.sp, offset))
         pairAccessInstructions.add(Move(Register.r0, Register.r4))
         pairAccessInstructions.add(Branch("p_check_null_pointer", true))
@@ -278,7 +281,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val type = globalSymbolTable.getNodeGlobal(ident.toString())!!
         val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
         val offset = if (type.isParameter()) {
-            globalSymbolTable.getStackOffset(ident.toString())
+            globalSymbolTable.getStackOffset(ident.toString()) + globalSymbolTable.localStackSize()
         } else {
             globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(ident.toString())
         }
@@ -441,7 +444,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         } else if (exitNode.expr is Ident) {
             val type = globalSymbolTable.getNodeGlobal(exitNode.expr.toString())!!
             val offset = if (type.isParameter()) {
-                globalSymbolTable.getStackOffset(exitNode.expr.toString())
+                globalSymbolTable.getStackOffset(exitNode.expr.toString()) + globalSymbolTable.localStackSize()
             } else {
                 globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(exitNode.expr.toString())
             }
@@ -481,7 +484,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is Ident -> {
                 val type = globalSymbolTable.getNodeGlobal(exprNode.toString())!!
                 val offset = if (type.isParameter()) {
-                    globalSymbolTable.getStackOffset(exprNode.toString())
+                    globalSymbolTable.getStackOffset(exprNode.toString()) + globalSymbolTable.localStackSize()
                 } else {
                     globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(exprNode.toString())
                 }

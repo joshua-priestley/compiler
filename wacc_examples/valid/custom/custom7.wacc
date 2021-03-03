@@ -7,8 +7,11 @@
 # Program:
 
 begin
+  int thing(pair(int, int) t) is
+    int x = 3 ;
+    int r = fst t ;
+    return r
+  end
   pair(int, int) p = newpair(1, 2) ;
-  int f = fst p ;
-  int s = 3 ;
-  int t = snd p
+  int x = call thing(p)
 end
