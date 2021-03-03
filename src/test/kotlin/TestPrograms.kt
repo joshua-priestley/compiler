@@ -42,10 +42,11 @@ class TestPrograms {
             val assemblyName = inputFile.canonicalPath.replace(".wacc", ".s");
             val executableName = inputFile.canonicalPath.replace(".wacc", "");
 
-            Runtime.getRuntime()
-                .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName")
-            println("Does the executable exist? ${File(executableName).exists()} $assemblyName")
-            println("Does the assembly exist? ${File(assemblyName).exists()} $executableName")
+            val createExecutable = Runtime.getRuntime()
+                .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName").waitFor()
+
+            println("Does the .s file exist? ${File(assemblyName).exists()} $assemblyName")
+            println("Does the executable exist? ${File(executableName).exists()} $executableName")
 
             val process = ProcessBuilder("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", executableName).start()
 
