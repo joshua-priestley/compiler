@@ -304,7 +304,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
 
         // Compare the conditional
-        ifInstruction.add(Compare(Register.r4, 0))
+        ifInstruction.add(Compare(Register.r4, ImmOp(0)))
         ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
 
         // Then Branch
@@ -345,7 +345,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         } else {
             whileInstruction.addAll(generateExpr(stat.expr))
         }
-        whileInstruction.add(Compare(Register.r4, 1))
+        whileInstruction.add(Compare(Register.r4, ImmOp(1)))
         whileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
 
         return whileInstruction
@@ -390,7 +390,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         arrayElemInstructions.add(Branch(predefined.addFunc(CheckArrayBounds()), true))
 
         arrayElemInstructions.add(Add(Register.r4, Register.r4, ImmOp(4)))
-        // ADD r4, r4, r5, LSL #2
+        arrayElemInstructions.add(Add(Register.r4, Register.r4, LogicalShiftLeft(Register.r5, 2)))
         arrayElemInstructions.add(Load(Register.r4, Register.r4))
 
         return arrayElemInstructions
@@ -519,7 +519,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
             BinOp.MUL -> {
                 list.add(Multiply(reg, operand2, reg, operand2, true))
-                list.add(Compare(operand2, reg, null, ArithmeticShiftRight(31)))
+                list.add(Compare(operand2, ArithmeticShiftRight(reg, 31)))
                 list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
             }
 

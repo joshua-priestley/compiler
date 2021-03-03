@@ -122,7 +122,7 @@ class PrintBool() : Predefined() {
         listOf(
             FunctionDeclaration(name),
             Push(listOf(Register.lr)),
-            Compare(Register.r0, 0),
+            Compare(Register.r0, ImmOp(0)),
             Load(Register.r0, data.getLabel(msg), Conditions.NE),
             Load(Register.r0, data.getLabel(msg2), Conditions.EQ),
             Add(Register.r0, Register.r0, ImmOp(4), false),
@@ -187,7 +187,7 @@ class DivideByZero() : RuntimeError() {
         listOf(
             FunctionDeclaration(name),
             Push(listOf(Register.lr)),
-            Compare(Register.r1, 1),
+            Compare(Register.r1, ImmOp(1)),
             Load(Register.r0, data.getLabel(msg), Conditions.EQ),
             Branch(ThrowRuntimeError().name, true, Conditions.EQ),
             Pop(listOf(Register.pc))
@@ -214,7 +214,7 @@ class CheckNullPointer() : RuntimeError() {
         listOf(
             FunctionDeclaration(name),
             Push(listOf(Register.lr)),
-            Compare(Register.r0, 0),
+            Compare(Register.r0, ImmOp(0)),
             Load(Register.r0, data.getLabel(msg)),
             Branch(ThrowRuntimeError().name, true, Conditions.EQ),
             Pop(listOf(Register.pc))
@@ -230,7 +230,7 @@ class CheckArrayBounds() : RuntimeError() {
         listOf(
             FunctionDeclaration(name),
             Push(listOf(Register.lr)),
-            Compare(Register.r0, 0),
+            Compare(Register.r0, ImmOp(0)),
             Load(Register.r0, data.getLabel(msg), Conditions.LT),
             Branch(ThrowRuntimeError().name, true, Conditions.LT),
             Load(Register.r1, Register.r1),
@@ -249,7 +249,7 @@ class Freepair() : RuntimeError() {
         listOf(
             FunctionDeclaration(name),
             Push(listOf(Register.lr)),
-            Compare(Register.r0, 0),
+            Compare(Register.r0, ImmOp(0)),
             Load(Register.r0, data.getLabel(msg), Conditions.EQ),
             Branch(ThrowRuntimeError().name, false, Conditions.EQ),
             Push(listOf(Register.r0)),
