@@ -187,13 +187,24 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generateRHSNode(rhs: AssignRHSNode): List<Instruction> {
         val rhsInstruction = mutableListOf<Instruction>()
-        if (rhs is RHSCallNode) {
-            rhsInstruction.addAll(generateCallNode(rhs))
-        } else if (rhs is RHSExprNode) {
-            rhsInstruction.addAll(generateExpr(rhs.expr))
+        when (rhs) {
+            is RHSCallNode -> rhsInstruction.addAll(generateCallNode(rhs))
+            is RHSExprNode -> rhsInstruction.addAll(generateExpr(rhs.expr))
+            is RHSArrayLitNode -> rhsInstruction.addAll(generateArrayLitNode(rhs.exprs))
+            is RHSNewPairNode -> 1 + 2
+            is RHSPairElemNode -> 1 + 2
+            else -> throw Error("Does not exist")
         }
 
         return rhsInstruction
+    }
+
+    private fun generateArrayLitNode(elements: List<ExprNode>): List<Instruction> {
+        val arrayLitInstructions = mutableListOf<Instruction>()
+
+        println("Elements: $elements")
+
+        return arrayLitInstructions
     }
 
     private fun loadIdentValue(ident: Ident): List<Instruction> {
@@ -380,6 +391,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 }))
             }
             is Ident -> {
+                println(exprNode)
                 val type = globalSymbolTable.getNodeGlobal(exprNode.toString())!!
                 val offset = if (type.isParameter()) {
                     globalSymbolTable.getStackOffset(exprNode.toString())
@@ -414,7 +426,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             UnOp.LEN -> {
                 list.add(Load(Register.r4, reg))
             }
-            else -> throw Error("Does not exist")
         }
         return list
     }
