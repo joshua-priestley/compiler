@@ -293,6 +293,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return when (expr) {
             is LiterNode -> generateLiterNode(expr, reg)
             is BinaryOpNode -> generateBinOp(expr, reg)
+            is UnaryOpNode -> generateUnOp(expr,reg)
             else -> emptyList()
         }
     }
@@ -358,7 +359,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
             is Ident -> {
                 val offset = globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(exprNode.toString())
-                loadInstruction.add(Load(dstRegister, Register.sp, offset))
+                val type = globalSymbolTable.getNodeGlobal(exprNode.toString())!!
+                val sb = type == Type(WACCParser.BOOL)
+                loadInstruction.add(Load(dstRegister, Register.sp, offset, sb = sb))
             }
         }
         return loadInstruction
@@ -368,7 +371,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return "L${labelCounter++}"
     }
     private fun generateUnOp(unOp: UnaryOpNode, reg: Register = Register.r4): List<Instruction>{
-        TODO()
+        val list = mutableListOf<Instruction>()
+        val expr = generateExpr(unOp.expr, reg)
+        list.addAll(expr)
+        when (unOp.operator){
+            UnOp.NOT -> {
+                list.add(Not(reg,reg))
+            }
+        }
+        return list
     }
 
     private fun generateBinOp(binOp: BinaryOpNode, reg: Register = Register.r4): List<Instruction> {
