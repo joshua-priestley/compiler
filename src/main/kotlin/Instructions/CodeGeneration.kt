@@ -192,11 +192,29 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is RHSExprNode -> rhsInstruction.addAll(generateExpr(rhs.expr))
             is RHSArrayLitNode -> rhsInstruction.addAll(generateArrayLitNode(rhs.exprs))
             is RHSNewPairNode -> rhsInstruction.addAll(generateNewPair(rhs))
-            is RHSPairElemNode -> 1 + 2
+            is RHSPairElemNode -> rhsInstruction.addAll(generatePairAccess(rhs))
             else -> throw Error("Does not exist")
         }
 
         return rhsInstruction
+    }
+
+    private fun generatePairAccess(rhs: RHSPairElemNode): List<Instruction> {
+        val pairAccessInstructions = mutableListOf<Instruction>()
+        val first = rhs.pairElem is FstExpr
+        val pairType = if (first) {
+            globalSymbolTable.getNodeGlobal(((rhs.pairElem as FstExpr).expr as Ident).toString())!!.getPairFst()!!
+        } else {
+            globalSymbolTable.getNodeGlobal(((rhs.pairElem as SndExpr).expr as Ident).toString())!!.getPairSnd()!!
+        }
+        val offset = globalSymbolTable.localStackSize() - pairType.getTypeSize()
+        pairAccessInstructions.add(Load(Register.r4, Register.sp, offset))
+        pairAccessInstructions.add(Move(Register.r0, Register.r4))
+        pairAccessInstructions.add(Branch("p_check_null_pointer", true))
+
+        pairAccessInstructions.add(Load(Register.r4, Register.r4, if (first) 0 else 4))
+        pairAccessInstructions.add(Load(Register.r4, Register.r4))
+        return pairAccessInstructions
     }
 
     private fun addPairElem(elem: ExprNode, second: Boolean = false): List<Instruction> {
@@ -205,7 +223,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         pairElemInstructions.add(Load(Register.r0, getExprParameterOffset(elem)))
         pairElemInstructions.add(Branch("malloc", true))
         pairElemInstructions.add(Store(Register.r5, Register.r0, byte = (getExprParameterOffset(elem) == 1)))
-        pairElemInstructions.add(Store(Register.r0, Register.r4, if (second) 0 else 4))
+        pairElemInstructions.add(Store(Register.r0, Register.r4, if (!second) 0 else 4))
         return pairElemInstructions
     }
 

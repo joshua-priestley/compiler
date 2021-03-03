@@ -7,5 +7,8 @@
 # Program:
 
 begin
-  pair(bool, bool) p = newpair(false, true)
+  pair(int, int) p = newpair(1, 2) ;
+  int f = fst p ;
+  int s = 3 ;
+  int t = snd p
 end
