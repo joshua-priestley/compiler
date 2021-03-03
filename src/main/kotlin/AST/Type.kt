@@ -74,7 +74,7 @@ class Type {
 
     //Get the base type of an array
     fun getBaseType(): Type {
-        return this.arrType ?: Type(INVALID)
+        return if (this.arrType == null) this else this.arrType!!.getBaseType()
     }
 
     //Get the type value of a single type
