@@ -321,7 +321,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val exitInstruction = mutableListOf<Instruction>()
 
         if (exitNode.expr is IntLiterNode) {
-            exitInstruction.add(Load(Register.r4, exitNode.expr.value))
+            exitInstruction.add(Load(Register.r4, exitNode.expr.value.toInt()))
         } else if (exitNode.expr is Ident) {
             // TODO
             // Get variable's value from stack
@@ -341,7 +341,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val loadInstruction = mutableListOf<Instruction>()
         when (exprNode) {
             is IntLiterNode -> {
-                loadInstruction.add(Load(dstRegister, exprNode.value))
+                loadInstruction.add(Load(dstRegister, exprNode.value.toInt()))
             }
             is StrLiterNode -> {
                 data.addMessage(Message(exprNode.value))
