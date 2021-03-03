@@ -11,7 +11,7 @@ import org.junit.jupiter.api.DynamicTest
 import java.io.File
 import java.lang.StringBuilder
 
-data class CompilerOutput(val test: String, val upload: String, val compiler_out: String)
+data class CompilerOutput(val testName: String, val uploadFileContent: String, val compilerOutput: String)
 
 class TestPrograms {
     private val testDirsPath = "./src/test/kotlin/testDirs"
@@ -92,7 +92,7 @@ class TestPrograms {
         File(executableName).delete()
 
         if (referenceCompiler != null) {
-            val output = referenceCompiler.compiler_out.
+            val output = referenceCompiler.compilerOutput.
                         split("===========================================================").toTypedArray()
             val exit = output[2].split(" ").toTypedArray()[4].split(".").toTypedArray()
             assertEquals(output[1], "\n" + sb)
