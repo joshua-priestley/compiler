@@ -1,8 +1,7 @@
-image: java:8-jdk
-
 stages:
   - compile
-  - test
+  - test-frontend
+  - test-backend
 
 compile:
   stage: compile
@@ -10,7 +9,7 @@ compile:
     - ./gradlew assemble
 
 test-syntax:
-  stage: test
+  stage: test-frontend
   script:
     - ./gradlew test -i -Dtest.type=syntax
   artifacts:
@@ -19,7 +18,7 @@ test-syntax:
       junit: build/test-results/test/**/TEST-*.xml
 
 test-semantic:
-  stage: test
+  stage: test-frontend
   script:
     - ./gradlew test -i -Dtest.type=semantic
   artifacts:
@@ -28,9 +27,18 @@ test-semantic:
       junit: build/test-results/test/**/TEST-*.xml
 
 test-valid:
-  stage: test
+  stage: test-frontend
   script:
     - ./gradlew test -i -Dtest.type=valid
+  artifacts:
+    when: always
+    reports:
+      junit: build/test-results/test/**/TEST-*.xml
+
+test-backend:
+  stage: test-backend
+  script:
+    - ./gradlew test -i -Dtest.type=backend
   artifacts:
     when: always
     reports:
