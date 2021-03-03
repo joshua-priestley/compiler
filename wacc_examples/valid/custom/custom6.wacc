@@ -8,7 +8,7 @@
 
 begin
   int inc(int a, bool a1, bool a2, bool a3, int a4) is
-    return a + 1
+    return a4 + 1
   end
   bool[] b = [true, false, true] ;
   int[] c = [1, 2, 3, 4] ;

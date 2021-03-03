@@ -180,6 +180,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         callInstructions.add(Branch(functionName, true))
         if (totalOffset != 0) callInstructions.add(Add(Register.sp, Register.sp, totalOffset))
 
+        callInstructions.add(Move(Register.r4, Register.r0))
+
         return callInstructions
     }
 
@@ -194,7 +196,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         if (stat.lhs is AssignLHSIdentNode) {
             val type = globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString())!!
             val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
-            assignInstructions.add(Store(Register.r4, Register.sp, globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.lhs.ident.toString()), byte = byte))
+            val offset = if (type.isParameter()) {
+                globalSymbolTable.getStackOffset(stat.lhs.ident.toString())
+            } else {
+                globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.lhs.ident.toString())
+            }
+            assignInstructions.add(Store(Register.r4, Register.sp, offset, byte = byte))
         }
 
         return assignInstructions
@@ -210,7 +217,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
         val type = globalSymbolTable.getNodeGlobal(stat.ident.toString())!!
         val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
-        declareInstructions.add(Store(Register.r4, Register.sp, globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.ident.toString()), byte = byte))
+        val offset = if (type.isParameter()) {
+            globalSymbolTable.getStackOffset(stat.ident.toString())
+        } else {
+            globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.ident.toString())
+        }
+        declareInstructions.add(Store(Register.r4, Register.sp, offset, byte = byte))
 
         return declareInstructions
     }
@@ -358,8 +370,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 }))
             }
             is Ident -> {
-                val offset = globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(exprNode.toString())
                 val type = globalSymbolTable.getNodeGlobal(exprNode.toString())!!
+                val offset = if (type.isParameter()) {
+                    globalSymbolTable.getStackOffset(exprNode.toString())
+                } else {
+                    globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(exprNode.toString())
+                }
+
                 val sb = type == Type(WACCParser.BOOL) || type == Type(WACCParser.CHAR)
                 loadInstruction.add(Load(dstRegister, Register.sp, offset, sb = sb))
             }
