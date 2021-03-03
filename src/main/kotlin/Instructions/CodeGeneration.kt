@@ -202,7 +202,30 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateArrayLitNode(elements: List<ExprNode>): List<Instruction> {
         val arrayLitInstructions = mutableListOf<Instruction>()
 
-        println("Elements: $elements")
+        var typeSize = 4
+        val arraySize = if (elements.isEmpty()) {
+            4
+        } else {
+            typeSize = getExprParameterOffset(elements[0])
+            4 + elements.size * typeSize
+        }
+
+        // Instructions for allocating space for array
+        arrayLitInstructions.add(Load(Register.r0, arraySize))
+        arrayLitInstructions.add(Branch("malloc", true))
+        arrayLitInstructions.add(Move(Register.r4, Register.r0))
+
+        // Add each element
+        var count = 0
+        for (expr in elements) {
+            count++
+            arrayLitInstructions.addAll(generateExpr(expr, Register.r5))
+            arrayLitInstructions.add(Store(Register.r5, Register.r4, count * typeSize))
+        }
+
+        // Add the size of the array
+        arrayLitInstructions.add(Load(Register.r5, count))
+        arrayLitInstructions.add(Store(Register.r5, Register.r4))
 
         return arrayLitInstructions
     }
@@ -391,7 +414,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 }))
             }
             is Ident -> {
-                println(exprNode)
                 val type = globalSymbolTable.getNodeGlobal(exprNode.toString())!!
                 val offset = if (type.isParameter()) {
                     globalSymbolTable.getStackOffset(exprNode.toString())
