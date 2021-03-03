@@ -408,7 +408,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         val type = globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
         arrayElemInstructions.add(Add(Register.r4, Register.r4, ImmOp(4)))
-        // ADD r4, r4, r5, LSL #2
+        if (type.getTypeSize() == 1) {
+            arrayElemInstructions.add(Add(Register.r4, Register.r4, RegOp(Register.r5)))
+        } else {
+            arrayElemInstructions.add(Add(Register.r4, Register.r4, ShiftInstruction(Register.r5, ShiftType.LSL, 2)))
+        }
         arrayElemInstructions.add(Load(Register.r4, Register.r4, sb = type.getTypeSize() == 1))
 
         return arrayElemInstructions
@@ -519,13 +523,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val list = mutableListOf<Instruction>()
         var operand1 = reg
         var pop = false
-        if (operand1 >= Register.r10){
+        if (operand1 >= Register.r10) {
             pop = true
             operand1 = Register.r10
-            list.addAll(generateExpr(binOp.expr1,operand1))
+            list.addAll(generateExpr(binOp.expr1, operand1))
             list.add(Push(mutableListOf(Register.r10)))
         } else {
-            list.addAll(generateExpr(binOp.expr1,operand1))
+            list.addAll(generateExpr(binOp.expr1, operand1))
         }
         var operand2 = operand1.nextAvailable()
         if (operand2 >= Register.r10) operand2 = Register.r10
@@ -533,7 +537,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         list.addAll(expr2)
 
         var dstRegister = operand1
-        if (pop){
+        if (pop) {
             list.add(Pop(mutableListOf(Register.r11)))
             dstRegister = operand2
             operand1 = Register.r11
@@ -550,7 +554,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
             BinOp.MUL -> {
                 list.add(Multiply(operand1, operand2, operand1, operand2, true))
-                list.add(Compare(operand2, ArithmeticShiftRight(reg, 31)))
+                list.add(Compare(operand2, ArithmeticShiftRight(operand1, 31)))
                 list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
             }
 

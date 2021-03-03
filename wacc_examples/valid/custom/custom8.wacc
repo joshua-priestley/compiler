@@ -7,6 +7,6 @@
 # Program:
 
 begin
-  bool[] b = [true, false, true] ;
-  bool c = b[1]
+  char[] b = ['a', 'b', 'c'] ;
+  char c = b[1]
 end
