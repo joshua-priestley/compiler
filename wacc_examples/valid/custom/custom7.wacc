@@ -8,5 +8,6 @@
 
 begin
   int[] x = [4, 3, 2] ;
-  int y = len x
+  int z = 3 ;
+  int y = x[0]
 end

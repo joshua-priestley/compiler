@@ -212,6 +212,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         // Instructions for allocating space for array
         arrayLitInstructions.add(Load(Register.r0, arraySize))
+        // TODO Data Segments
         arrayLitInstructions.add(Branch("malloc", true))
         arrayLitInstructions.add(Move(Register.r4, Register.r0))
 
@@ -345,8 +346,32 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is LiterNode -> generateLiterNode(expr, reg)
             is BinaryOpNode -> generateBinOp(expr, reg)
             is UnaryOpNode -> generateUnOp(expr, reg)
+            is ArrayElem -> generateArrayElem(expr, reg)
             else -> emptyList()
         }
+    }
+
+    private fun generateArrayElem(expr: ArrayElem, reg: Register): List<Instruction> {
+        // TODO im not sure if this will work with arrays from parameters
+        val arrayElemInstructions = mutableListOf<Instruction>()
+        println("Array: $expr")
+        val offset = globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(expr.ident.toString())
+
+        // TODO Registers dont work correctly - need to implement next register section
+        arrayElemInstructions.add(Add(Register.r4, Register.sp, offset))
+        arrayElemInstructions.addAll(generateExpr(expr.expr[0], Register.r5))
+        arrayElemInstructions.add(Load(Register.r4, Register.r4))
+
+        arrayElemInstructions.add(Move(Register.r0, Register.r5))
+        arrayElemInstructions.add(Move(Register.r1, Register.r4))
+        // TODO Data Segments
+        arrayElemInstructions.add(Branch("p_check_array_bounds", true))
+
+        arrayElemInstructions.add(Add(Register.r4, Register.r4, 4))
+        // ADD r4, r4, r5, LSL #2
+        arrayElemInstructions.add(Load(Register.r4, Register.r4))
+
+        return arrayElemInstructions
     }
 
     private fun generateSeq(stat: SequenceNode): List<Instruction> {
