@@ -202,7 +202,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val pairAccessInstructions = mutableListOf<Instruction>()
         val first = rhs.pairElem is FstExpr
 
-        val offset = getStackOffsetValue((rhs.pairElem as FstExpr).expr.toString())
+        val offset = if (first) {
+            getStackOffsetValue((rhs.pairElem as FstExpr).expr.toString())
+        } else {
+            getStackOffsetValue((rhs.pairElem as SndExpr).expr.toString())
+
+        }
         pairAccessInstructions.add(Load(Register.r4, Register.sp, offset))
         pairAccessInstructions.add(Move(Register.r0, Register.r4))
         pairAccessInstructions.add(Branch("p_check_null_pointer", true))
