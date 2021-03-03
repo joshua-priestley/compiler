@@ -360,7 +360,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is Ident -> {
                 val offset = globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(exprNode.toString())
                 val type = globalSymbolTable.getNodeGlobal(exprNode.toString())!!
-                val sb = type == Type(WACCParser.BOOL)
+                val sb = type == Type(WACCParser.BOOL) || type == Type(WACCParser.CHAR)
                 loadInstruction.add(Load(dstRegister, Register.sp, offset, sb = sb))
             }
         }
