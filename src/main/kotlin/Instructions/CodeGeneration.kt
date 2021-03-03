@@ -192,7 +192,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             assignInstructions.addAll(generateExpr(stat.rhs.expr))
         }
         if (stat.lhs is AssignLHSIdentNode) {
-            assignInstructions.add(Store(Register.r4, Register.sp, globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.lhs.ident.toString())))
+            val type = globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString())!!
+            val byte : Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
+            assignInstructions.add(Store(Register.r4, Register.sp, globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.lhs.ident.toString()),byte = byte))
         }
 
         return assignInstructions
@@ -206,7 +208,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         } else if (stat.value is RHSExprNode) {
             declareInstructions.addAll(generateExpr(stat.value.expr))
         }
-        declareInstructions.add(Store(Register.r4, Register.sp, globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.ident.toString())))
+        val type = globalSymbolTable.getNodeGlobal(stat.ident.toString())!!
+        val byte : Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
+        declareInstructions.add(Store(Register.r4, Register.sp, globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.ident.toString()), byte = byte))
 
         return declareInstructions
     }
@@ -362,6 +366,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun nextLabel(): String {
         return "L${labelCounter++}"
+    }
+    private fun generateUnOp(unOp: UnaryOpNode, reg: Register = Register.r4): List<Instruction>{
+        TODO()
     }
 
     private fun generateBinOp(binOp: BinaryOpNode, reg: Register = Register.r4): List<Instruction> {
