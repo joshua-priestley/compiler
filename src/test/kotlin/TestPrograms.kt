@@ -70,13 +70,15 @@ class TestPrograms {
         // Run QEMU on the created executable file
         val qemu = ProcessBuilder("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", executableName).start()
 
-        val sb = StringBuilder()
-        qemu.inputStream.reader(Charsets.UTF_8).use {
-            sb.append(it.readText())
+        // Read the content produced by qemu
+        val outputContent = StringBuilder()
+        qemu.inputStream.reader().use {
+            outputContent.append(it.readText())
         }
 
         val exitCode = qemu.waitFor().toString()
 
+        // Contact the reference compiler using Fuel and gson
         val referenceCompiler = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
             .add(FileDataPart(inputFile, "testfile", inputFile.name, "text/plain"))
             .add(InlineDataPart("-x","options[]"))
@@ -92,7 +94,7 @@ class TestPrograms {
         val output = referenceCompiler!!.compiler_out.
                         split("===========================================================").toTypedArray()
         val exitCodeRef = output[2].split(" ").toTypedArray()[4].split(".").toTypedArray()
-        assertEquals(output[1], "\n" + sb)
+        assertEquals(output[1], "\n" + outputContent)
         assertEquals(exitCodeRef[0], exitCode)
     }
 }
