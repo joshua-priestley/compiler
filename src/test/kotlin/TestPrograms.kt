@@ -52,6 +52,8 @@ class TestPrograms {
                 sb.append(it.readText())
             }
 
+            println("printing:    kkfkkfkfkfkfkfkfkf $sb")
+
             val x = process.waitFor()
             println("EXIITITITITITI CODE ISSSS: ${x}")
 
@@ -60,8 +62,6 @@ class TestPrograms {
                 .add(InlineDataPart("-x","options[]"))
                 .responseObject<CompilerReply>(gson).third
                 .component1()
-
-            println(sb.toString())
 
             if (a != null) {
                 val strs = a.compiler_out.split("===========================================================").toTypedArray()
