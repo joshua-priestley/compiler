@@ -76,7 +76,7 @@ class TestPrograms {
                 val exit = strs[2].split(" ").toTypedArray()[4].split(".").toTypedArray()
                 println(exit[0])
                 assertEquals(strs[1], "\n" + sb)
-                assertEquals(exit[0], x)
+                assertEquals(exit[0], x.toString())
             }
 
         }
