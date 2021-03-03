@@ -8,6 +8,5 @@
 
 begin
   int x = 4 ;
-  int y = 6 ;
-  int z = 3
+  exit x
 end

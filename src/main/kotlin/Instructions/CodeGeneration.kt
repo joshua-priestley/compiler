@@ -335,8 +335,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         if (exitNode.expr is IntLiterNode) {
             exitInstruction.add(Load(Register.r4, exitNode.expr.value.toInt()))
         } else if (exitNode.expr is Ident) {
-            // TODO
-            // Get variable's value from stack
+            val type = globalSymbolTable.getNodeGlobal(exitNode.expr.toString())!!
+            val offset = if (type.isParameter()) {
+                globalSymbolTable.getStackOffset(exitNode.expr.toString())
+            } else {
+                globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(exitNode.expr.toString())
+            }
+            exitInstruction.add(Load(Register.r4, Register.sp, offset))
         }
 
         exitInstruction.add(Move(Register.r0, Register.r4))
