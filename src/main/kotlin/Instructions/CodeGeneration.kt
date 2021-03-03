@@ -554,7 +554,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
             BinOp.MUL -> {
                 list.add(Multiply(operand1, operand2, operand1, operand2, true))
-                list.add(Compare(operand2, ArithmeticShiftRight(reg, 31)))
+                list.add(Compare(operand2, ArithmeticShiftRight(operand1, 31)))
                 list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
             }
 
