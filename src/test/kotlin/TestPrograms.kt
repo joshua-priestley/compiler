@@ -42,7 +42,7 @@ class TestPrograms {
             val assemblyName = inputFile.canonicalPath.replace(".wacc", ".s");
             val executableName = inputFile.canonicalPath.replace(".wacc", "");
 
-            val createExecutable = Runtime.getRuntime()
+            Runtime.getRuntime()
                 .exec("arm-linux-gnueabi-gcc -o $executableName -mcpu=arm1176jzf-s -mtune=arm1176jzf-s $assemblyName").waitFor()
 
             println("Does the .s file exist? ${File(assemblyName).exists()} $assemblyName")
@@ -67,14 +67,16 @@ class TestPrograms {
                 .responseObject<CompilerReply>(gson).third
                 .component1()
 
+            // Done with the files. Delete them.
+            File(assemblyName).delete()
+            File(executableName).delete()
+
             if (a != null) {
                 val strs = a.compiler_out.split("===========================================================").toTypedArray()
                 println(strs[1])
                 assertEquals(strs[1], "\n" + sb)
             }
 
-//            File(assemblyName).delete()
-//            File(executableName).delete()
         }
     }
 
