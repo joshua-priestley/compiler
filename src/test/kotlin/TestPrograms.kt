@@ -11,6 +11,8 @@ import org.junit.jupiter.api.DynamicTest
 import java.io.File
 import java.lang.StringBuilder
 
+data class RefCompileData(val testName: String, val uploadFileContent: String, val compilerOutput: String)
+
 class TestPrograms {
     private val testDirsPath = "./src/test/kotlin/testDirs"
     private val examplesPath = "./wacc_examples/"
@@ -98,5 +100,3 @@ class TestPrograms {
         }
     }
 }
-
-data class RefCompileData(val testName: String, val uploadFileContent: String, val compilerOutput: String)
