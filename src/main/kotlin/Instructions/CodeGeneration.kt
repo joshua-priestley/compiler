@@ -185,23 +185,39 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return callInstructions
     }
 
+    private fun generateRHSNode(rhs: AssignRHSNode): List<Instruction> {
+        val rhsInstruction = mutableListOf<Instruction>()
+        if (rhs is RHSCallNode) {
+            rhsInstruction.addAll(generateCallNode(rhs))
+        } else if (rhs is RHSExprNode) {
+            rhsInstruction.addAll(generateExpr(rhs.expr))
+        }
+
+        return rhsInstruction
+    }
+
+    private fun loadIdentValue(ident: Ident): List<Instruction> {
+        val loadInstructions = mutableListOf<Instruction>()
+
+        val type = globalSymbolTable.getNodeGlobal(ident.toString())!!
+        val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
+        val offset = if (type.isParameter()) {
+            globalSymbolTable.getStackOffset(ident.toString())
+        } else {
+            globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(ident.toString())
+        }
+        loadInstructions.add(Store(Register.r4, Register.sp, offset, byte = byte))
+
+        return loadInstructions
+    }
+
     private fun generateAssign(stat: AssignNode): List<Instruction> {
         val assignInstructions = mutableListOf<Instruction>()
 
-        if (stat.rhs is RHSCallNode) {
-            assignInstructions.addAll(generateCallNode(stat.rhs))
-        } else if (stat.rhs is RHSExprNode) {
-            assignInstructions.addAll(generateExpr(stat.rhs.expr))
-        }
+        assignInstructions.addAll(generateRHSNode(stat.rhs))
+
         if (stat.lhs is AssignLHSIdentNode) {
-            val type = globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString())!!
-            val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
-            val offset = if (type.isParameter()) {
-                globalSymbolTable.getStackOffset(stat.lhs.ident.toString())
-            } else {
-                globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.lhs.ident.toString())
-            }
-            assignInstructions.add(Store(Register.r4, Register.sp, offset, byte = byte))
+            assignInstructions.addAll(loadIdentValue(stat.lhs.ident))
         }
 
         return assignInstructions
@@ -210,19 +226,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateDeclaration(stat: DeclarationNode): List<Instruction> {
         val declareInstructions = mutableListOf<Instruction>()
 
-        if (stat.value is RHSCallNode) {
-            declareInstructions.addAll(generateCallNode(stat.value))
-        } else if (stat.value is RHSExprNode) {
-            declareInstructions.addAll(generateExpr(stat.value.expr))
-        }
-        val type = globalSymbolTable.getNodeGlobal(stat.ident.toString())!!
-        val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
-        val offset = if (type.isParameter()) {
-            globalSymbolTable.getStackOffset(stat.ident.toString())
-        } else {
-            globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(stat.ident.toString())
-        }
-        declareInstructions.add(Store(Register.r4, Register.sp, offset, byte = byte))
+        declareInstructions.addAll(generateRHSNode(stat.value))
+        declareInstructions.addAll(loadIdentValue(stat.ident))
 
         return declareInstructions
     }
@@ -409,6 +414,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             UnOp.LEN -> {
                 list.add(Load(Register.r4, reg))
             }
+            else -> throw Error("Does not exist")
         }
         return list
     }
@@ -509,10 +515,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is Ident -> globalSymbolTable.getNodeGlobal(expr.toString())
             is ArrayElem -> {
                 val type = globalSymbolTable.getNodeGlobal(expr.ident.toString())
-                // TODO fix npe to do with scoping in:
-                // wacc_examples/valid/scope/printAllTypes.wacc
-                // set global symbol table to child when visiting begin/end node?
-                // but which child table do we set it to?
                 return type?.getBaseType() ?: Type(INVALID)
             }
             is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value)
