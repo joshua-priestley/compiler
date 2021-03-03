@@ -415,27 +415,28 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateArrayElem(expr: ArrayElem, reg: Register): List<Instruction> {
         val arrayElemInstructions = mutableListOf<Instruction>()
         val offset = getStackOffsetValue(expr.ident.toString())
+        val reg2 = reg.nextAvailable()
         // TODO Registers dont work correctly - need to implement next register section
         var type: Type? = null
-        arrayElemInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
+        arrayElemInstructions.add(Add(reg, Register.sp, ImmOp(offset)))
         for (element in expr.expr) {
-            arrayElemInstructions.addAll(generateExpr(element, Register.r5))
-            arrayElemInstructions.add(Load(Register.r4, Register.r4))
+            arrayElemInstructions.addAll(generateExpr(element, reg2))
+            arrayElemInstructions.add(Load(reg, reg))
 
-            arrayElemInstructions.add(Move(Register.r0, Register.r5))
-            arrayElemInstructions.add(Move(Register.r1, Register.r4))
+            arrayElemInstructions.add(Move(Register.r0, reg2))
+            arrayElemInstructions.add(Move(Register.r1, reg))
             arrayElemInstructions.add(Branch(predefined.addFunc(CheckArrayBounds()), true))
 
             type = globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
-            arrayElemInstructions.add(Add(Register.r4, Register.r4, ImmOp(4)))
+            arrayElemInstructions.add(Add(reg, reg, ImmOp(4)))
             if (type.getTypeSize() == 1) {
-                arrayElemInstructions.add(Add(Register.r4, Register.r4, Register.r5))
+                arrayElemInstructions.add(Add(reg, reg, reg2))
             } else {
-                arrayElemInstructions.add(Add(Register.r4, Register.r4, LogicalShiftLeft(Register.r5, 2)))
+                arrayElemInstructions.add(Add(reg, reg, LogicalShiftLeft(reg2, 2)))
             }
         }
         if (type != null) {
-            arrayElemInstructions.add(Load(Register.r4, Register.r4, sb = type.getTypeSize() == 1))
+            arrayElemInstructions.add(Load(reg, reg, sb = type.getTypeSize() == 1))
         }
 
         return arrayElemInstructions
