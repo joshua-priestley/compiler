@@ -11,8 +11,6 @@ import org.junit.jupiter.api.DynamicTest
 import java.io.File
 import java.lang.StringBuilder
 
-data class CompilerOutput(val testName: String, val uploadFileContent: String, val compilerOutput: String)
-
 class TestPrograms {
     private val testDirsPath = "./src/test/kotlin/testDirs"
     private val examplesPath = "./wacc_examples/"
@@ -80,7 +78,7 @@ class TestPrograms {
         val exitCode = qemu.waitFor()
 
         val referenceCompiler = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
-            .add(FileDataPart(inputFile, "testfile", inputFile.name, "application/octet-stream"))
+            .add(FileDataPart(inputFile, "testfile", inputFile.name, "text/plain"))
             .add(InlineDataPart("-x","options[]"))
             .responseObject<CompilerOutput>(gson).third
             .component1()
@@ -88,11 +86,11 @@ class TestPrograms {
         assert(referenceCompiler != null)
 
         // Done with the files. Delete them.
-        File(assemblyName).delete()
-        File(executableName).delete()
+        assemblyFile.delete()
+        executableFile.delete()
 
         if (referenceCompiler != null) {
-            val output = referenceCompiler.compilerOutput.
+            val output = referenceCompiler.compiler_out.
                         split("===========================================================").toTypedArray()
             val exit = output[2].split(" ").toTypedArray()[4].split(".").toTypedArray()
             assertEquals(output[1], "\n" + sb)
@@ -100,3 +98,5 @@ class TestPrograms {
         }
     }
 }
+
+data class CompilerOutput(val test: String, val upload: String, val compiler_out: String)
