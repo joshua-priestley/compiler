@@ -11,7 +11,7 @@ import org.junit.jupiter.api.DynamicTest
 import java.io.File
 import java.lang.StringBuilder
 
-data class CompilerReply(val test: String, val upload: String, val compiler_out: String)
+data class CompilerOutput(val test: String, val upload: String, val compiler_out: String)
 
 class TestPrograms {
     private val testDirsPath = "./src/test/kotlin/testDirs"
@@ -82,7 +82,7 @@ class TestPrograms {
         val referenceCompiler = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
             .add(FileDataPart(inputFile, "testfile", inputFile.name, "application/octet-stream"))
             .add(InlineDataPart("-x","options[]"))
-            .responseObject<CompilerReply>(gson).third
+            .responseObject<CompilerOutput>(gson).third
             .component1()
 
         assert(referenceCompiler != null)
