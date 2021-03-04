@@ -68,15 +68,18 @@ class TestPrograms {
         val stdinDataName = "./wacc_examples/inputs/${inputFile.name.replace(".wacc", ".input")}"
 
         var stdin = ""
+        var path = ""
         if(File(stdinDataName).exists()) {
             stdin = File(stdinDataName).readText()
+            path = File(stdinDataName).canonicalPath
         }
 
         println(stdin)
+        println(path)
 
         // Run QEMU on the created executable file
         val t = ProcessBuilder()
-        t.command("/bin/sh", "-c", "qemu-arm -L /usr/arm-linux-gnueabi/ $assemblyName < $stdinDataName");
+        t.command("qemu-arm -L /usr/arm-linux-gnueabi/ $assemblyName < $path");
         val qemu = t.start()
         val exitCode = qemu.waitFor().toString()
 
