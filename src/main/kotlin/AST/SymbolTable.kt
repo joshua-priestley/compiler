@@ -100,8 +100,6 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
         }
 
         // Now in the scope that has the variable we want
-        println("Offset: $offset")
-        println("Offset in Table: ${offsetInTable(name)}")
         return offset + offsetInTable(name)
     }
 
