@@ -125,6 +125,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generatePrint(stat: PrintNode): List<Instruction> {
+        assign = true
         val printInstruction = mutableListOf<Instruction>()
         printInstruction.addAll(generateExpr(stat.expr))
         printInstruction.add(Move(Register.r0, Register.r4))
@@ -138,12 +139,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
 
         printInstruction.add(Branch(funcName, true))
-
+        assign = false
         return printInstruction
     }
 
     private fun generateRead(stat: ReadNode): List<Instruction> {
         val readInstructions = mutableListOf<Instruction>()
+        assign = true
 
         val expr: ExprNode = when (stat.lhs) {
             is LHSPairElemNode -> {
@@ -153,6 +155,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is AssignLHSIdentNode -> {
                 val offset = getStackOffsetValue(stat.lhs.ident.toString())
                 //TODO change value of register
+                println(offset)
                 readInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
                 stat.lhs.ident
             }
@@ -164,6 +167,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
             else -> throw Error("Does not exist")
         }
+        assign = false
 
         val type = getType(expr)
         readInstructions.add(Move(Register.r0, Register.r4))
