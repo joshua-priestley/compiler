@@ -126,9 +126,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generatePrintln(stat: PrintlnNode): List<Instruction> {
+        assign = true
         val instructions = mutableListOf<Instruction>()
         instructions.addAll(generatePrint(PrintNode(stat.expr)))
         instructions.add(Branch(predefined.addFunc(PrintLn()), true))
+        assign = false
         return instructions
     }
 
@@ -242,7 +244,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is RHSCallNode -> {
                 rhsInstruction.addAll(generateCallNode(rhs))
             }
-            is RHSExprNode -> rhsInstruction.addAll(generateExpr(rhs.expr))
+            is RHSExprNode -> rhsInstruction.addAll(generateExpr(rhs.expr,reg))
             is RHSArrayLitNode -> rhsInstruction.addAll(generateArrayLitNode(rhs.exprs, reg))
             is RHSNewPairNode -> rhsInstruction.addAll(generateNewPair(rhs))
             is RHSPairElemNode -> rhsInstruction.addAll(generatePairAccess(rhs.pairElem, false))
@@ -489,11 +491,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateArrayElem(expr: ArrayElem, reg: Register): List<Instruction> {
         val arrayElemInstructions = mutableListOf<Instruction>()
         val offset = getStackOffsetValue(expr.ident.toString())
-        val reg2 = reg.nextAvailable()
+        var reg2 = reg.nextAvailable()
         // TODO Registers dont work correctly - need to implement next register section
         var type: Type? = null
         arrayElemInstructions.add(Add(reg, Register.sp, ImmOp(offset)))
         for (element in expr.expr) {
+            reg2 = reg2.nextAvailable()
             arrayElemInstructions.addAll(generateExpr(element, reg2))
             arrayElemInstructions.add(Load(reg, reg))
 
