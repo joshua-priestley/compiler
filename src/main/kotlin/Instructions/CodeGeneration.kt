@@ -126,16 +126,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generatePrintln(stat: PrintlnNode): List<Instruction> {
-        assign = true
         val instructions = mutableListOf<Instruction>()
         instructions.addAll(generatePrint(PrintNode(stat.expr)))
         instructions.add(Branch(predefined.addFunc(PrintLn()), true))
-        assign = false
         return instructions
     }
 
     private fun generatePrint(stat: PrintNode): List<Instruction> {
-        assign = true
         val printInstruction = mutableListOf<Instruction>()
         printInstruction.addAll(generateExpr(stat.expr))
         printInstruction.add(Move(Register.r0, Register.r4))
@@ -149,7 +146,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
 
         printInstruction.add(Branch(funcName, true))
-        assign = false
         return printInstruction
     }
 
@@ -365,11 +361,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return lhsInstructions
     }
 
-    private fun generateAssign(stat: AssignNode, reg: Register = Register.r5): List<Instruction> {
+    private fun generateAssign(stat: AssignNode, reg: Register = Register.r4): List<Instruction> {
         assign = true
         val assignInstructions = mutableListOf<Instruction>()
-        assignInstructions.addAll(generateRHSNode(stat.rhs, reg.nextAvailable()))
-        assignInstructions.addAll(generateLHSAssign(stat.lhs, reg))
+        assignInstructions.addAll(generateRHSNode(stat.rhs, reg))
+        assignInstructions.addAll(generateLHSAssign(stat.lhs, reg.nextAvailable()))
         assign = false
         return assignInstructions
     }
@@ -494,9 +490,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         var reg2 = reg.nextAvailable()
         // TODO Registers dont work correctly - need to implement next register section
         var type: Type? = null
+        if (!assign) reg2 = reg2.nextAvailable()
         arrayElemInstructions.add(Add(reg, Register.sp, ImmOp(offset)))
         for (element in expr.expr) {
-            reg2 = reg2.nextAvailable()
+
+            println("Expression: ${element}, Register: $reg2")
             arrayElemInstructions.addAll(generateExpr(element, reg2))
             arrayElemInstructions.add(Load(reg, reg))
 
