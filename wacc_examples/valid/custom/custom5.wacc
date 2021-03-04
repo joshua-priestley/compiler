@@ -8,6 +8,7 @@
 
 begin
   int inc(int a, bool a1, int a2) is
+    int g = 3 ;
     return a2 + 1
   end
   int x = 0 ;

@@ -1,0 +1,19 @@
+# Whitespace only important between keyword and variable tokens
+
+# Output:
+# 1
+
+# Program:
+
+begin
+  int a=13;
+  int b = 4;
+  int c = 4;
+  if a==13 then
+    int d = 4;
+    a=1
+  else
+    a=0
+  fi;
+  println a
+end

@@ -7,5 +7,11 @@
 # Program:
 
 begin
-  pair(bool, bool) p = newpair(false, true)
+  int thing(pair(bool, bool) t) is
+    int x = 3 ;
+    bool r = fst t ;
+    return x
+  end
+  pair(bool, bool) p = newpair(true, false) ;
+  int x = call thing(p)
 end

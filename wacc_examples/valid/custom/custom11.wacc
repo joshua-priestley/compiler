@@ -1,0 +1,21 @@
+# Whitespace only important between keyword and variable tokens
+
+# Output:
+# 1
+
+# Program:
+
+begin
+  int x = 4 ;
+  if true
+  then
+      if true
+      then
+        x = 1
+      else
+        x = 2
+      fi
+  else
+    x = 3
+  fi
+end

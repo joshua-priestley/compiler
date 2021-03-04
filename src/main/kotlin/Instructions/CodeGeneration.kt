@@ -3,16 +3,25 @@ package compiler.Instructions
 import AST.*
 import antlr.WACCParser
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.max
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private val currentSymbolID = AtomicInteger()
+
+    private var inIfStatement = false
+    private var stackToAdd = 0
+    private var assign = false
 
     private var labelCounter = 0
     private val data: DataSegment = DataSegment()
     private val predefined: PredefinedFuncs = PredefinedFuncs(data)
 
+
+    companion object {
+        private const val MAX_SIZE = 1024
+    }
+
     fun generateProgram(program: ProgramNode): List<Instruction> {
-        globalSymbolTable.printEntries()
         val labelInstructions = mutableListOf<Instruction>()
         labelInstructions.add(GlobalLabel("text"))
         labelInstructions.add(GlobalLabel("global main"))
@@ -57,15 +66,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         val spOffset = globalSymbolTable.localStackSize()
 
-        if (spOffset > 0 && main) {
-            instructions.add(Sub(Register.sp, Register.sp, spOffset))
+        if (spOffset > 0) {
+            instructions.addAll(growStack(spOffset))
         }
 
         // Generate all the statements
         instructions.addAll(generateStat(stat))
 
-        if (spOffset > 0 && main) {
-            instructions.add(Add(Register.sp, Register.sp, spOffset))
+        if (spOffset > 0) {
+            instructions.addAll(shrinkStack(spOffset))
         }
 
         // LDR r0, =0
@@ -96,27 +105,35 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is PrintlnNode -> generatePrintln(stat)// TODO
             is IfElseNode -> generateIf(stat)
             is WhileNode -> generateWhile(stat)
-            is BeginEndNode -> {
-                globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
-                val statInstructions = generateStat(stat.stat)
-                globalSymbolTable = globalSymbolTable.parentT!!
-                statInstructions
-            }
+            is BeginEndNode -> generateBegin(stat)
             is SequenceNode -> generateSeq(stat)
             else -> throw Error("Should not get here")
         }
     }
 
+    private fun generateBegin(stat: BeginEndNode): List<Instruction> {
+        val beginInstructions = mutableListOf<Instruction>()
+        stackToAdd += globalSymbolTable.localStackSize()
+        globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
+        stackToAdd += globalSymbolTable.localStackSize()
+        if (globalSymbolTable.localStackSize() > 0) beginInstructions.addAll(growStack(globalSymbolTable.localStackSize()))
+        beginInstructions.addAll(generateStat(stat.stat))
+        if (globalSymbolTable.localStackSize() > 0) beginInstructions.addAll(shrinkStack(globalSymbolTable.localStackSize()))
+        stackToAdd -= globalSymbolTable.localStackSize()
+        globalSymbolTable = globalSymbolTable.parentT!!
+        stackToAdd -= globalSymbolTable.localStackSize()
+        return beginInstructions
+    }
+
     private fun generatePrintln(stat: PrintlnNode): List<Instruction> {
-        // TODO find better way of arranging things to make adding the branch cleaner
         val instructions = mutableListOf<Instruction>()
         instructions.addAll(generatePrint(PrintNode(stat.expr)))
-        val funcName = predefined.addFunc(PrintLn())
-        instructions.add(Branch(funcName, true))
+        instructions.add(Branch(predefined.addFunc(PrintLn()), true))
         return instructions
     }
 
     private fun generatePrint(stat: PrintNode): List<Instruction> {
+        assign = true
         val printInstruction = mutableListOf<Instruction>()
         printInstruction.addAll(generateExpr(stat.expr))
         printInstruction.add(Move(Register.r0, Register.r4))
@@ -126,16 +143,49 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             Type(WACCParser.STRING) -> predefined.addFunc(PrintString())
             Type(WACCParser.BOOL) -> predefined.addFunc(PrintBool())
             Type(WACCParser.CHAR) -> "putchar"
-            else -> "dummy string"// TODO Handle reference printing
+            else -> predefined.addFunc(PrintReference())
         }
 
         printInstruction.add(Branch(funcName, true))
-
+        assign = false
         return printInstruction
     }
 
     private fun generateRead(stat: ReadNode): List<Instruction> {
-        return emptyList()
+        val readInstructions = mutableListOf<Instruction>()
+        assign = true
+
+        val expr: ExprNode = when (stat.lhs) {
+            is LHSPairElemNode -> {
+                readInstructions.addAll(generatePairAccess(stat.lhs.pairElem, true))
+                stat.lhs.pairElem.expr
+            }
+            is AssignLHSIdentNode -> {
+                val offset = getStackOffsetValue(stat.lhs.ident.toString())
+                //TODO change value of register
+                println(offset)
+                readInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
+                stat.lhs.ident
+            }
+            is LHSArrayElemNode -> {
+                val offset = getStackOffsetValue(stat.lhs.arrayElem.ident.toString())
+                //TODO change value of register
+                readInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
+                stat.lhs.arrayElem
+            }
+            else -> throw Error("Does not exist")
+        }
+        assign = false
+
+        val type = getType(expr)
+        readInstructions.add(Move(Register.r0, Register.r4))
+
+        if (type == Type(WACCParser.CHAR)) {
+            readInstructions.add(Branch(predefined.addFunc(ReadChar()), true))
+        } else {
+            readInstructions.add(Branch(predefined.addFunc(ReadInt()), true))
+        }
+        return readInstructions
     }
 
     private fun getExprParameterOffset(expr: ExprNode): Int {
@@ -163,40 +213,72 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generateCallNode(call: RHSCallNode): List<Instruction> {
         val callInstructions = mutableListOf<Instruction>()
-        if (call.argList.isNullOrEmpty()) return callInstructions
-        val parameters = call.argList.reversed()
-
         var totalOffset = 0
-        for (param in parameters) {
-            callInstructions.addAll(generateExpr(param))
-            val offset = getExprParameterOffset(param)
-            totalOffset += offset
-            assert(offset != 0)
-            val byte = offset == 1
-            callInstructions.add(Store(Register.r4, Register.sp, offset * -1, parameter = true, byte = byte))
+        if (!call.argList.isNullOrEmpty()) {
+            val parameters = call.argList.reversed()
+
+            for (param in parameters) {
+                callInstructions.addAll(generateExpr(param))
+                val offset = getExprParameterOffset(param)
+                totalOffset += offset
+                assert(offset != 0)
+                val byte = offset == 1
+                callInstructions.add(Store(Register.r4, Register.sp, offset * -1, parameter = true, byte = byte))
+            }
         }
 
         val functionName = "f_${call.ident.name}"
         callInstructions.add(Branch(functionName, true))
-        if (totalOffset != 0) callInstructions.add(Add(Register.sp, Register.sp, totalOffset))
+        if (totalOffset != 0) callInstructions.add(Add(Register.sp, Register.sp, ImmOp(totalOffset)))
 
         callInstructions.add(Move(Register.r4, Register.r0))
 
         return callInstructions
     }
 
-    private fun generateRHSNode(rhs: AssignRHSNode): List<Instruction> {
+    private fun generateRHSNode(rhs: AssignRHSNode, reg: Register = Register.r5): List<Instruction> {
         val rhsInstruction = mutableListOf<Instruction>()
         when (rhs) {
-            is RHSCallNode -> rhsInstruction.addAll(generateCallNode(rhs))
+            is RHSCallNode -> {
+                rhsInstruction.addAll(generateCallNode(rhs))
+            }
             is RHSExprNode -> rhsInstruction.addAll(generateExpr(rhs.expr))
-            is RHSArrayLitNode -> rhsInstruction.addAll(generateArrayLitNode(rhs.exprs))
+            is RHSArrayLitNode -> rhsInstruction.addAll(generateArrayLitNode(rhs.exprs, reg))
             is RHSNewPairNode -> rhsInstruction.addAll(generateNewPair(rhs))
-            is RHSPairElemNode -> 1 + 2
+            is RHSPairElemNode -> rhsInstruction.addAll(generatePairAccess(rhs.pairElem, false))
             else -> throw Error("Does not exist")
         }
 
         return rhsInstruction
+    }
+
+    private fun generatePairAccess(pairElem: PairElemNode, assign: Boolean, reg: Register = Register.r4): List<Instruction> {
+        val pairAccessInstructions = mutableListOf<Instruction>()
+        val first = pairElem is FstExpr
+
+        val offset = if (first) {
+            getStackOffsetValue((pairElem as FstExpr).expr.toString())
+        } else {
+            getStackOffsetValue((pairElem as SndExpr).expr.toString())
+
+        }
+        pairAccessInstructions.add(Load(reg, Register.sp, offset))
+        pairAccessInstructions.add(Move(Register.r0, reg))
+        pairAccessInstructions.add(Branch(predefined.addFunc(CheckNullPointer()), true))
+
+        val type = if (first) {
+            globalSymbolTable.getNodeGlobal(((pairElem) as FstExpr).expr.toString())!!.getPairFst()
+        } else {
+            globalSymbolTable.getNodeGlobal(((pairElem) as SndExpr).expr.toString())!!.getPairSnd()
+        }
+
+        pairAccessInstructions.add(Load(reg, reg, if (first) 0 else 4))
+        if (assign) {
+            pairAccessInstructions.add(Store(Register.r4, reg, byte = type!!.getTypeSize() == 1))
+        } else {
+            pairAccessInstructions.add(Load(Register.r4, Register.r4, sb = type!!.getTypeSize() == 1))
+        }
+        return pairAccessInstructions
     }
 
     private fun addPairElem(elem: ExprNode, second: Boolean = false): List<Instruction> {
@@ -205,7 +287,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         pairElemInstructions.add(Load(Register.r0, getExprParameterOffset(elem)))
         pairElemInstructions.add(Branch("malloc", true))
         pairElemInstructions.add(Store(Register.r5, Register.r0, byte = (getExprParameterOffset(elem) == 1)))
-        pairElemInstructions.add(Store(Register.r0, Register.r4, if (second) 0 else 4))
+        pairElemInstructions.add(Store(Register.r0, Register.r4, if (!second) 0 else 4))
         return pairElemInstructions
     }
 
@@ -223,7 +305,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return newPairInstructions
     }
 
-    private fun generateArrayLitNode(elements: List<ExprNode>): List<Instruction> {
+    private fun generateArrayLitNode(elements: List<ExprNode>, reg: Register = Register.r5): List<Instruction> {
         val arrayLitInstructions = mutableListOf<Instruction>()
 
         var typeSize = 4
@@ -242,42 +324,49 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         // Add each element
         var count = 0
         for (expr in elements) {
+            arrayLitInstructions.addAll(generateExpr(expr, reg))
+            arrayLitInstructions.add(Store(reg, Register.r4, 4 + count * typeSize, byte = typeSize == 1))
             count++
-            arrayLitInstructions.addAll(generateExpr(expr, Register.r5))
-            arrayLitInstructions.add(Store(Register.r5, Register.r4, count * typeSize))
         }
 
         // Add the size of the array
-        arrayLitInstructions.add(Load(Register.r5, count))
-        arrayLitInstructions.add(Store(Register.r5, Register.r4))
+        arrayLitInstructions.add(Load(reg, count))
+        arrayLitInstructions.add(Store(reg, Register.r4))
 
         return arrayLitInstructions
     }
 
     private fun loadIdentValue(ident: Ident): List<Instruction> {
         val loadInstructions = mutableListOf<Instruction>()
-
         val type = globalSymbolTable.getNodeGlobal(ident.toString())!!
         val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
-        val offset = if (type.isParameter()) {
-            globalSymbolTable.getStackOffset(ident.toString())
-        } else {
-            globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(ident.toString())
-        }
+        val offset = getStackOffsetValue(ident.toString())
         loadInstructions.add(Store(Register.r4, Register.sp, offset, byte = byte))
-
         return loadInstructions
     }
 
-    private fun generateAssign(stat: AssignNode): List<Instruction> {
-        val assignInstructions = mutableListOf<Instruction>()
+    private fun generateLHSAssign(lhs: AssignLHSNode, reg: Register): List<Instruction> {
+        val lhsInstructions = mutableListOf<Instruction>()
 
-        assignInstructions.addAll(generateRHSNode(stat.rhs))
-
-        if (stat.lhs is AssignLHSIdentNode) {
-            assignInstructions.addAll(loadIdentValue(stat.lhs.ident))
+        when (lhs) {
+            is AssignLHSIdentNode -> lhsInstructions.addAll(loadIdentValue(lhs.ident))
+            is LHSArrayElemNode -> {
+                lhsInstructions.addAll(generateExpr(lhs.arrayElem, reg))
+            }
+            is LHSPairElemNode -> {
+                lhsInstructions.addAll(generatePairAccess(lhs.pairElem, true, reg))
+            }
         }
 
+        return lhsInstructions
+    }
+
+    private fun generateAssign(stat: AssignNode, reg: Register = Register.r5): List<Instruction> {
+        assign = true
+        val assignInstructions = mutableListOf<Instruction>()
+        assignInstructions.addAll(generateRHSNode(stat.rhs, reg.nextAvailable()))
+        assignInstructions.addAll(generateLHSAssign(stat.lhs, reg))
+        assign = false
         return assignInstructions
     }
 
@@ -292,35 +381,50 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generateIf(stat: IfElseNode): List<Instruction> {
         val ifInstruction = mutableListOf<Instruction>()
+        inIfStatement = true
 
         val elseLabel = nextLabel()
         val endLabel = nextLabel()
 
         // Load up the conditional
+        assign = true
         if (stat.expr is LiterNode) {
             ifInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
         } else {
             ifInstruction.addAll(generateExpr(stat.expr))
         }
+        assign = false
 
         // Compare the conditional
-        ifInstruction.add(Compare(Register.r4, 0))
+        ifInstruction.add(Compare(Register.r4, ImmOp(0)))
         ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
 
         // Then Branch
+        stackToAdd += globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
+        stackToAdd += globalSymbolTable.localStackSize()
+        if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(growStack(globalSymbolTable.localStackSize()))
         ifInstruction.addAll(generateStat(stat.then))
+        if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(shrinkStack(globalSymbolTable.localStackSize()))
         ifInstruction.add(Branch(endLabel, false))
+        stackToAdd -= globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.parentT!!
 
         // Else Branch
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
+        stackToAdd += globalSymbolTable.localStackSize()
         ifInstruction.add(FunctionDeclaration(elseLabel))
+        if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(growStack(globalSymbolTable.localStackSize()))
         ifInstruction.addAll(generateStat(stat.else_))
+        if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(shrinkStack(globalSymbolTable.localStackSize()))
+        stackToAdd -= globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.parentT!!
+
+        stackToAdd -= globalSymbolTable.localStackSize()
 
         ifInstruction.add(FunctionDeclaration(endLabel))
 
+        inIfStatement = false
         return ifInstruction
     }
 
@@ -333,20 +437,28 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         whileInstruction.add(Branch(conditionLabel, false))
 
         // Loop body
+        stackToAdd += globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
+        stackToAdd += globalSymbolTable.localStackSize()
         whileInstruction.add(FunctionDeclaration(bodyLabel))
+        if (globalSymbolTable.localStackSize() > 0) whileInstruction.addAll(growStack(globalSymbolTable.localStackSize()))
         whileInstruction.addAll(generateStat(stat.do_))
+        if (globalSymbolTable.localStackSize() > 0) whileInstruction.addAll(shrinkStack(globalSymbolTable.localStackSize()))
+        stackToAdd -= globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.parentT!!
+        stackToAdd -= globalSymbolTable.localStackSize()
 
         // Conditional
+        assign = true
         whileInstruction.add(FunctionDeclaration(conditionLabel))
         if (stat.expr is LiterNode) {
             whileInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
         } else {
             whileInstruction.addAll(generateExpr(stat.expr))
         }
-        whileInstruction.add(Compare(Register.r4, 1))
+        whileInstruction.add(Compare(Register.r4, ImmOp(1)))
         whileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
+        assign = false
 
         return whileInstruction
     }
@@ -370,29 +482,41 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is BinaryOpNode -> generateBinOp(expr, reg)
             is UnaryOpNode -> generateUnOp(expr, reg)
             is ArrayElem -> generateArrayElem(expr, reg)
+            is PairLiterNode -> mutableListOf(Load(reg, 0))
             else -> emptyList()
         }
     }
 
     private fun generateArrayElem(expr: ArrayElem, reg: Register): List<Instruction> {
-        // TODO im not sure if this will work with arrays from parameters
         val arrayElemInstructions = mutableListOf<Instruction>()
-        val offset = globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(expr.ident.toString())
-
+        val offset = getStackOffsetValue(expr.ident.toString())
+        val reg2 = reg.nextAvailable()
         // TODO Registers dont work correctly - need to implement next register section
-        arrayElemInstructions.add(Add(Register.r4, Register.sp, offset))
-        arrayElemInstructions.addAll(generateExpr(expr.expr[0], Register.r5))
-        arrayElemInstructions.add(Load(Register.r4, Register.r4))
+        var type: Type? = null
+        arrayElemInstructions.add(Add(reg, Register.sp, ImmOp(offset)))
+        for (element in expr.expr) {
+            arrayElemInstructions.addAll(generateExpr(element, reg2))
+            arrayElemInstructions.add(Load(reg, reg))
 
-        arrayElemInstructions.add(Move(Register.r0, Register.r5))
-        arrayElemInstructions.add(Move(Register.r1, Register.r4))
-        // TODO Data Segments
-        arrayElemInstructions.add(Branch("p_check_array_bounds", true))
+            arrayElemInstructions.add(Move(Register.r0, reg2))
+            arrayElemInstructions.add(Move(Register.r1, reg))
+            arrayElemInstructions.add(Branch(predefined.addFunc(CheckArrayBounds()), true))
 
-        arrayElemInstructions.add(Add(Register.r4, Register.r4, 4))
-        // ADD r4, r4, r5, LSL #2
-        arrayElemInstructions.add(Load(Register.r4, Register.r4))
-
+            type = globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
+            arrayElemInstructions.add(Add(reg, reg, ImmOp(4)))
+            if (type.getTypeSize() == 1) {
+                arrayElemInstructions.add(Add(reg, reg, reg2))
+            } else {
+                arrayElemInstructions.add(Add(reg, reg, LogicalShiftLeft(reg2, 2)))
+            }
+        }
+        if (type != null) {
+            if (!assign) {
+                arrayElemInstructions.add(Load(Register.r4, reg))
+            } else {
+                arrayElemInstructions.add(Store(Register.r4, reg, byte = type.getTypeSize() == 1))
+            }
+        }
         return arrayElemInstructions
     }
 
@@ -418,16 +542,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateExit(exitNode: ExitNode): List<Instruction> {
         val exitInstruction = mutableListOf<Instruction>()
 
-        if (exitNode.expr is IntLiterNode) {
-            exitInstruction.add(Load(Register.r4, exitNode.expr.value.toInt()))
-        } else if (exitNode.expr is Ident) {
-            val type = globalSymbolTable.getNodeGlobal(exitNode.expr.toString())!!
-            val offset = if (type.isParameter()) {
-                globalSymbolTable.getStackOffset(exitNode.expr.toString())
-            } else {
-                globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(exitNode.expr.toString())
-            }
+        if (exitNode.expr is Ident) {
+            val offset = getStackOffsetValue(exitNode.expr.toString())
             exitInstruction.add(Load(Register.r4, Register.sp, offset))
+        } else {
+            exitInstruction.addAll(generateExpr(exitNode.expr))
         }
 
         exitInstruction.add(Move(Register.r0, Register.r4))
@@ -451,28 +570,36 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 loadInstruction.add(Load(dstRegister, data.getLabel(exprNode.value)))
             }
             is CharLiterNode -> {
-                loadInstruction.add(Move(dstRegister, exprNode.value[0]))
+                // TODO do we have to deal with other escaped characters?
+                if (exprNode.value == "\\0") {
+                    loadInstruction.add(Move(dstRegister, ImmOp(0)))
+                } else {
+                    val char = if (exprNode.value.length == 2) exprNode.value[1] else exprNode.value[0]
+                    loadInstruction.add(Move(dstRegister, CharOp(char)))
+                }
             }
             is BoolLiterNode -> {
                 loadInstruction.add(Move(dstRegister, if (exprNode.value == "true") {
-                    1
+                    ImmOp(1)
                 } else {
-                    0
+                    ImmOp(0)
                 }))
             }
             is Ident -> {
                 val type = globalSymbolTable.getNodeGlobal(exprNode.toString())!!
-                val offset = if (type.isParameter()) {
-                    globalSymbolTable.getStackOffset(exprNode.toString())
-                } else {
-                    globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(exprNode.toString())
-                }
-
-                val sb = type == Type(WACCParser.BOOL) || type == Type(WACCParser.CHAR)
-                loadInstruction.add(Load(dstRegister, Register.sp, offset, sb = sb))
+                val offset = getStackOffsetValue(exprNode.toString())
+                loadInstruction.add(Load(dstRegister, Register.sp, offset, sb = type.getTypeSize() == 1))
             }
         }
         return loadInstruction
+    }
+
+    private fun getStackOffsetValue(name: String): Int {
+        return if (globalSymbolTable.getNodeGlobal(name)!!.isParameter()) {
+            globalSymbolTable.getStackOffset(name) + globalSymbolTable.localStackSize() + if (assign) stackToAdd else 0
+        } else {
+            globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(name) + if (assign) stackToAdd else 0
+        }
     }
 
     private fun nextLabel(): String {
@@ -501,80 +628,95 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generateBinOp(binOp: BinaryOpNode, reg: Register = Register.r4): List<Instruction> {
         val list = mutableListOf<Instruction>()
-        val operand2 = reg.nextAvailable()
-        val expr1 = generateExpr(binOp.expr1, reg)
+        var operand1 = reg
+        var pop = false
+        if (operand1 >= Register.r10) {
+            pop = true
+            operand1 = Register.r10
+            list.addAll(generateExpr(binOp.expr1, operand1))
+            list.add(Push(mutableListOf(Register.r10)))
+        } else {
+            list.addAll(generateExpr(binOp.expr1, operand1))
+        }
+        var operand2 = operand1.nextAvailable()
+        if (operand2 >= Register.r10) operand2 = Register.r10
         val expr2 = generateExpr(binOp.expr2, operand2)
-        list.addAll(expr1)
         list.addAll(expr2)
+
+        var dstRegister = operand1
+        if (pop) {
+            list.add(Pop(mutableListOf(Register.r11)))
+            dstRegister = operand2
+            operand1 = Register.r11
+        }
 
         when (binOp.operator) {
             BinOp.PLUS -> {
-
-                list.add(Add(reg, reg, operand2, true))
+                list.add(Add(dstRegister, operand1, operand2, true))
                 list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
             }
             BinOp.MINUS -> {
-                list.add(Sub(reg, reg, operand2, true))
+                list.add(Sub(dstRegister, operand1, operand2, true))
                 list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
             }
             BinOp.MUL -> {
-                list.add(Multiply(reg, operand2, reg, operand2, true))
-                list.add(Compare(operand2, reg, null, ArithmeticShiftRight(31)))
+                list.add(Multiply(operand1, operand2, operand1, operand2, true))
+                list.add(Compare(operand2, ArithmeticShiftRight(operand1, 31)))
                 list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
             }
 
             BinOp.AND -> {
-                list.add(And(reg, reg, operand2))
+                list.add(And(dstRegister, operand1, operand2))
             }
             BinOp.OR -> {
-                list.add(Or(reg, reg, operand2))
+                list.add(Or(dstRegister, operand1, operand2))
             }
             BinOp.EQ -> {
-                list.add(Compare(reg, operand2))
-                list.add(Move(reg, 1, Conditions.EQ))
-                list.add(Move(reg, 0, Conditions.NE))
+                list.add(Compare(operand1, operand2))
+                list.add(Move(dstRegister, ImmOp(1), Conditions.EQ))
+                list.add(Move(dstRegister, ImmOp(0), Conditions.NE))
             }
             BinOp.NEQ -> {
-                list.add(Compare(reg, operand2))
-                list.add(Move(reg, 1, Conditions.NE))
-                list.add(Move(reg, 0, Conditions.EQ))
+                list.add(Compare(operand1, operand2))
+                list.add(Move(dstRegister, ImmOp(1), Conditions.NE))
+                list.add(Move(dstRegister, ImmOp(0), Conditions.EQ))
             }
             BinOp.LT -> {
-                list.add(Compare(reg, operand2))
-                list.add(Move(reg, 1, Conditions.LT))
-                list.add(Move(reg, 0, Conditions.GE))
+                list.add(Compare(operand1, operand2))
+                list.add(Move(dstRegister, ImmOp(1), Conditions.LT))
+                list.add(Move(dstRegister, ImmOp(0), Conditions.GE))
             }
             BinOp.GT -> {
-                list.add(Compare(reg, operand2))
-                list.add(Move(reg, 1, Conditions.GT))
-                list.add(Move(reg, 0, Conditions.LE))
+                list.add(Compare(operand1, operand2))
+                list.add(Move(dstRegister, ImmOp(1), Conditions.GT))
+                list.add(Move(dstRegister, ImmOp(0), Conditions.LE))
             }
             BinOp.GTE -> {
-                list.add(Compare(reg, operand2))
-                list.add(Move(reg, 1, Conditions.GE))
-                list.add(Move(reg, 0, Conditions.LT))
+                list.add(Compare(operand1, operand2))
+                list.add(Move(dstRegister, ImmOp(1), Conditions.GE))
+                list.add(Move(dstRegister, ImmOp(0), Conditions.LT))
             }
             BinOp.LTE -> {
-                list.add(Compare(reg, operand2))
-                list.add(Move(reg, 1, Conditions.LE))
-                list.add(Move(reg, 0, Conditions.GT))
+                list.add(Compare(operand1, operand2))
+                list.add(Move(dstRegister, ImmOp(1), Conditions.LE))
+                list.add(Move(dstRegister, ImmOp(0), Conditions.GT))
             }
 
             BinOp.MOD -> {
-                list.add(Move(Register.r0, reg))
+                list.add(Move(Register.r0, operand1))
                 list.add(Move(Register.r1, operand2))
                 val funcName = predefined.addFunc(DivideByZero())
                 list.add(Branch(funcName, true))
                 list.add(Branch("__aeabi_idivmod", true))
-                list.add(Move(reg, Register.r1))
+                list.add(Move(dstRegister, Register.r1))
             }
             BinOp.DIV -> {
-                list.add(Move(Register.r0, reg))
+                list.add(Move(Register.r0, operand1))
                 list.add(Move(Register.r1, operand2))
                 val funcName = predefined.addFunc(DivideByZero())
                 list.add(Branch(funcName, true))
                 list.add(Branch("__aeabi_idiv", true))
-                list.add(Move(reg, Register.r0))
+                list.add(Move(dstRegister, Register.r0))
             }
             else -> {
                 throw Error("Should not get here")
@@ -582,6 +724,26 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
         return list
 
+    }
+
+    // Handles growing of stack beyond MAX_STACK_SIZE
+    private fun growStack(offset: Int): List<Instruction> {
+        val instructions = mutableListOf<Instruction>()
+        for (i in 1 .. offset / MAX_SIZE) {
+            instructions.add(Sub(Register.sp, Register.sp, ImmOp(MAX_SIZE)))
+        }
+        instructions.add(Sub(Register.sp, Register.sp, ImmOp(offset % MAX_SIZE)))
+        return instructions
+    }
+
+    // Handles restoring of stack beyond MAX_STACK_SIZE
+    private fun shrinkStack(offset: Int): List<Instruction> {
+        val instructions = mutableListOf<Instruction>()
+        for (i in 1 .. offset / MAX_SIZE) {
+            instructions.add(Add(Register.sp, Register.sp, ImmOp(MAX_SIZE)))
+        }
+        instructions.add(Add(Register.sp, Register.sp, ImmOp(offset % MAX_SIZE)))
+        return instructions
     }
 
     // TODO find better way to get expression types than this - lots of duplication with ASTBuilder
@@ -600,6 +762,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value)
             is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value)
             is PairLiterNode -> Type(PAIR_LITER)
+            is PairElemNode -> getType(expr.expr)
             else -> {
                 throw Error("Should not get here")
             }
