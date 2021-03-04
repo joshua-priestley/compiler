@@ -494,11 +494,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateExit(exitNode: ExitNode): List<Instruction> {
         val exitInstruction = mutableListOf<Instruction>()
 
-        if (exitNode.expr is IntLiterNode) {
-            exitInstruction.add(Load(Register.r4, exitNode.expr.value.toInt()))
-        } else if (exitNode.expr is Ident) {
+        if (exitNode.expr is Ident) {
             val offset = getStackOffsetValue(exitNode.expr.toString())
             exitInstruction.add(Load(Register.r4, Register.sp, offset))
+        } else {
+            exitInstruction.addAll(generateExpr(exitNode.expr))
         }
 
         exitInstruction.add(Move(Register.r0, Register.r4))
