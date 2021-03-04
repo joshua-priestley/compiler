@@ -97,15 +97,20 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is PrintlnNode -> generatePrintln(stat)// TODO
             is IfElseNode -> generateIf(stat)
             is WhileNode -> generateWhile(stat)
-            is BeginEndNode -> {
-                globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
-                val statInstructions = generateStat(stat.stat)
-                globalSymbolTable = globalSymbolTable.parentT!!
-                statInstructions
-            }
+            is BeginEndNode -> generateBegin(stat)
             is SequenceNode -> generateSeq(stat)
             else -> throw Error("Should not get here")
         }
+    }
+
+    private fun generateBegin(stat: BeginEndNode): List<Instruction> {
+        val beginInstructions = mutableListOf<Instruction>()
+        globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
+        if (globalSymbolTable.localStackSize() > 0) beginInstructions.add(Sub(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
+        beginInstructions.addAll(generateStat(stat.stat))
+        if (globalSymbolTable.localStackSize() > 0) beginInstructions.add(Add(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
+        globalSymbolTable = globalSymbolTable.parentT!!
+        return beginInstructions
     }
 
     private fun generatePrintln(stat: PrintlnNode): List<Instruction> {
