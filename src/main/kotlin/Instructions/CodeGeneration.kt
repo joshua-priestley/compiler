@@ -107,13 +107,14 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generateBegin(stat: BeginEndNode): List<Instruction> {
         val beginInstructions = mutableListOf<Instruction>()
+        stackToAdd += globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
-        stackToAdd = globalSymbolTable.localStackSize()
+        stackToAdd += globalSymbolTable.localStackSize()
         if (globalSymbolTable.localStackSize() > 0) beginInstructions.add(Sub(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         beginInstructions.addAll(generateStat(stat.stat))
         if (globalSymbolTable.localStackSize() > 0) beginInstructions.add(Add(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         globalSymbolTable = globalSymbolTable.parentT!!
-        stackToAdd = 0
+        stackToAdd -= globalSymbolTable.localStackSize()
         return beginInstructions
     }
 
@@ -391,7 +392,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
 
         // Then Branch
-        stackToAdd = globalSymbolTable.localStackSize()
+        stackToAdd += globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         stackToAdd += globalSymbolTable.localStackSize()
         if (globalSymbolTable.localStackSize() > 0) ifInstruction.add(Sub(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
@@ -401,7 +402,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         globalSymbolTable = globalSymbolTable.parentT!!
 
         // Else Branch
-        stackToAdd = globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         stackToAdd += globalSymbolTable.localStackSize()
         ifInstruction.add(FunctionDeclaration(elseLabel))
@@ -410,7 +410,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         if (globalSymbolTable.localStackSize() > 0) ifInstruction.add(Add(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         globalSymbolTable = globalSymbolTable.parentT!!
 
-        stackToAdd = 0
+        stackToAdd -= globalSymbolTable.localStackSize()
 
         ifInstruction.add(FunctionDeclaration(endLabel))
 
@@ -427,7 +427,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         whileInstruction.add(Branch(conditionLabel, false))
 
         // Loop body
-        stackToAdd = globalSymbolTable.localStackSize()
+        stackToAdd += globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         stackToAdd += globalSymbolTable.localStackSize()
         whileInstruction.add(FunctionDeclaration(bodyLabel))
@@ -435,7 +435,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         whileInstruction.addAll(generateStat(stat.do_))
         if (globalSymbolTable.localStackSize() > 0) whileInstruction.add(Add(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         globalSymbolTable = globalSymbolTable.parentT!!
-        stackToAdd = 0
+        stackToAdd -= globalSymbolTable.localStackSize()
 
         // Conditional
         assign = true
@@ -534,6 +534,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         if (exitNode.expr is Ident) {
             val offset = getStackOffsetValue(exitNode.expr.toString())
+            exitInstruction.add(FunctionDeclaration("exit it here $offset"))
             exitInstruction.add(Load(Register.r4, Register.sp, offset))
         } else {
             exitInstruction.addAll(generateExpr(exitNode.expr))
@@ -578,6 +579,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is Ident -> {
                 val type = globalSymbolTable.getNodeGlobal(exprNode.toString())!!
                 val offset = getStackOffsetValue(exprNode.toString())
+                loadInstruction.add(FunctionDeclaration("liter node shite $offset $exprNode"))
                 loadInstruction.add(Load(dstRegister, Register.sp, offset, sb = type.getTypeSize() == 1))
             }
         }
