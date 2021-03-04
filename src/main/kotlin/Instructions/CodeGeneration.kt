@@ -7,6 +7,8 @@ import java.util.concurrent.atomic.AtomicInteger
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private val currentSymbolID = AtomicInteger()
 
+    private var inIfStatement = false
+
     private var labelCounter = 0
     private val data: DataSegment = DataSegment()
     private val predefined: PredefinedFuncs = PredefinedFuncs(data)
@@ -134,7 +136,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateRead(stat: ReadNode): List<Instruction> {
         val readInstructions = mutableListOf<Instruction>()
 
-        val expr : ExprNode = when (stat.lhs) {
+        val expr: ExprNode = when (stat.lhs) {
             is LHSPairElemNode -> {
                 readInstructions.addAll(generatePairAccess(stat.lhs.pairElem, true))
                 stat.lhs.pairElem.expr
@@ -212,7 +214,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return callInstructions
     }
 
-    private fun generateRHSNode(rhs: AssignRHSNode, reg : Register = Register.r5): List<Instruction> {
+    private fun generateRHSNode(rhs: AssignRHSNode, reg: Register = Register.r5): List<Instruction> {
         println(rhs)
         val rhsInstruction = mutableListOf<Instruction>()
         when (rhs) {
@@ -280,7 +282,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return newPairInstructions
     }
 
-    private fun generateArrayLitNode(elements: List<ExprNode>, reg : Register = Register.r5): List<Instruction> {
+    private fun generateArrayLitNode(elements: List<ExprNode>, reg: Register = Register.r5): List<Instruction> {
         val arrayLitInstructions = mutableListOf<Instruction>()
 
         var typeSize = 4
@@ -322,7 +324,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return loadInstructions
     }
 
-    private fun generateLHSAssign(lhs: AssignLHSNode, reg : Register): List<Instruction> {
+    private fun generateLHSAssign(lhs: AssignLHSNode, reg: Register): List<Instruction> {
         val lhsInstructions = mutableListOf<Instruction>()
 
         when (lhs) {
@@ -338,10 +340,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return lhsInstructions
     }
 
-    private fun generateAssign(stat: AssignNode, reg : Register = Register.r5): List<Instruction> {
+    private fun generateAssign(stat: AssignNode, reg: Register = Register.r5): List<Instruction> {
         val assignInstructions = mutableListOf<Instruction>()
         assignInstructions.addAll(generateRHSNode(stat.rhs, reg.nextAvailable()))
-        assignInstructions.addAll(generateLHSAssign(stat.lhs,reg))
+        assignInstructions.addAll(generateLHSAssign(stat.lhs, reg))
 
         return assignInstructions
     }
@@ -358,6 +360,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generateIf(stat: IfElseNode): List<Instruction> {
         val ifInstruction = mutableListOf<Instruction>()
+        inIfStatement = true
 
         val elseLabel = nextLabel()
         val endLabel = nextLabel()
@@ -375,18 +378,23 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         // Then Branch
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
+        if (globalSymbolTable.localStackSize() > 0) ifInstruction.add(Sub(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         ifInstruction.addAll(generateStat(stat.then))
+        if (globalSymbolTable.localStackSize() > 0) ifInstruction.add(Add(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         ifInstruction.add(Branch(endLabel, false))
         globalSymbolTable = globalSymbolTable.parentT!!
 
         // Else Branch
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         ifInstruction.add(FunctionDeclaration(elseLabel))
+        if (globalSymbolTable.localStackSize() > 0) ifInstruction.add(Sub(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         ifInstruction.addAll(generateStat(stat.else_))
+        if (globalSymbolTable.localStackSize() > 0) ifInstruction.add(Add(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         globalSymbolTable = globalSymbolTable.parentT!!
 
         ifInstruction.add(FunctionDeclaration(endLabel))
 
+        inIfStatement = false
         return ifInstruction
     }
 
@@ -401,7 +409,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         // Loop body
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         whileInstruction.add(FunctionDeclaration(bodyLabel))
+        if (globalSymbolTable.localStackSize() > 0) whileInstruction.add(Sub(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         whileInstruction.addAll(generateStat(stat.do_))
+        if (globalSymbolTable.localStackSize() > 0) whileInstruction.add(Add(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         globalSymbolTable = globalSymbolTable.parentT!!
 
         // Conditional
@@ -525,7 +535,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 if (exprNode.value == "\\0") {
                     loadInstruction.add(Move(dstRegister, ImmOp(0)))
                 } else {
-                    val char= if (exprNode.value.length == 2) exprNode.value[1] else exprNode.value[0]
+                    val char = if (exprNode.value.length == 2) exprNode.value[1] else exprNode.value[0]
                     loadInstruction.add(Move(dstRegister, CharOp(char)))
                 }
             }

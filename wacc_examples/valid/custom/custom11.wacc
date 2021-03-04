@@ -1,0 +1,19 @@
+# Whitespace only important between keyword and variable tokens
+
+# Output:
+# 1
+
+# Program:
+
+begin
+  int inc(int a) is
+    int x = 4 ;
+    if a==13 then
+      a=1
+    else
+      a=0
+    fi ;
+    return a + 1
+  end
+  int x = call inc(3)
+end
