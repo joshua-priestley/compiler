@@ -207,7 +207,7 @@ class DivideByZero : RuntimeError() {
             listOf(
                     FunctionDeclaration(name),
                     Push(listOf(Register.lr)),
-                    Compare(Register.r1, ImmOp(0)),
+                    Compare(Register.r1, ImmOp(1)),
                     Load(Register.r0, data.getLabel(msg), Conditions.EQ),
                     Branch(ThrowRuntimeError().name, true, Conditions.EQ),
                     Pop(listOf(Register.pc))
