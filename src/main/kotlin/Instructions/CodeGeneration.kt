@@ -205,17 +205,18 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generateCallNode(call: RHSCallNode): List<Instruction> {
         val callInstructions = mutableListOf<Instruction>()
-        if (call.argList.isNullOrEmpty()) return callInstructions
-        val parameters = call.argList.reversed()
-
         var totalOffset = 0
-        for (param in parameters) {
-            callInstructions.addAll(generateExpr(param))
-            val offset = getExprParameterOffset(param)
-            totalOffset += offset
-            assert(offset != 0)
-            val byte = offset == 1
-            callInstructions.add(Store(Register.r4, Register.sp, offset * -1, parameter = true, byte = byte))
+        if (!call.argList.isNullOrEmpty()) {
+            val parameters = call.argList.reversed()
+
+            for (param in parameters) {
+                callInstructions.addAll(generateExpr(param))
+                val offset = getExprParameterOffset(param)
+                totalOffset += offset
+                assert(offset != 0)
+                val byte = offset == 1
+                callInstructions.add(Store(Register.r4, Register.sp, offset * -1, parameter = true, byte = byte))
+            }
         }
 
         val functionName = "f_${call.ident.name}"
@@ -230,7 +231,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateRHSNode(rhs: AssignRHSNode, reg: Register = Register.r5): List<Instruction> {
         val rhsInstruction = mutableListOf<Instruction>()
         when (rhs) {
-            is RHSCallNode -> rhsInstruction.addAll(generateCallNode(rhs))
+            is RHSCallNode -> {
+                rhsInstruction.addAll(generateCallNode(rhs))
+            }
             is RHSExprNode -> rhsInstruction.addAll(generateExpr(rhs.expr))
             is RHSArrayLitNode -> rhsInstruction.addAll(generateArrayLitNode(rhs.exprs, reg))
             is RHSNewPairNode -> rhsInstruction.addAll(generateNewPair(rhs))
