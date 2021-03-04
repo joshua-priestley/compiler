@@ -84,9 +84,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         // POP {pc}
         instructions.add(Pop(listOf(Register.pc)))
-        if (!main) {
-            instructions.add(Pop(listOf(Register.pc)))
-        }
 
         // .ltorg
         instructions.add(LocalLabel("ltorg"))
@@ -479,6 +476,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
 
         returnInstruction.add(Move(Register.r0, Register.r4))
+        returnInstruction.add(Pop(listOf(Register.pc)))
         return returnInstruction
     }
 
