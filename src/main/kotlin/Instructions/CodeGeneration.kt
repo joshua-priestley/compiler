@@ -8,6 +8,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private val currentSymbolID = AtomicInteger()
 
     private var inIfStatement = false
+    private var stackToAdd = 0
+    private var assign = false
 
     private var labelCounter = 0
     private val data: DataSegment = DataSegment()
@@ -106,10 +108,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateBegin(stat: BeginEndNode): List<Instruction> {
         val beginInstructions = mutableListOf<Instruction>()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
+        stackToAdd = globalSymbolTable.localStackSize()
         if (globalSymbolTable.localStackSize() > 0) beginInstructions.add(Sub(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         beginInstructions.addAll(generateStat(stat.stat))
         if (globalSymbolTable.localStackSize() > 0) beginInstructions.add(Add(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         globalSymbolTable = globalSymbolTable.parentT!!
+        stackToAdd = 0
         return beginInstructions
     }
 
@@ -345,10 +349,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generateAssign(stat: AssignNode, reg: Register = Register.r5): List<Instruction> {
+        assign = true
         val assignInstructions = mutableListOf<Instruction>()
         assignInstructions.addAll(generateRHSNode(stat.rhs, reg.nextAvailable()))
         assignInstructions.addAll(generateLHSAssign(stat.lhs, reg))
-
+        assign = false
         return assignInstructions
     }
 
@@ -380,7 +385,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
 
         // Then Branch
+        stackToAdd = globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
+        stackToAdd += globalSymbolTable.localStackSize()
         if (globalSymbolTable.localStackSize() > 0) ifInstruction.add(Sub(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         ifInstruction.addAll(generateStat(stat.then))
         if (globalSymbolTable.localStackSize() > 0) ifInstruction.add(Add(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
@@ -388,12 +395,16 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         globalSymbolTable = globalSymbolTable.parentT!!
 
         // Else Branch
+        stackToAdd = globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
+        stackToAdd += globalSymbolTable.localStackSize()
         ifInstruction.add(FunctionDeclaration(elseLabel))
         if (globalSymbolTable.localStackSize() > 0) ifInstruction.add(Sub(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         ifInstruction.addAll(generateStat(stat.else_))
         if (globalSymbolTable.localStackSize() > 0) ifInstruction.add(Add(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         globalSymbolTable = globalSymbolTable.parentT!!
+
+        stackToAdd = 0
 
         ifInstruction.add(FunctionDeclaration(endLabel))
 
@@ -410,12 +421,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         whileInstruction.add(Branch(conditionLabel, false))
 
         // Loop body
+        stackToAdd = globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
+        stackToAdd += globalSymbolTable.localStackSize()
         whileInstruction.add(FunctionDeclaration(bodyLabel))
         if (globalSymbolTable.localStackSize() > 0) whileInstruction.add(Sub(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         whileInstruction.addAll(generateStat(stat.do_))
         if (globalSymbolTable.localStackSize() > 0) whileInstruction.add(Add(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
         globalSymbolTable = globalSymbolTable.parentT!!
+        stackToAdd = 0
 
         // Conditional
         whileInstruction.add(FunctionDeclaration(conditionLabel))
@@ -560,9 +574,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun getStackOffsetValue(name: String): Int {
         return if (globalSymbolTable.getNodeGlobal(name)!!.isParameter()) {
-            globalSymbolTable.getStackOffset(name) + globalSymbolTable.localStackSize()
+            globalSymbolTable.getStackOffset(name) + globalSymbolTable.localStackSize() + if (assign) stackToAdd else 0
         } else {
-            globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(name)
+            globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(name) + if (assign) stackToAdd else 0
         }
     }
 
