@@ -526,7 +526,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 if (exprNode.value == "\\0") {
                     loadInstruction.add(Move(dstRegister, ImmOp(0)))
                 } else {
-                    loadInstruction.add(Move(dstRegister, CharOp(exprNode.value[0])))
+                    val char= if (exprNode.value.length == 2) exprNode.value[1] else exprNode.value[0]
+                    loadInstruction.add(Move(dstRegister, CharOp(char)))
                 }
             }
             is BoolLiterNode -> {
@@ -539,8 +540,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is Ident -> {
                 val type = globalSymbolTable.getNodeGlobal(exprNode.toString())!!
                 val offset = getStackOffsetValue(exprNode.toString())
-                val sb = type == Type(WACCParser.BOOL) || type == Type(WACCParser.CHAR)
-                loadInstruction.add(Load(dstRegister, Register.sp, offset, sb = sb))
+                loadInstruction.add(Load(dstRegister, Register.sp, offset, sb = type.getTypeSize() == 1))
             }
         }
         return loadInstruction
