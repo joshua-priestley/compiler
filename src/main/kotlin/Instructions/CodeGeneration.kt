@@ -3,6 +3,7 @@ package compiler.Instructions
 import AST.*
 import antlr.WACCParser
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.max
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private val currentSymbolID = AtomicInteger()
@@ -112,16 +113,17 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generateBegin(stat: BeginEndNode): List<Instruction> {
         val beginInstructions = mutableListOf<Instruction>()
+
         stackToAdd += globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
-        stackToAdd = globalSymbolTable.localStackSize()
-        if (globalSymbolTable.localStackSize() > 0) beginInstructions.addAll(growStack(globalSymbolTable.localStackSize()))
         stackToAdd += globalSymbolTable.localStackSize()
-        if (globalSymbolTable.localStackSize() > 0) beginInstructions.add(Sub(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
+        if (globalSymbolTable.localStackSize() > 0) beginInstructions.addAll(growStack(globalSymbolTable.localStackSize()))
         beginInstructions.addAll(generateStat(stat.stat))
         if (globalSymbolTable.localStackSize() > 0) beginInstructions.addAll(shrinkStack(globalSymbolTable.localStackSize()))
+
         globalSymbolTable = globalSymbolTable.parentT!!
         stackToAdd -= globalSymbolTable.localStackSize()
+
         return beginInstructions
     }
 
@@ -598,7 +600,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun getStackOffsetValue(name: String): Int {
         return if (globalSymbolTable.getNodeGlobal(name)!!.isParameter()) {
-            globalSymbolTable.getStackOffset(name) + globalSymbolTable.localStackSize() + if (assign) stackToAdd else 0
+            max(globalSymbolTable.getStackOffset(name) + globalSymbolTable.localStackSize() + if (assign) stackToAdd else 0, 4)
         } else {
             globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(name) + if (assign) stackToAdd else 0
         }
