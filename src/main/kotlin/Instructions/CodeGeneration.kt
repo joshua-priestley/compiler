@@ -239,7 +239,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
         pairAccessInstructions.add(Load(Register.r4, Register.sp, offset))
         pairAccessInstructions.add(Move(Register.r0, Register.r4))
-        pairAccessInstructions.add(Branch("p_check_null_pointer", true))
+        pairAccessInstructions.add(Branch(predefined.addFunc(CheckNullPointer()), true))
 
         val type = if (first) {
             globalSymbolTable.getNodeGlobal(((pairElem) as FstExpr).expr.toString())!!.getPairFst()
