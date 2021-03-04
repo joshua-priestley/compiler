@@ -114,15 +114,16 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateBegin(stat: BeginEndNode): List<Instruction> {
         val beginInstructions = mutableListOf<Instruction>()
 
-        stackToAdd = globalSymbolTable.localStackSize()
+        stackToAdd += globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         stackToAdd += globalSymbolTable.localStackSize()
         if (globalSymbolTable.localStackSize() > 0) beginInstructions.addAll(growStack(globalSymbolTable.localStackSize()))
         beginInstructions.addAll(generateStat(stat.stat))
         if (globalSymbolTable.localStackSize() > 0) beginInstructions.addAll(shrinkStack(globalSymbolTable.localStackSize()))
 
+        stackToAdd -= globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.parentT!!
-        stackToAdd = 0
+        stackToAdd -= globalSymbolTable.localStackSize()
 
         return beginInstructions
     }
@@ -406,16 +407,16 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
 
         // Then Branch
-        stackToAdd = globalSymbolTable.localStackSize()
+        stackToAdd += globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         stackToAdd += globalSymbolTable.localStackSize()
         if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(growStack(globalSymbolTable.localStackSize()))
         ifInstruction.addAll(generateStat(stat.then))
         if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(shrinkStack(globalSymbolTable.localStackSize()))
         ifInstruction.add(Branch(endLabel, false))
+        stackToAdd -= globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.parentT!!
 
-        stackToAdd = globalSymbolTable.localStackSize()
         // Else Branch
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         stackToAdd += globalSymbolTable.localStackSize()
@@ -423,9 +424,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(growStack(globalSymbolTable.localStackSize()))
         ifInstruction.addAll(generateStat(stat.else_))
         if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(shrinkStack(globalSymbolTable.localStackSize()))
+        stackToAdd -= globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.parentT!!
-
-        stackToAdd = 0
+        stackToAdd -= globalSymbolTable.localStackSize()
 
         ifInstruction.add(FunctionDeclaration(endLabel))
 
@@ -442,15 +443,16 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         whileInstruction.add(Branch(conditionLabel, false))
 
         // Loop body
-        stackToAdd = globalSymbolTable.localStackSize()
+        stackToAdd += globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         stackToAdd += globalSymbolTable.localStackSize()
         whileInstruction.add(FunctionDeclaration(bodyLabel))
         if (globalSymbolTable.localStackSize() > 0) whileInstruction.addAll(growStack(globalSymbolTable.localStackSize()))
         whileInstruction.addAll(generateStat(stat.do_))
         if (globalSymbolTable.localStackSize() > 0) whileInstruction.addAll(shrinkStack(globalSymbolTable.localStackSize()))
+        stackToAdd -= globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.parentT!!
-        stackToAdd = 0
+        stackToAdd -= globalSymbolTable.localStackSize()
 
         // Conditional
         assign = true
