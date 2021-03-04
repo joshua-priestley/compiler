@@ -66,17 +66,16 @@ class TestPrograms {
 
         // Get the value we should pass to stdin
         val stdinDataName = "./wacc_examples/inputs/${inputFile.name.replace(".wacc", ".input")}"
-        var command = "qemu-arm -L /usr/arm-linux-gnueabi/ $executableName"
+
         var stdin = ""
         if(File(stdinDataName).exists()) {
             stdin = File(stdinDataName).readText()
-            command = "qemu-arm -L /usr/arm-linux-gnueabi/ $executableName < $stdinDataName"
         }
 
         println(stdin)
 
         // Run QEMU on the created executable file
-        val qemu = ProcessBuilder("/bin/sh", "-c", command).start()
+        val qemu = Runtime.getRuntime().exec("/usr/bin/qemu-arm -L /usr/arm-linux-gnueabi/ $executableName < $stdinDataName")
 
         // Read the content produced by qemu
         val outputContent = StringBuilder()
