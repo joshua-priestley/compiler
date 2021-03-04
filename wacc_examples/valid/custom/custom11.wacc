@@ -6,14 +6,16 @@
 # Program:
 
 begin
-  int inc(int a) is
-    int x = 4 ;
-    if a==13 then
-      a=1
-    else
-      a=0
-    fi ;
-    return a + 1
-  end
-  int x = call inc(3)
+  int x = 4 ;
+  if true
+  then
+      if true
+      then
+        x = 1
+      else
+        x = 2
+      fi
+  else
+    x = 3
+  fi
 end
