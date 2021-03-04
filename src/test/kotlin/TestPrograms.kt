@@ -67,15 +67,11 @@ class TestPrograms {
         // Get the value we should pass to stdin
         val stdinDataName = "./wacc_examples/inputs/${inputFile.name.replace(".wacc", ".input")}"
 
+        // Get input for IO tests
         var stdin = ""
-        var path = ""
         if(File(stdinDataName).exists()) {
             stdin = File(stdinDataName).readText()
-            path = File(stdinDataName).canonicalPath
         }
-
-        println(stdin)
-        println(path)
 
         // Run QEMU on the created executable file
         val qemu = ProcessBuilder("/bin/sh", "-c", "echo $stdin | qemu-arm -L /usr/arm-linux-gnueabi/ $executableName").start()
@@ -87,6 +83,7 @@ class TestPrograms {
             outputContent.append(it.readText())
         }
 
+        // Cache the file if isn't already cached to reduce HTTP overhead
         val cachedName = "./wacc_examples/cached_outputs/${inputFile.name.replace(".wacc", "")}.output"
         val cachedFile = File(cachedName)
         if(!cachedFile.exists()) {
@@ -102,11 +99,6 @@ class TestPrograms {
 
         val expectedContent = cachedFile.readText()
         val actualContent = formatToReferenceStyle(outputContent.toString(), exitCode)
-
-        println(expectedContent)
-        println(actualContent)
-
-        //assert(referenceCompiler != null)
 
         // Done with the files. Delete them.
         assemblyFile.delete()
