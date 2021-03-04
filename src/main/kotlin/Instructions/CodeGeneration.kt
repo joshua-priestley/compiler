@@ -378,11 +378,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val endLabel = nextLabel()
 
         // Load up the conditional
+        assign = true
         if (stat.expr is LiterNode) {
             ifInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
         } else {
             ifInstruction.addAll(generateExpr(stat.expr))
         }
+        assign = false
 
         // Compare the conditional
         ifInstruction.add(Compare(Register.r4, ImmOp(0)))
@@ -436,6 +438,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         stackToAdd = 0
 
         // Conditional
+        assign = true
         whileInstruction.add(FunctionDeclaration(conditionLabel))
         if (stat.expr is LiterNode) {
             whileInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
@@ -444,6 +447,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
         whileInstruction.add(Compare(Register.r4, ImmOp(1)))
         whileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
+        assign = false
 
         return whileInstruction
     }
