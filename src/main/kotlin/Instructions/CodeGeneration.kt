@@ -140,14 +140,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 stat.lhs.pairElem.expr
             }
             is AssignLHSIdentNode -> {
-                println("aaa")
                 val offset = getStackOffsetValue(stat.lhs.ident.toString())
                 //TODO change value of register
                 readInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
                 stat.lhs.ident
             }
             is LHSArrayElemNode -> {
-                println("aaa2")
                 val offset = getStackOffsetValue(stat.lhs.arrayElem.ident.toString())
                 //TODO change value of register
                 readInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
@@ -524,7 +522,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 loadInstruction.add(Load(dstRegister, data.getLabel(exprNode.value)))
             }
             is CharLiterNode -> {
-                loadInstruction.add(Move(dstRegister, CharOp(exprNode.value[0])))
+                // TODO do we have to deal with other escaped characters?
+                if (exprNode.value == "\\0") {
+                    loadInstruction.add(Move(dstRegister, ImmOp(0)))
+                } else {
+                    loadInstruction.add(Move(dstRegister, CharOp(exprNode.value[0])))
+                }
             }
             is BoolLiterNode -> {
                 loadInstruction.add(Move(dstRegister, if (exprNode.value == "true") {
