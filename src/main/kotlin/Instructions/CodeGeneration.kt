@@ -15,6 +15,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private val data: DataSegment = DataSegment()
     private val predefined: PredefinedFuncs = PredefinedFuncs(data)
 
+
+    companion object {
+        private const val MAX_SIZE = 1024
+    }
+
     fun generateProgram(program: ProgramNode): List<Instruction> {
         val labelInstructions = mutableListOf<Instruction>()
         labelInstructions.add(GlobalLabel("text"))
@@ -61,14 +66,14 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val spOffset = globalSymbolTable.localStackSize()
 
         if (spOffset > 0) {
-            instructions.add(Sub(Register.sp, Register.sp, ImmOp(spOffset)))
+            instructions.addAll(growStack(spOffset))
         }
 
         // Generate all the statements
         instructions.addAll(generateStat(stat))
 
         if (spOffset > 0) {
-            instructions.add(Add(Register.sp, Register.sp, ImmOp(spOffset)))
+            instructions.addAll(shrinkStack(spOffset))
         }
 
         // LDR r0, =0
@@ -109,9 +114,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val beginInstructions = mutableListOf<Instruction>()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         stackToAdd = globalSymbolTable.localStackSize()
-        if (globalSymbolTable.localStackSize() > 0) beginInstructions.add(Sub(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
+        if (globalSymbolTable.localStackSize() > 0) beginInstructions.addAll(growStack(globalSymbolTable.localStackSize()))
         beginInstructions.addAll(generateStat(stat.stat))
-        if (globalSymbolTable.localStackSize() > 0) beginInstructions.add(Add(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
+        if (globalSymbolTable.localStackSize() > 0) beginInstructions.addAll(shrinkStack(globalSymbolTable.localStackSize()))
         globalSymbolTable = globalSymbolTable.parentT!!
         stackToAdd = 0
         return beginInstructions
@@ -394,9 +399,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         stackToAdd = globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         stackToAdd += globalSymbolTable.localStackSize()
-        if (globalSymbolTable.localStackSize() > 0) ifInstruction.add(Sub(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
+        if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(growStack(globalSymbolTable.localStackSize()))
         ifInstruction.addAll(generateStat(stat.then))
-        if (globalSymbolTable.localStackSize() > 0) ifInstruction.add(Add(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
+        if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(shrinkStack(globalSymbolTable.localStackSize()))
         ifInstruction.add(Branch(endLabel, false))
         globalSymbolTable = globalSymbolTable.parentT!!
 
@@ -405,9 +410,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         stackToAdd += globalSymbolTable.localStackSize()
         ifInstruction.add(FunctionDeclaration(elseLabel))
-        if (globalSymbolTable.localStackSize() > 0) ifInstruction.add(Sub(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
+        if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(growStack(globalSymbolTable.localStackSize()))
         ifInstruction.addAll(generateStat(stat.else_))
-        if (globalSymbolTable.localStackSize() > 0) ifInstruction.add(Add(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
+        if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(shrinkStack(globalSymbolTable.localStackSize()))
         globalSymbolTable = globalSymbolTable.parentT!!
 
         stackToAdd = 0
@@ -431,9 +436,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         stackToAdd += globalSymbolTable.localStackSize()
         whileInstruction.add(FunctionDeclaration(bodyLabel))
-        if (globalSymbolTable.localStackSize() > 0) whileInstruction.add(Sub(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
+        if (globalSymbolTable.localStackSize() > 0) whileInstruction.addAll(growStack(globalSymbolTable.localStackSize()))
         whileInstruction.addAll(generateStat(stat.do_))
-        if (globalSymbolTable.localStackSize() > 0) whileInstruction.add(Add(Register.sp, Register.sp, ImmOp(globalSymbolTable.localStackSize())))
+        if (globalSymbolTable.localStackSize() > 0) whileInstruction.addAll(shrinkStack(globalSymbolTable.localStackSize()))
         globalSymbolTable = globalSymbolTable.parentT!!
         stackToAdd = 0
 
@@ -506,7 +511,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 arrayElemInstructions.add(Store(Register.r4, reg, byte = type.getTypeSize() == 1))
             }
         }
-
         return arrayElemInstructions
     }
 
@@ -714,6 +718,26 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
         return list
 
+    }
+
+    // Handles growing of stack beyond MAX_STACK_SIZE
+    private fun growStack(offset: Int): List<Instruction> {
+        val instructions = mutableListOf<Instruction>()
+        for (i in 1 .. offset / MAX_SIZE) {
+            instructions.add(Sub(Register.sp, Register.sp, ImmOp(MAX_SIZE)))
+        }
+        instructions.add(Sub(Register.sp, Register.sp, ImmOp(offset % MAX_SIZE)))
+        return instructions
+    }
+
+    // Handles restoring of stack beyond MAX_STACK_SIZE
+    private fun shrinkStack(offset: Int): List<Instruction> {
+        val instructions = mutableListOf<Instruction>()
+        for (i in 1 .. offset / MAX_SIZE) {
+            instructions.add(Add(Register.sp, Register.sp, ImmOp(MAX_SIZE)))
+        }
+        instructions.add(Add(Register.sp, Register.sp, ImmOp(offset % MAX_SIZE)))
+        return instructions
     }
 
     // TODO find better way to get expression types than this - lots of duplication with ASTBuilder
