@@ -133,7 +133,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generatePrint(stat: PrintNode): List<Instruction> {
-        assign = true
         val printInstruction = mutableListOf<Instruction>()
         printInstruction.addAll(generateExpr(stat.expr))
         printInstruction.add(Move(Register.r0, Register.r4))
@@ -147,7 +146,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
 
         printInstruction.add(Branch(funcName, true))
-        assign = false
         return printInstruction
     }
 
