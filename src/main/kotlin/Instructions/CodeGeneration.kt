@@ -252,7 +252,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return rhsInstruction
     }
 
-    private fun generatePairAccess(pairElem: PairElemNode, assign: Boolean): List<Instruction> {
+    private fun generatePairAccess(pairElem: PairElemNode, assign: Boolean, reg: Register = Register.r4): List<Instruction> {
         val pairAccessInstructions = mutableListOf<Instruction>()
         val first = pairElem is FstExpr
 
@@ -262,8 +262,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             getStackOffsetValue((pairElem as SndExpr).expr.toString())
 
         }
-        pairAccessInstructions.add(Load(Register.r4, Register.sp, offset))
-        pairAccessInstructions.add(Move(Register.r0, Register.r4))
+        pairAccessInstructions.add(Load(reg, Register.sp, offset))
+        pairAccessInstructions.add(Move(Register.r0, reg))
         pairAccessInstructions.add(Branch(predefined.addFunc(CheckNullPointer()), true))
 
         val type = if (first) {
@@ -272,9 +272,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             globalSymbolTable.getNodeGlobal(((pairElem) as SndExpr).expr.toString())!!.getPairSnd()
         }
 
-        pairAccessInstructions.add(Load(Register.r4, Register.r4, if (first) 0 else 4))
+        pairAccessInstructions.add(Load(reg, reg, if (first) 0 else 4))
         if (assign) {
-            pairAccessInstructions.add(Store(Register.r4, Register.r4, byte = type!!.getTypeSize() == 1))
+            pairAccessInstructions.add(Store(Register.r4, reg, byte = type!!.getTypeSize() == 1))
         } else {
             pairAccessInstructions.add(Load(Register.r4, Register.r4, sb = type!!.getTypeSize() == 1))
         }
@@ -338,12 +338,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun loadIdentValue(ident: Ident): List<Instruction> {
         val loadInstructions = mutableListOf<Instruction>()
-
         val type = globalSymbolTable.getNodeGlobal(ident.toString())!!
         val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
         val offset = getStackOffsetValue(ident.toString())
         loadInstructions.add(Store(Register.r4, Register.sp, offset, byte = byte))
-
         return loadInstructions
     }
 
@@ -356,7 +354,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 lhsInstructions.addAll(generateExpr(lhs.arrayElem, reg))
             }
             is LHSPairElemNode -> {
-                lhsInstructions.addAll(generatePairAccess(lhs.pairElem, true))
+                lhsInstructions.addAll(generatePairAccess(lhs.pairElem, true, reg))
             }
         }
 
@@ -481,7 +479,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is BinaryOpNode -> generateBinOp(expr, reg)
             is UnaryOpNode -> generateUnOp(expr, reg)
             is ArrayElem -> generateArrayElem(expr, reg)
-            is PairLiterNode -> mutableListOf(Load(Register.r4, 0))
+            is PairLiterNode -> mutableListOf(Load(reg, 0))
             else -> emptyList()
         }
     }
