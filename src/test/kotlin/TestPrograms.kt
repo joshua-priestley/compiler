@@ -76,16 +76,15 @@ class TestPrograms {
 
         // Run QEMU on the created executable file
         val t = ProcessBuilder()
-        t.command("/bin/sh", "-c", "echo 42222 | qemu-arm -L /usr/arm-linux-gnueabi/ " + assemblyName);
+        t.command("/bin/sh", "-c", "qemu-arm -L /usr/arm-linux-gnueabi/ $assemblyName < $stdinDataName");
         val qemu = t.start()
+        val exitCode = qemu.waitFor().toString()
 
         // Read the content produced by qemu
         val outputContent = StringBuilder()
         qemu.inputStream.reader().use {
             outputContent.append(it.readText())
         }
-
-        val exitCode = qemu.waitFor().toString()
 
         val cachedName = "./wacc_examples/cached_outputs/${inputFile.name.replace(".wacc", "")}.output"
         val cachedFile = File(cachedName)
