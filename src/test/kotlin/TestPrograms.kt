@@ -79,7 +79,7 @@ class TestPrograms {
 
         // Run QEMU on the created executable file
         val t = ProcessBuilder()
-        t.command("qemu-arm -L /usr/arm-linux-gnueabi/ $assemblyName < $path");
+        t.command("/bin/sh", "-c", "qemu-arm -L /usr/arm-linux-gnueabi/ $assemblyName < $path");
         val qemu = t.start()
         val exitCode = qemu.waitFor().toString()
 
