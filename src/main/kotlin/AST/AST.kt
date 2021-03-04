@@ -99,9 +99,9 @@ data class RHSCallNode(val ident: Ident, val argList: List<ExprNode>?) : AssignR
 /*
  * Pair Elem
  */
-interface PairElemNode : Node
-data class FstExpr(val expr: ExprNode) : PairElemNode
-data class SndExpr(val expr: ExprNode) : PairElemNode
+abstract class PairElemNode(open val expr: ExprNode) : Node
+data class FstExpr(override val expr: ExprNode) : PairElemNode(expr)
+data class SndExpr(override val expr: ExprNode) : PairElemNode(expr)
 
 /*
  * Types
