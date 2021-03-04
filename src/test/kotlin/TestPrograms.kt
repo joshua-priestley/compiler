@@ -74,7 +74,7 @@ class TestPrograms {
         println(stdin)
 
         // Run QEMU on the created executable file
-        val qemu = ProcessBuilder("/bin/sh", "-c", "echo $stdin | qemu-arm -L /usr/arm-linux-gnueabi/ $executableName").start()
+        val qemu = ProcessBuilder("/bin/bash", "-c", "\"echo $stdin | qemu-arm -L /usr/arm-linux-gnueabi/ $executableName\"").start()
 
         // Read the content produced by qemu
         val outputContent = StringBuilder()
@@ -99,6 +99,9 @@ class TestPrograms {
 
         val expectedContent = cachedFile.readText()
         val actualContent = formatToReferenceStyle(outputContent.toString(), exitCode)
+
+        println(expectedContent)
+        println(actualContent)
 
         //assert(referenceCompiler != null)
 
