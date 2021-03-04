@@ -492,7 +492,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
         }
         if (type != null) {
-            arrayElemInstructions.add(Store(Register.r4, reg, byte = type.getTypeSize() == 1))
+            if (!assign) {
+                arrayElemInstructions.add(Load(Register.r4, reg))
+            } else {
+                arrayElemInstructions.add(Store(Register.r4, reg, byte = type.getTypeSize() == 1))
+            }
         }
 
         return arrayElemInstructions
