@@ -60,14 +60,14 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         val spOffset = globalSymbolTable.localStackSize()
 
-        if (spOffset > 0 && main) {
+        if (spOffset > 0) {
             instructions.add(Sub(Register.sp, Register.sp, ImmOp(spOffset)))
         }
 
         // Generate all the statements
         instructions.addAll(generateStat(stat))
 
-        if (spOffset > 0 && main) {
+        if (spOffset > 0) {
             instructions.add(Add(Register.sp, Register.sp, ImmOp(spOffset)))
         }
 
