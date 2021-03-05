@@ -805,7 +805,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is BoolLiterNode -> Type(WACCParser.BOOL)
             is CharLiterNode -> Type(WACCParser.CHAR)
             is Ident -> globalSymbolTable.getNodeGlobal(expr.toString())
-            is ArrayElem -> globalSymbolTable.getNodeGlobal(expr.ident.toString())
+            is ArrayElem -> globalSymbolTable.getNodeGlobal(expr.ident.toString())?.getBaseType() ?: Type(INVALID)
             is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value)
             is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value)
             is PairLiterNode -> Type(PAIR_LITER)
