@@ -8,9 +8,5 @@ enum class Conditions {
     LE,     // <
     LT,     // <=
     VS,     // Overflow
-    VC,     // No Overflow
-    AL,     // Always
-    MI,     // Negative
-    PL,     // Positive or Zero
     CS,     // Carry set
 }

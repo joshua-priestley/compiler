@@ -1,25 +1,45 @@
-package compiler.Instructions
+package compiler.CodeGen
 
 import AST.*
 import antlr.WACCParser
+import compiler.CodeGen.Instructions.ARM.*
+import compiler.CodeGen.Instructions.External.*
+import compiler.CodeGen.Instructions.Operators.*
+import compiler.Instructions.*
 import java.util.concurrent.atomic.AtomicInteger
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
+    // Global Variable to know which symbol table to step into
     private val currentSymbolID = AtomicInteger()
 
+    // Booleans to know at which section of code we are in
     private var inElseStatement = false
-    private var stackToAdd = 0
     private var assign = false
     private var printing = false
 
+    // Counter for the extra stack value we need to add when in different scopes
+    private var stackToAdd = 0
+
+    // Counter for the next available label
     private var labelCounter = 0
+
     private val data: DataSegment = DataSegment()
     private val predefined: PredefinedFuncs = PredefinedFuncs(data)
 
 
     companion object {
         private const val MAX_SIZE = 1024
+        private const val TRUE_VAL = 1
+        private const val FALSE_VAL = 0
+        private const val BOOL_CHAR_SIZE = 1
+        private const val INT_STR_SIZE = 4
+        private const val REFERENCE_SIZE = 4    // Pairs and Arrays size
+        private const val PAIR_SIZE = 8
     }
+
+    //------------------------------------------------
+    //            Start the Assembly
+    //------------------------------------------------
 
     fun generateProgram(program: ProgramNode): List<Instruction> {
         val labelInstructions = mutableListOf<Instruction>()
@@ -47,6 +67,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 mainInstructions +
                 predefined.toInstructionList()
     }
+
+    //------------------------------------------------
+    //            Generate Function Nodes
+    //------------------------------------------------
 
     private fun generateFunction(function: FunctionNode): List<Instruction> {
         val instructions = mutableListOf<Instruction>()
@@ -92,17 +116,21 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         instructions.add(LocalLabel("ltorg"))
     }
 
+    //------------------------------------------------
+    //            Generate Statement Nodes
+    //------------------------------------------------
+
     private fun generateStat(stat: StatementNode): List<Instruction> {
         return when (stat) {
             is SkipNode -> generateSkip()
-            is DeclarationNode -> generateDeclaration(stat) // TODO
-            is AssignNode -> generateAssign(stat) // TODO
-            is ReadNode -> generateRead(stat) // TODO
+            is DeclarationNode -> generateDeclaration(stat)
+            is AssignNode -> generateAssign(stat)
+            is ReadNode -> generateRead(stat)
             is FreeNode -> generateFree(stat)
             is ReturnNode -> generateReturn(stat)
             is ExitNode -> generateExit(stat)
-            is PrintNode -> generatePrint(stat) // TODO
-            is PrintlnNode -> generatePrintln(stat)// TODO
+            is PrintNode -> generatePrint(stat)
+            is PrintlnNode -> generatePrintln(stat)
             is IfElseNode -> generateIf(stat)
             is WhileNode -> generateWhile(stat)
             is BeginEndNode -> generateBegin(stat)
@@ -114,13 +142,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateBegin(stat: BeginEndNode): List<Instruction> {
         val beginInstructions = mutableListOf<Instruction>()
         stackToAdd += globalSymbolTable.localStackSize()
-        globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
-        stackToAdd += globalSymbolTable.localStackSize()
-        if (globalSymbolTable.localStackSize() > 0) beginInstructions.addAll(growStack(globalSymbolTable.localStackSize()))
-        beginInstructions.addAll(generateStat(stat.stat))
-        if (globalSymbolTable.localStackSize() > 0) beginInstructions.addAll(shrinkStack(globalSymbolTable.localStackSize()))
-        stackToAdd -= globalSymbolTable.localStackSize()
-        globalSymbolTable = globalSymbolTable.parentT!!
+        enterNewScope(beginInstructions, stat.stat)
         stackToAdd -= globalSymbolTable.localStackSize()
         return beginInstructions
     }
@@ -163,14 +185,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
             is AssignLHSIdentNode -> {
                 val offset = getStackOffsetValue(stat.lhs.ident.toString())
-                //TODO change value of register
-                println(offset)
                 readInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
                 stat.lhs.ident
             }
             is LHSArrayElemNode -> {
                 val offset = getStackOffsetValue(stat.lhs.arrayElem.ident.toString())
-                //TODO change value of register
                 readInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
                 stat.lhs.arrayElem
             }
@@ -189,29 +208,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return readInstructions
     }
 
-    private fun getExprParameterOffset(expr: ExprNode): Int {
-        return when (expr) {
-            is PairLiterNode -> 4
-            is IntLiterNode -> 4
-            is StrLiterNode -> 4
-            is CharLiterNode -> 1
-            is BoolLiterNode -> 1
-            is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value).getTypeSize()
-            is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value).getTypeSize()
-            is ArrayElem -> {
-                val type = globalSymbolTable.getNodeGlobal(expr.ident.toString())
-                type!!.getBaseType().getTypeSize()
-            }
-            is Ident -> {
-                val type = globalSymbolTable.getNodeGlobal(expr.toString())
-                return type!!.getTypeSize()
-            }
-            else -> {
-                0
-            }
-        }
-    }
-
     private fun generateCallNode(call: RHSCallNode): List<Instruction> {
         val callInstructions = mutableListOf<Instruction>()
         var totalOffset = 0
@@ -220,15 +216,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
             for (param in parameters) {
                 callInstructions.addAll(generateExpr(param))
-                val offset = getExprParameterOffset(param)
+                val offset = getExprOffset(param)
                 totalOffset += offset
                 assert(offset != 0)
-                val byte = offset == 1
+                val byte = offset == BOOL_CHAR_SIZE
                 callInstructions.add(Store(Register.r4, Register.sp, offset * -1, parameter = true, byte = byte))
                 globalSymbolTable.addToOffset(offset)
             }
         }
-        globalSymbolTable.addToOffset(-1 * totalOffset)
+        globalSymbolTable.subFromOffset(totalOffset)
 
         val functionName = "f_${call.ident.name}"
         callInstructions.add(Branch(functionName, true))
@@ -237,6 +233,174 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         callInstructions.add(Move(Register.r4, Register.r0))
 
         return callInstructions
+    }
+
+    private fun generateAssign(stat: AssignNode, reg: Register = Register.r5): List<Instruction> {
+        assign = true
+        val assignInstructions = mutableListOf<Instruction>()
+        if (stat.rhs is RHSExprNode) {
+            val newType = getType(stat.rhs.expr)
+            if (stat.lhs is AssignLHSIdentNode) {
+                val oldType = globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString())!!
+                if (newType != oldType) {
+                    globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString(), newType)!!
+                    assignInstructions.addAll(generateRHSNode(stat.rhs, reg.nextAvailable()))
+                    assignInstructions.addAll(generateLHSAssign(stat.lhs, reg))
+                    globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString(), oldType)!!
+                    assign = false
+                    return assignInstructions
+                }
+            }
+        }
+        assignInstructions.addAll(generateRHSNode(stat.rhs, reg.nextAvailable()))
+        assignInstructions.addAll(generateLHSAssign(stat.lhs, reg))
+        assign = false
+        return assignInstructions
+    }
+
+    private fun generateDeclaration(stat: DeclarationNode): List<Instruction> {
+        val declareInstructions = mutableListOf<Instruction>()
+
+        declareInstructions.addAll(generateRHSNode(stat.value))
+        declareInstructions.addAll(loadIdentValue(stat.ident))
+
+        return declareInstructions
+    }
+
+    private fun generateIf(stat: IfElseNode): List<Instruction> {
+        val ifInstruction = mutableListOf<Instruction>()
+
+        val elseLabel = nextLabel()
+        val endLabel = nextLabel()
+
+        // Load up the conditional
+        assign = true
+        if (stat.expr is LiterNode) {
+            ifInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
+        } else {
+            ifInstruction.addAll(generateExpr(stat.expr))
+        }
+        assign = false
+
+        // Compare the conditional
+        ifInstruction.add(Compare(Register.r4, ImmOp(0)))
+        ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
+
+        // Then Branch
+        stackToAdd += globalSymbolTable.localStackSize()
+        enterNewScope(ifInstruction, stat.then)
+
+        inElseStatement = true
+        // Else Branch
+        ifInstruction.add(FunctionDeclaration(elseLabel))
+        enterNewScope(ifInstruction, stat.else_)
+        stackToAdd -= globalSymbolTable.localStackSize()
+
+        ifInstruction.add(FunctionDeclaration(endLabel))
+
+        inElseStatement = false
+        return ifInstruction
+    }
+
+    private fun generateWhile(stat: WhileNode): List<Instruction> {
+        val whileInstruction = mutableListOf<Instruction>()
+
+        val conditionLabel = nextLabel()
+        val bodyLabel = nextLabel()
+
+        whileInstruction.add(Branch(conditionLabel, false))
+
+        // Loop body
+        if (!inElseStatement) stackToAdd += globalSymbolTable.localStackSize()
+        enterNewScope(whileInstruction, stat.do_)
+        if (!inElseStatement) stackToAdd -= globalSymbolTable.localStackSize()
+
+        // Conditional
+        assign = true
+        whileInstruction.add(FunctionDeclaration(conditionLabel))
+        if (stat.expr is LiterNode) {
+            whileInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
+        } else {
+            whileInstruction.addAll(generateExpr(stat.expr))
+        }
+        whileInstruction.add(Compare(Register.r4, ImmOp(1)))
+        whileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
+        assign = false
+
+        return whileInstruction
+    }
+
+    private fun generateReturn(stat: ReturnNode): List<Instruction> {
+        val returnInstruction = mutableListOf<Instruction>()
+        assign = true
+
+        if (stat.expr is LiterNode) {
+            returnInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
+        } else {
+            returnInstruction.addAll(generateExpr(stat.expr))
+        }
+
+        returnInstruction.add(Move(Register.r0, Register.r4))
+        if (stackToAdd > 0) {
+            returnInstruction.add(Add(Register.sp, Register.sp, ImmOp(stackToAdd)))
+            returnInstruction.add(Pop(listOf(Register.pc)))
+        }
+        assign = false
+        return returnInstruction
+    }
+
+    private fun generateSeq(stat: SequenceNode): List<Instruction> {
+        val sequenceInstruction = mutableListOf<Instruction>()
+
+        stat.statList.map { generateStat(it) }.forEach { sequenceInstruction.addAll(it) }
+        return sequenceInstruction
+    }
+
+    private fun generateFree(stat: FreeNode): List<Instruction> {
+        val freeInstruction = mutableListOf<Instruction>()
+
+        freeInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
+        freeInstruction.add(Move(Register.r0, Register.r4))
+
+        val funcName = predefined.addFunc(Freepair())
+        freeInstruction.add(Branch(funcName, true))
+
+        return freeInstruction
+    }
+
+    private fun generateExit(exitNode: ExitNode): List<Instruction> {
+        val exitInstruction = mutableListOf<Instruction>()
+
+        if (exitNode.expr is Ident) {
+            val offset = getStackOffsetValue(exitNode.expr.toString())
+            exitInstruction.add(Load(Register.r4, Register.sp, offset))
+        } else {
+            exitInstruction.addAll(generateExpr(exitNode.expr))
+        }
+
+        exitInstruction.add(Move(Register.r0, Register.r4))
+        exitInstruction.add(Branch("exit", true))
+
+        return exitInstruction
+    }
+
+    private fun generateSkip(): List<Instruction> {
+        return mutableListOf()
+    }
+
+    //------------------------------------------------
+    //            Generate Expression Nodes
+    //------------------------------------------------
+
+    private fun generateExpr(expr: ExprNode, reg: Register = Register.r4): List<Instruction> {
+        return when (expr) {
+            is LiterNode -> generateLiterNode(expr, reg)
+            is BinaryOpNode -> generateBinOp(expr, reg)
+            is UnaryOpNode -> generateUnOp(expr, reg)
+            is ArrayElem -> generateArrayElem(expr, reg)
+            is PairLiterNode -> mutableListOf(Load(reg, 0))
+            else -> emptyList()
+        }
     }
 
     private fun generateRHSNode(rhs: AssignRHSNode, reg: Register = Register.r5): List<Instruction> {
@@ -289,9 +453,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun addPairElem(elem: ExprNode, second: Boolean = false): List<Instruction> {
         val pairElemInstructions = mutableListOf<Instruction>()
         pairElemInstructions.addAll(generateExpr(elem, Register.r5))
-        pairElemInstructions.add(Load(Register.r0, getExprParameterOffset(elem)))
+        pairElemInstructions.add(Load(Register.r0, getExprOffset(elem)))
         pairElemInstructions.add(Branch("malloc", true))
-        pairElemInstructions.add(Store(Register.r5, Register.r0, byte = (getExprParameterOffset(elem) == 1)))
+        pairElemInstructions.add(Store(Register.r5, Register.r0, byte = (getExprOffset(elem) == 1)))
         pairElemInstructions.add(Store(Register.r0, Register.r4, if (!second) 0 else 4))
         return pairElemInstructions
     }
@@ -300,7 +464,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val newPairInstructions = mutableListOf<Instruction>()
 
         // Initialisation
-        newPairInstructions.add(Load(Register.r0, 8))
+        newPairInstructions.add(Load(Register.r0, PAIR_SIZE))
         newPairInstructions.add(Branch("malloc", true))
         newPairInstructions.add(Move(Register.r4, Register.r0))
 
@@ -313,15 +477,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateArrayLitNode(elements: List<ExprNode>, reg: Register = Register.r5): List<Instruction> {
         val arrayLitInstructions = mutableListOf<Instruction>()
 
-        var typeSize = 4
+        var typeSize = INT_STR_SIZE
         val arraySize = if (elements.isEmpty()) {
-            4
+            REFERENCE_SIZE
         } else {
-            typeSize = getExprParameterOffset(elements[0])
-            4 + elements.size * typeSize
+            typeSize = getExprOffset(elements[0])
+            REFERENCE_SIZE + elements.size * typeSize
         }
 
-        // Instructions for allocating space for array
+        // CodeGen.Instructions for allocating space for array
         arrayLitInstructions.add(Load(Register.r0, arraySize))
         arrayLitInstructions.add(Branch("malloc", true))
         arrayLitInstructions.add(Move(Register.r4, Register.r0))
@@ -330,7 +494,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         var count = 0
         for (expr in elements) {
             arrayLitInstructions.addAll(generateExpr(expr, reg))
-            arrayLitInstructions.add(Store(reg, Register.r4, 4 + count * typeSize, byte = typeSize == 1))
+            arrayLitInstructions.add(Store(reg, Register.r4, INT_STR_SIZE + count * typeSize, byte = typeSize == 1))
             count++
         }
 
@@ -366,157 +530,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return lhsInstructions
     }
 
-    private fun generateAssign(stat: AssignNode, reg: Register = Register.r5): List<Instruction> {
-        assign = true
-        val assignInstructions = mutableListOf<Instruction>()
-        if(stat.rhs is RHSExprNode) {
-            val a = getType(stat.rhs.expr)
-            if(stat.lhs is AssignLHSIdentNode) {
-                val b = globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString())!!
-                if(a != b) {
-                    globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString(), a)!!
-                    assignInstructions.addAll(generateRHSNode(stat.rhs, reg.nextAvailable()))
-                    assignInstructions.addAll(generateLHSAssign(stat.lhs, reg))
-                    globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString(), b)!!
-                    assign = false
-                    return assignInstructions
-                }
-            }
-        }
-        assignInstructions.addAll(generateRHSNode(stat.rhs, reg.nextAvailable()))
-        assignInstructions.addAll(generateLHSAssign(stat.lhs, reg))
-        assign = false
-        return assignInstructions
-    }
-
-    private fun generateDeclaration(stat: DeclarationNode): List<Instruction> {
-        val declareInstructions = mutableListOf<Instruction>()
-
-        declareInstructions.addAll(generateRHSNode(stat.value))
-        declareInstructions.addAll(loadIdentValue(stat.ident))
-
-        return declareInstructions
-    }
-
-    private fun generateIf(stat: IfElseNode): List<Instruction> {
-        val ifInstruction = mutableListOf<Instruction>()
-
-        val elseLabel = nextLabel()
-        val endLabel = nextLabel()
-
-        // Load up the conditional
-        assign = true
-        if (stat.expr is LiterNode) {
-            ifInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
-        } else {
-            ifInstruction.addAll(generateExpr(stat.expr))
-        }
-        assign = false
-
-        // Compare the conditional
-        ifInstruction.add(Compare(Register.r4, ImmOp(0)))
-        ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
-
-        // Then Branch
-        stackToAdd += globalSymbolTable.localStackSize()
-        globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
-        stackToAdd += globalSymbolTable.localStackSize()
-        if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(growStack(globalSymbolTable.localStackSize()))
-        ifInstruction.addAll(generateStat(stat.then))
-        if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(shrinkStack(globalSymbolTable.localStackSize()))
-        ifInstruction.add(Branch(endLabel, false))
-        stackToAdd -= globalSymbolTable.localStackSize()
-        globalSymbolTable = globalSymbolTable.parentT!!
-
-        inElseStatement = true
-        // Else Branch
-        globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
-        stackToAdd += globalSymbolTable.localStackSize()
-        println("Local stack size: ${globalSymbolTable.localStackSize()}")
-        ifInstruction.add(FunctionDeclaration(elseLabel))
-        if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(growStack(globalSymbolTable.localStackSize()))
-        ifInstruction.addAll(generateStat(stat.else_))
-        if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(shrinkStack(globalSymbolTable.localStackSize()))
-        stackToAdd -= globalSymbolTable.localStackSize()
-        globalSymbolTable = globalSymbolTable.parentT!!
-        stackToAdd -= globalSymbolTable.localStackSize()
-
-        ifInstruction.add(FunctionDeclaration(endLabel))
-
-        inElseStatement = false
-        return ifInstruction
-    }
-
-    private fun generateWhile(stat: WhileNode): List<Instruction> {
-        val whileInstruction = mutableListOf<Instruction>()
-
-        val conditionLabel = nextLabel()
-        val bodyLabel = nextLabel()
-
-        whileInstruction.add(Branch(conditionLabel, false))
-
-        // Loop body
-        if (!inElseStatement) stackToAdd += globalSymbolTable.localStackSize()
-        globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
-        stackToAdd += globalSymbolTable.localStackSize()
-        whileInstruction.add(FunctionDeclaration(bodyLabel))
-        if (globalSymbolTable.localStackSize() > 0) whileInstruction.addAll(growStack(globalSymbolTable.localStackSize()))
-        whileInstruction.addAll(generateStat(stat.do_))
-        if (globalSymbolTable.localStackSize() > 0) whileInstruction.addAll(shrinkStack(globalSymbolTable.localStackSize()))
-        stackToAdd -= globalSymbolTable.localStackSize()
-        globalSymbolTable = globalSymbolTable.parentT!!
-        if (!inElseStatement) stackToAdd -= globalSymbolTable.localStackSize()
-
-        // Conditional
-        assign = true
-        whileInstruction.add(FunctionDeclaration(conditionLabel))
-        if (stat.expr is LiterNode) {
-            whileInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
-        } else {
-            whileInstruction.addAll(generateExpr(stat.expr))
-        }
-        whileInstruction.add(Compare(Register.r4, ImmOp(1)))
-        whileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
-        assign = false
-
-        return whileInstruction
-    }
-
-    private fun generateReturn(stat: ReturnNode): List<Instruction> {
-        val returnInstruction = mutableListOf<Instruction>()
-        assign = true
-
-        if (stat.expr is LiterNode) {
-            returnInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
-        } else {
-            returnInstruction.addAll(generateExpr(stat.expr))
-        }
-
-        returnInstruction.add(Move(Register.r0, Register.r4))
-        if (stackToAdd > 0) {
-            returnInstruction.add(Add(Register.sp, Register.sp, ImmOp(stackToAdd)))
-            returnInstruction.add(Pop(listOf(Register.pc)))
-        }
-        assign = false
-        return returnInstruction
-    }
-
-    private fun generateExpr(expr: ExprNode, reg: Register = Register.r4): List<Instruction> {
-        return when (expr) {
-            is LiterNode -> generateLiterNode(expr, reg)
-            is BinaryOpNode -> generateBinOp(expr, reg)
-            is UnaryOpNode -> generateUnOp(expr, reg)
-            is ArrayElem -> generateArrayElem(expr, reg)
-            is PairLiterNode -> mutableListOf(Load(reg, 0))
-            else -> emptyList()
-        }
-    }
-
     private fun generateArrayElem(expr: ArrayElem, reg: Register): List<Instruction> {
         val arrayElemInstructions = mutableListOf<Instruction>()
         val offset = getStackOffsetValue(expr.ident.toString())
         val reg2 = reg.nextAvailable()
-        // TODO Registers dont work correctly - need to implement next register section
         var type: Type? = null
         arrayElemInstructions.add(Add(reg, Register.sp, ImmOp(offset)))
         for (element in expr.expr) {
@@ -545,45 +562,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return arrayElemInstructions
     }
 
-    private fun generateSeq(stat: SequenceNode): List<Instruction> {
-        val sequenceInstruction = mutableListOf<Instruction>()
-
-        stat.statList.map { generateStat(it) }.forEach { sequenceInstruction.addAll(it) }
-        return sequenceInstruction
-    }
-
-    private fun generateFree(stat: FreeNode): List<Instruction> {
-        val freeInstruction = mutableListOf<Instruction>()
-
-        freeInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
-        freeInstruction.add(Move(Register.r0, Register.r4))
-
-        val funcName = predefined.addFunc(Freepair())
-        freeInstruction.add(Branch(funcName, true))
-
-        return freeInstruction
-    }
-
-    private fun generateExit(exitNode: ExitNode): List<Instruction> {
-        val exitInstruction = mutableListOf<Instruction>()
-
-        if (exitNode.expr is Ident) {
-            val offset = getStackOffsetValue(exitNode.expr.toString())
-            exitInstruction.add(Load(Register.r4, Register.sp, offset))
-        } else {
-            exitInstruction.addAll(generateExpr(exitNode.expr))
-        }
-
-        exitInstruction.add(Move(Register.r0, Register.r4))
-        exitInstruction.add(Branch("exit", true))
-
-        return exitInstruction
-    }
-
-    private fun generateSkip(): List<Instruction> {
-        return mutableListOf()
-    }
-
     private fun generateLiterNode(exprNode: ExprNode, dstRegister: Register): List<Instruction> {
         val loadInstruction = mutableListOf<Instruction>()
         when (exprNode) {
@@ -595,7 +573,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 loadInstruction.add(Load(dstRegister, data.getLabel(exprNode.value)))
             }
             is CharLiterNode -> {
-                // TODO do we have to deal with other escaped characters?
                 if (exprNode.value == "\\0") {
                     loadInstruction.add(Move(dstRegister, ImmOp(0)))
                 } else {
@@ -605,9 +582,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
             is BoolLiterNode -> {
                 loadInstruction.add(Move(dstRegister, if (exprNode.value == "true") {
-                    ImmOp(1)
+                    ImmOp(TRUE_VAL)
                 } else {
-                    ImmOp(0)
+                    ImmOp(FALSE_VAL)
                 }))
             }
             is Ident -> {
@@ -619,143 +596,143 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return loadInstruction
     }
 
-    private fun getStackOffsetValue(name: String): Int {
-        println("N: $name, Param: ${globalSymbolTable.getNodeGlobal(name)!!.isParameter()}, Local: ${globalSymbolTable.containsNodeLocal(name)}, ${globalSymbolTable.parameterStackSize()}, ${globalSymbolTable.getStackOffset(name)}, ${!inElseStatement} && ${globalSymbolTable.localStackSize()}, $assign && ${!globalSymbolTable.containsNodeLocal(name)}, $stackToAdd")
-        return if (globalSymbolTable.getNodeGlobal(name)!!.isParameter()) {
-            globalSymbolTable.getStackOffset(name) + (if (globalSymbolTable.containsNodeLocal(name)) globalSymbolTable.localStackSize() else 0) + if (!inElseStatement && assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
-        } else {
-            globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(name) + (if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0)
-        }
-    }
-
-    private fun nextLabel(): String {
-        return "L${labelCounter++}"
-    }
-
     private fun generateUnOp(unOp: UnaryOpNode, reg: Register = Register.r4): List<Instruction> {
-        val list = mutableListOf<Instruction>()
+        val unOpInstructs = mutableListOf<Instruction>()
         val expr = generateExpr(unOp.expr, reg)
-        list.addAll(expr)
+        unOpInstructs.addAll(expr)
         when (unOp.operator) {
             //ORD and CHR are handled by print_int and print_char
             UnOp.NOT -> {
-                list.add(Not(reg, reg))
+                unOpInstructs.add(Not(reg, reg))
             }
             UnOp.MINUS -> {
-                list.add(Minus(reg))
-                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
+                unOpInstructs.add(Minus(reg))
+                unOpInstructs.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
             }
             UnOp.LEN -> {
-                list.add(Load(Register.r4, reg))
+                unOpInstructs.add(Load(Register.r4, reg))
             }
+            else -> emptyList<Instruction>()
         }
-        return list
+        return unOpInstructs
     }
 
     private fun generateBinOp(binOp: BinaryOpNode, reg: Register = Register.r4): List<Instruction> {
-        val list = mutableListOf<Instruction>()
+        val binOpInstructs = mutableListOf<Instruction>()
         var operand1 = reg
         var pop = false
+
+        //If there are no registers left, use r10 and push onto the stack
         if (operand1 >= Register.r10) {
             pop = true
             operand1 = Register.r10
-            list.addAll(generateExpr(binOp.expr1, operand1))
-            list.add(Push(mutableListOf(Register.r10)))
+            binOpInstructs.addAll(generateExpr(binOp.expr1, operand1))
+            binOpInstructs.add(Push(mutableListOf(Register.r10)))
         } else {
-            list.addAll(generateExpr(binOp.expr1, operand1))
+            binOpInstructs.addAll(generateExpr(binOp.expr1, operand1))
         }
         var operand2 = operand1.nextAvailable()
         if (operand2 >= Register.r10) operand2 = Register.r10
         val expr2 = generateExpr(binOp.expr2, operand2)
-        list.addAll(expr2)
+        binOpInstructs.addAll(expr2)
 
         var dstRegister = operand1
+        //If pushed onto the stack, pop from the stack into r11
         if (pop) {
-            list.add(Pop(mutableListOf(Register.r11)))
+            binOpInstructs.add(Pop(mutableListOf(Register.r11)))
             dstRegister = operand2
             operand1 = Register.r11
         }
 
         when (binOp.operator) {
+
+            //Arithmetic operators
             BinOp.PLUS -> {
-                list.add(Add(dstRegister, operand1, operand2, true))
-                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
+                binOpInstructs.add(Add(dstRegister, operand1, operand2, true))
+                binOpInstructs.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
             }
             BinOp.MINUS -> {
-                list.add(Sub(dstRegister, operand1, operand2, true))
-                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
+                binOpInstructs.add(Sub(dstRegister, operand1, operand2, true))
+                binOpInstructs.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
             }
             BinOp.MUL -> {
-                list.add(Multiply(operand1, operand2, operand1, operand2, true))
-                list.add(Compare(operand2, ArithmeticShiftRight(operand1, 31)))
-                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
+                binOpInstructs.add(Multiply(operand1, operand2, operand1, operand2, true))
+                binOpInstructs.add(Compare(operand2, ArithmeticShiftRight(operand1, 31)))
+                binOpInstructs.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
             }
 
+            //Boolean operators
             BinOp.AND -> {
-                list.add(And(dstRegister, operand1, operand2))
+                binOpInstructs.add(And(dstRegister, operand1, operand2))
             }
             BinOp.OR -> {
-                list.add(Or(dstRegister, operand1, operand2))
-            }
-            BinOp.EQ -> {
-                list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, ImmOp(1), Conditions.EQ))
-                list.add(Move(dstRegister, ImmOp(0), Conditions.NE))
-            }
-            BinOp.NEQ -> {
-                list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, ImmOp(1), Conditions.NE))
-                list.add(Move(dstRegister, ImmOp(0), Conditions.EQ))
-            }
-            BinOp.LT -> {
-                list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, ImmOp(1), Conditions.LT))
-                list.add(Move(dstRegister, ImmOp(0), Conditions.GE))
-            }
-            BinOp.GT -> {
-                list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, ImmOp(1), Conditions.GT))
-                list.add(Move(dstRegister, ImmOp(0), Conditions.LE))
-            }
-            BinOp.GTE -> {
-                list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, ImmOp(1), Conditions.GE))
-                list.add(Move(dstRegister, ImmOp(0), Conditions.LT))
-            }
-            BinOp.LTE -> {
-                list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, ImmOp(1), Conditions.LE))
-                list.add(Move(dstRegister, ImmOp(0), Conditions.GT))
+                binOpInstructs.add(Or(dstRegister, operand1, operand2))
             }
 
+            //Comparisons
+            BinOp.EQ -> {
+                binOpInstructs.add(Compare(operand1, operand2))
+                binOpInstructs.add(Move(dstRegister, ImmOp(TRUE_VAL), Conditions.EQ))
+                binOpInstructs.add(Move(dstRegister, ImmOp(FALSE_VAL), Conditions.NE))
+            }
+            BinOp.NEQ -> {
+                binOpInstructs.add(Compare(operand1, operand2))
+                binOpInstructs.add(Move(dstRegister, ImmOp(TRUE_VAL), Conditions.NE))
+                binOpInstructs.add(Move(dstRegister, ImmOp(FALSE_VAL), Conditions.EQ))
+            }
+            BinOp.LT -> {
+                binOpInstructs.add(Compare(operand1, operand2))
+                binOpInstructs.add(Move(dstRegister, ImmOp(TRUE_VAL), Conditions.LT))
+                binOpInstructs.add(Move(dstRegister, ImmOp(FALSE_VAL), Conditions.GE))
+            }
+            BinOp.GT -> {
+                binOpInstructs.add(Compare(operand1, operand2))
+                binOpInstructs.add(Move(dstRegister, ImmOp(TRUE_VAL), Conditions.GT))
+                binOpInstructs.add(Move(dstRegister, ImmOp(FALSE_VAL), Conditions.LE))
+            }
+            BinOp.GTE -> {
+                binOpInstructs.add(Compare(operand1, operand2))
+                binOpInstructs.add(Move(dstRegister, ImmOp(TRUE_VAL), Conditions.GE))
+                binOpInstructs.add(Move(dstRegister, ImmOp(FALSE_VAL), Conditions.LT))
+            }
+            BinOp.LTE -> {
+                binOpInstructs.add(Compare(operand1, operand2))
+                binOpInstructs.add(Move(dstRegister, ImmOp(TRUE_VAL), Conditions.LE))
+                binOpInstructs.add(Move(dstRegister, ImmOp(FALSE_VAL), Conditions.GT))
+            }
+            //MOD and DIV are handled by external libraries
             BinOp.MOD -> {
-                list.add(Move(Register.r0, operand1))
-                list.add(Move(Register.r1, operand2))
+                binOpInstructs.add(Move(Register.r0, operand1))
+                binOpInstructs.add(Move(Register.r1, operand2))
                 val funcName = predefined.addFunc(DivideByZero())
-                list.add(Branch(funcName, true))
-                list.add(Branch("__aeabi_idivmod", true))
-                list.add(Move(dstRegister, Register.r1))
+                binOpInstructs.add(Branch(funcName, true))
+                binOpInstructs.add(Branch("__aeabi_idivmod", true))
+                binOpInstructs.add(Move(dstRegister, Register.r1))
             }
             BinOp.DIV -> {
-                list.add(Move(Register.r0, operand1))
-                list.add(Move(Register.r1, operand2))
+                binOpInstructs.add(Move(Register.r0, operand1))
+                binOpInstructs.add(Move(Register.r1, operand2))
                 val funcName = predefined.addFunc(DivideByZero())
-                list.add(Branch(funcName, true))
-                list.add(Branch("__aeabi_idiv", true))
-                list.add(Move(dstRegister, Register.r0))
+                binOpInstructs.add(Branch(funcName, true))
+                binOpInstructs.add(Branch("__aeabi_idiv", true))
+                binOpInstructs.add(Move(dstRegister, Register.r0))
             }
             else -> {
                 throw Error("Should not get here")
             }
         }
-        return list
+        return binOpInstructs
 
     }
+
+    // ---------------------------------------------------------
+    //                      Stack Functions
+    // ---------------------------------------------------------
 
     // Handles growing of stack beyond MAX_STACK_SIZE
     private fun growStack(offset: Int): List<Instruction> {
         val instructions = mutableListOf<Instruction>()
-        for (i in 1 .. offset / MAX_SIZE) {
+        for (i in 1..offset / MAX_SIZE) {
             instructions.add(Sub(Register.sp, Register.sp, ImmOp(MAX_SIZE)))
         }
         instructions.add(Sub(Register.sp, Register.sp, ImmOp(offset % MAX_SIZE)))
@@ -765,15 +742,60 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     // Handles restoring of stack beyond MAX_STACK_SIZE
     private fun shrinkStack(offset: Int): List<Instruction> {
         val instructions = mutableListOf<Instruction>()
-        for (i in 1 .. offset / MAX_SIZE) {
+        for (i in 1..offset / MAX_SIZE) {
             instructions.add(Add(Register.sp, Register.sp, ImmOp(MAX_SIZE)))
         }
         instructions.add(Add(Register.sp, Register.sp, ImmOp(offset % MAX_SIZE)))
         return instructions
     }
 
-    // TODO find better way to get expression types than this - lots of duplication with ASTBuilder
-    // maybe add type member to expression nodes superclass and set during ast building?
+    private fun getStackOffsetValue(name: String): Int {
+        var totalOffset = 0
+        if (globalSymbolTable.getNodeGlobal(name)!!.isParameter()) {
+            totalOffset += globalSymbolTable.getStackOffset(name)
+            if (globalSymbolTable.containsNodeLocal(name)) {
+                totalOffset += globalSymbolTable.localStackSize()
+            }
+            if (!inElseStatement && assign && !globalSymbolTable.containsNodeLocal(name)) {
+                totalOffset += stackToAdd
+            }
+        } else {
+            totalOffset += globalSymbolTable.localStackSize()
+            totalOffset -= globalSymbolTable.getStackOffset(name)
+            if (assign && !globalSymbolTable.containsNodeLocal(name)) {
+                totalOffset += stackToAdd
+            }
+        }
+        return totalOffset
+    }
+
+    private fun getExprOffset(expr: ExprNode): Int {
+        return when (expr) {
+            is PairLiterNode -> REFERENCE_SIZE
+            is IntLiterNode -> INT_STR_SIZE
+            is StrLiterNode -> INT_STR_SIZE
+            is CharLiterNode -> BOOL_CHAR_SIZE
+            is BoolLiterNode -> BOOL_CHAR_SIZE
+            is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value).getTypeSize()
+            is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value).getTypeSize()
+            is ArrayElem -> {
+                val type = globalSymbolTable.getNodeGlobal(expr.ident.toString())
+                type!!.getBaseType().getTypeSize()
+            }
+            is Ident -> {
+                val type = globalSymbolTable.getNodeGlobal(expr.toString())
+                return type!!.getTypeSize()
+            }
+            else -> {
+                0
+            }
+        }
+    }
+
+    // ---------------------------------------------------------
+    //                     Utility Functions
+    // ---------------------------------------------------------
+
     private fun getType(expr: ExprNode): Type? {
         return when (expr) {
             is IntLiterNode -> Type(WACCParser.INT)
@@ -781,10 +803,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is BoolLiterNode -> Type(WACCParser.BOOL)
             is CharLiterNode -> Type(WACCParser.CHAR)
             is Ident -> globalSymbolTable.getNodeGlobal(expr.toString())
-            is ArrayElem -> {
-                val type = globalSymbolTable.getNodeGlobal(expr.ident.toString())
-                return type?.getBaseType() ?: Type(INVALID)
-            }
+            is ArrayElem -> globalSymbolTable.getNodeGlobal(expr.ident.toString())
             is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value)
             is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value)
             is PairLiterNode -> Type(PAIR_LITER)
@@ -793,5 +812,19 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 throw Error("Should not get here")
             }
         }
+    }
+
+    private fun enterNewScope(instructionList: MutableList<Instruction>, stat: StatementNode) {
+        globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
+        stackToAdd += globalSymbolTable.localStackSize()
+        if (globalSymbolTable.localStackSize() > 0) instructionList.addAll(growStack(globalSymbolTable.localStackSize()))
+        instructionList.addAll(generateStat(stat))
+        if (globalSymbolTable.localStackSize() > 0) instructionList.addAll(shrinkStack(globalSymbolTable.localStackSize()))
+        stackToAdd -= globalSymbolTable.localStackSize()
+        globalSymbolTable = globalSymbolTable.parentT!!
+    }
+
+    private fun nextLabel(): String {
+        return "L${labelCounter++}"
     }
 }

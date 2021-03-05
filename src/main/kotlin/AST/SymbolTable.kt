@@ -3,7 +3,7 @@ package AST
 import kotlin.Int
 
 // Class to store the symbol table with a reference to the parent symbol table
-class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
+class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
 
     // Table to store all variables and functions available
     private val table: LinkedHashMap<String, Type> = linkedMapOf()
@@ -26,6 +26,7 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
         return childrenTables[ID]
     }
 
+    //Add a node to the symbol table
     fun addNode(name: String, type: Type) {
         if (!type.isFunction() && !type.isParameter()) {
             tableOffset += type.getTypeSize()
@@ -34,6 +35,7 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
             parameterOffset += type.getTypeSize()
             table[name] = type.setOffset(parameterOffset)
         } else {
+            //Temporarily update the type in the symbol table
             table[name] = type
         }
     }
@@ -49,7 +51,7 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
             val type = currTable.table[name]
             if (type != null) {
                 if(setType != null) {
-                    currTable.table[name] = setType;
+                    currTable.table[name] = setType
                 }
                 return type
             }
@@ -63,6 +65,7 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
     fun containsNodeLocal(name: String): Boolean {
         return table.containsKey(name)
     }
+
 
     fun containsNodeGlobal(name: String): Boolean {
         // Same as getting a node but just returning true or false
@@ -78,24 +81,29 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
         return false
     }
 
+    //Return the size of the local stack
     fun localStackSize(): Int {
         return this.tableOffset
     }
 
+    //Add to the offset of the local stack
     fun addToOffset(n: Int) {
         this.tableOffset += n
     }
 
-    fun parameterStackSize(): Int {
-        return this.parameterOffset
+    //Sub from the offset of the local stack
+    fun subFromOffset(n: Int) {
+        this.tableOffset -= n
     }
 
+    //Return the offset of the variable within the symbol table
     private fun offsetInTable(name: String): Int {
         val entry = getNodeGlobal(name)
         assert(entry != null && !entry.isFunction())
         return entry!!.getOffset() + (if (entry.getTypeSize() == 1 && entry.isParameter()) 3 else 0)
     }
 
+    //Get the total stack offset of the variable
     fun getStackOffset(name: String): Int {
         var offset = 0
         var scopeST = this
@@ -109,26 +117,4 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
         // Now in the scope that has the variable we want
         return offset + offsetInTable(name)
     }
-
-    fun printEntries() {
-        for (entry in table.keys) {
-            println("Key: $entry     Value: ${table[entry]}      Offset: ${table[entry]!!.getOffset()}")
-        }
-    }
-
-    fun printChildTables() {
-        println(childrenTables)
-        println("Total Size: ${localStackSize()}")
-        for (key in childrenTables.keys) {
-            childrenTables[key]?.printChildTables()
-        }
-    }
-
-    fun containsNodeParent(name: String): Boolean {
-        if (parentT != null) {
-            return parentT!!.containsNodeLocal(name)
-        }
-        return false
-    }
-
 }
