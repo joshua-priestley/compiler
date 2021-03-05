@@ -514,7 +514,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
         if (type != null) {
             if (!assign || printing) {
-                arrayElemInstructions.add(Load(Register.r4, reg))
+                arrayElemInstructions.add(Load(Register.r4, reg, sb = type.getTypeSize() == 1))
             } else {
                 arrayElemInstructions.add(Store(Register.r4, reg, byte = type.getTypeSize() == 1))
             }
@@ -597,7 +597,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun getStackOffsetValue(name: String): Int {
-        println("${globalSymbolTable.getStackOffset(name)}, ${globalSymbolTable.localStackSize()}, $stackToAdd")
+        //println("${globalSymbolTable.getStackOffset(name)}, ${globalSymbolTable.localStackSize()}, $stackToAdd")
         return if (globalSymbolTable.getNodeGlobal(name)!!.isParameter()) {
             globalSymbolTable.getStackOffset(name) + globalSymbolTable.localStackSize() + if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
         } else {
