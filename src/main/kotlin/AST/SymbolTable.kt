@@ -86,7 +86,7 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
     private fun offsetInTable(name: String): Int {
         val entry = getNodeGlobal(name)
         assert(entry != null && !entry.isFunction())
-        return if (entry!!.getTypeSize() == 1 && entry.isParameter()) entry.getOffset() + 3 else entry.getOffset()
+        return entry!!.getOffset() + (if (entry.getTypeSize() == 1 && entry.isParameter()) 3 else 0)
     }
 
     fun getStackOffset(name: String): Int {
