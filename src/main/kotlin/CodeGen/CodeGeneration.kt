@@ -219,14 +219,14 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         assign = true
         val assignInstructions = mutableListOf<Instruction>()
         if (stat.rhs is RHSExprNode) {
-            val a = getType(stat.rhs.expr)
+            val newType = getType(stat.rhs.expr)
             if (stat.lhs is AssignLHSIdentNode) {
-                val b = globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString())!!
-                if (a != b) {
-                    globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString(), a)!!
+                val oldType = globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString())!!
+                if (newType != oldType) {
+                    globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString(), newType)!!
                     assignInstructions.addAll(generateRHSNode(stat.rhs, reg.nextAvailable()))
                     assignInstructions.addAll(generateLHSAssign(stat.lhs, reg))
-                    globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString(), b)!!
+                    globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString(), oldType)!!
                     assign = false
                     return assignInstructions
                 }
