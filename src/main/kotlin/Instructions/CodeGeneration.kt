@@ -467,6 +467,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generateReturn(stat: ReturnNode): List<Instruction> {
         val returnInstruction = mutableListOf<Instruction>()
+        assign = true
 
         if (stat.expr is LiterNode) {
             returnInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
@@ -479,6 +480,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             returnInstruction.add(Add(Register.sp, Register.sp, ImmOp(stackToAdd)))
             returnInstruction.add(Pop(listOf(Register.pc)))
         }
+        assign = false
         return returnInstruction
     }
 
@@ -601,11 +603,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun getStackOffsetValue(name: String): Int {
-        //println("${globalSymbolTable.getStackOffset(name)}, ${globalSymbolTable.localStackSize()}, $stackToAdd")
+        println("N: $name, Type: ${globalSymbolTable.getNodeGlobal(name)!!.isParameter()}, ${globalSymbolTable.getStackOffset(name)}, ${globalSymbolTable.localStackSize()}, $assign && ${!globalSymbolTable.containsNodeLocal(name)}, $stackToAdd")
         return if (globalSymbolTable.getNodeGlobal(name)!!.isParameter()) {
             globalSymbolTable.getStackOffset(name) + (if (globalSymbolTable.containsNodeLocal(name)) globalSymbolTable.localStackSize() else 0) + if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
         } else {
-            println("Name: $name, Local Stack: ${globalSymbolTable.localStackSize()}, ${globalSymbolTable.getStackOffset(name)}, ${if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0}")
+            //println("Name: $name, Local Stack: ${globalSymbolTable.localStackSize()}, ${globalSymbolTable.getStackOffset(name)}, ${if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0}")
             globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(name) + if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
         }
     }
