@@ -338,20 +338,20 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return arrayLitInstructions
     }
 
-    private fun loadIdentValue(ident: Ident): List<Instruction> {
+    private fun loadIdentValue(ident: Ident, type : Type = Type(ANY)): List<Instruction> {
         val loadInstructions = mutableListOf<Instruction>()
-        val type = globalSymbolTable.getNodeGlobal(ident.toString())!!
+        //val type = globalSymbolTable.getNodeGlobal(ident.toString())!!
         val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
-        val offset = getStackOffsetValue(ident.toString())
+        val offset = getStackOffsetValue(ident.toString(),type)
         loadInstructions.add(Store(Register.r4, Register.sp, offset, byte = byte))
         return loadInstructions
     }
 
-    private fun generateLHSAssign(lhs: AssignLHSNode, reg: Register): List<Instruction> {
+    private fun generateLHSAssign(lhs: AssignLHSNode, reg: Register, type: Type): List<Instruction> {
         val lhsInstructions = mutableListOf<Instruction>()
 
         when (lhs) {
-            is AssignLHSIdentNode -> lhsInstructions.addAll(loadIdentValue(lhs.ident))
+            is AssignLHSIdentNode -> lhsInstructions.addAll(loadIdentValue(lhs.ident, type))
             is LHSArrayElemNode -> {
                 lhsInstructions.addAll(generateExpr(lhs.arrayElem, reg))
             }
@@ -366,8 +366,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateAssign(stat: AssignNode, reg: Register = Register.r5): List<Instruction> {
         assign = true
         val assignInstructions = mutableListOf<Instruction>()
+        val rhsType = getType(stat.rhs)
         assignInstructions.addAll(generateRHSNode(stat.rhs, reg.nextAvailable()))
-        assignInstructions.addAll(generateLHSAssign(stat.lhs, reg))
+        assignInstructions.addAll(generateLHSAssign(stat.lhs, reg, rhsType!!))
         assign = false
         return assignInstructions
     }
@@ -596,12 +597,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return loadInstruction
     }
 
-    private fun getStackOffsetValue(name: String): Int {
+    private fun getStackOffsetValue(name: String, type : Type = Type(ANY)): Int {
         println("${globalSymbolTable.getStackOffset(name)}, ${globalSymbolTable.localStackSize()}, $stackToAdd")
         return if (globalSymbolTable.getNodeGlobal(name)!!.isParameter()) {
             globalSymbolTable.getStackOffset(name) + globalSymbolTable.localStackSize() + if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
         } else {
-            globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(name) + if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
+            globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(name,type) + if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
         }
     }
 
@@ -751,13 +752,18 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     // TODO find better way to get expression types than this - lots of duplication with ASTBuilder
     // maybe add type member to expression nodes superclass and set during ast building?
-    private fun getType(expr: ExprNode): Type? {
+    private fun getType(expr: ExprNode): Type {
         return when (expr) {
+            is RHSArrayLitNode -> getType(expr.exprs[0])
+            is RHSExprNode -> getType(expr.expr)
+            is RHSNewPairNode -> Type(getType(expr.expr1), getType(expr.expr2))
+            is RHSPairElemNode -> getType(expr.pairElem.expr)
+            is RHSCallNode -> globalSymbolTable.getNodeGlobal(expr.ident.toString())!!
             is IntLiterNode -> Type(WACCParser.INT)
             is StrLiterNode -> Type(WACCParser.STRING)
             is BoolLiterNode -> Type(WACCParser.BOOL)
             is CharLiterNode -> Type(WACCParser.CHAR)
-            is Ident -> globalSymbolTable.getNodeGlobal(expr.toString())
+            is Ident -> globalSymbolTable.getNodeGlobal(expr.toString())!!
             is ArrayElem -> {
                 val type = globalSymbolTable.getNodeGlobal(expr.ident.toString())
                 return type?.getBaseType() ?: Type(INVALID)
