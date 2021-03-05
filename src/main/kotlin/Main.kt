@@ -74,7 +74,6 @@ class Compiler(private val inputFile: String, private val assembly: Boolean = fa
             val instructions = listOfInstructions.joinToString(separator = "\n") + "\n"
 
             val assemblyFileName = file.name.replace(".wacc", ".s")
-            println(instructions)
             File(assemblyFileName).writeText(instructions)
         }
 

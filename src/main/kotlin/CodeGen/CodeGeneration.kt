@@ -289,6 +289,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         // Then Branch
         stackToAdd += globalSymbolTable.localStackSize()
         enterNewScope(ifInstruction, stat.then)
+        ifInstruction.add(Branch(endLabel, false))
 
         inElseStatement = true
         // Else Branch
