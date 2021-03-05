@@ -3,13 +3,13 @@ package compiler.CodeGen.Instructions.Operators
 import compiler.Instructions.Instruction
 import compiler.Instructions.Operand2
 import compiler.Instructions.Register
-
+//Class to generate ADD and SUB instructions
 open class AddSub(
-        private val type: String,
+        private val type: String,           //ADD or SUB
         private val dstReg: Register,
         private val srcReg1: Register,
         private val op2: Operand2,
-        private val s: Boolean
+        private val s: Boolean              //Update flags
 ) : Instruction {
 
 
