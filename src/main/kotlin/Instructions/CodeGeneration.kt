@@ -3,8 +3,6 @@ package compiler.Instructions
 import AST.*
 import antlr.WACCParser
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.math.abs
-import kotlin.math.max
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private val currentSymbolID = AtomicInteger()
@@ -227,8 +225,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 assert(offset != 0)
                 val byte = offset == 1
                 callInstructions.add(Store(Register.r4, Register.sp, offset * -1, parameter = true, byte = byte))
+                globalSymbolTable.addToOffset(offset)
             }
         }
+        globalSymbolTable.addToOffset(-1 * totalOffset)
 
         val functionName = "f_${call.ident.name}"
         callInstructions.add(Branch(functionName, true))
@@ -624,7 +624,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return if (globalSymbolTable.getNodeGlobal(name)!!.isParameter()) {
             globalSymbolTable.getStackOffset(name) + (if (globalSymbolTable.containsNodeLocal(name)) globalSymbolTable.localStackSize() else 0) + if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
         } else {
-            abs(globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(name) + (if (assign && !globalSymbolTable.containsNodeLocal(name) && !globalSymbolTable.containsNodeParent(name)) stackToAdd else 0))
+            globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(name) + (if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0)
         }
     }
 
