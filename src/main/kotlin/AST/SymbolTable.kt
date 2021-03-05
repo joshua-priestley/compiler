@@ -42,12 +42,15 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
         return table[name]
     }
 
-    fun getNodeGlobal(name: String): Type? {
+    fun getNodeGlobal(name: String, setType: Type? = null): Type? {
         // Check the symbol table and each parent's table for an entry match
         var currTable: SymbolTable? = this
         while (currTable != null) {
             val type = currTable.table[name]
             if (type != null) {
+                if(setType != null) {
+                    currTable.table[name] = setType;
+                }
                 return type
             }
 
