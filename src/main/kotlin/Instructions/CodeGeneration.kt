@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private val currentSymbolID = AtomicInteger()
 
-    private var inIfStatement = false
+    private var inElseStatement = false
     private var stackToAdd = 0
     private var assign = false
     private var printing = false
@@ -400,7 +400,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generateIf(stat: IfElseNode): List<Instruction> {
         val ifInstruction = mutableListOf<Instruction>()
-        inIfStatement = true
 
         val elseLabel = nextLabel()
         val endLabel = nextLabel()
@@ -429,6 +428,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         stackToAdd -= globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.parentT!!
 
+        inElseStatement = true
         // Else Branch
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         stackToAdd += globalSymbolTable.localStackSize()
@@ -443,7 +443,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         ifInstruction.add(FunctionDeclaration(endLabel))
 
-        inIfStatement = false
+        inElseStatement = false
         return ifInstruction
     }
 
@@ -456,7 +456,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         whileInstruction.add(Branch(conditionLabel, false))
 
         // Loop body
-        if (!inIfStatement) stackToAdd += globalSymbolTable.localStackSize()
+        if (!inElseStatement) stackToAdd += globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         stackToAdd += globalSymbolTable.localStackSize()
         whileInstruction.add(FunctionDeclaration(bodyLabel))
@@ -465,7 +465,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         if (globalSymbolTable.localStackSize() > 0) whileInstruction.addAll(shrinkStack(globalSymbolTable.localStackSize()))
         stackToAdd -= globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.parentT!!
-        if (!inIfStatement) stackToAdd -= globalSymbolTable.localStackSize()
+        if (!inElseStatement) stackToAdd -= globalSymbolTable.localStackSize()
 
         // Conditional
         assign = true
@@ -620,9 +620,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun getStackOffsetValue(name: String): Int {
-        println("N: $name, Param: ${globalSymbolTable.getNodeGlobal(name)!!.isParameter()}, Local: ${globalSymbolTable.containsNodeLocal(name)}, ${globalSymbolTable.parameterStackSize()}, ${globalSymbolTable.getStackOffset(name)}, ${globalSymbolTable.localStackSize()}, $assign && ${!globalSymbolTable.containsNodeLocal(name)}, $stackToAdd")
+        println("N: $name, Param: ${globalSymbolTable.getNodeGlobal(name)!!.isParameter()}, Local: ${globalSymbolTable.containsNodeLocal(name)}, ${globalSymbolTable.parameterStackSize()}, ${globalSymbolTable.getStackOffset(name)}, ${!inElseStatement} && ${globalSymbolTable.localStackSize()}, $assign && ${!globalSymbolTable.containsNodeLocal(name)}, $stackToAdd")
         return if (globalSymbolTable.getNodeGlobal(name)!!.isParameter()) {
-            globalSymbolTable.getStackOffset(name) + (if (globalSymbolTable.containsNodeLocal(name)) globalSymbolTable.localStackSize() else 0) + if (!inIfStatement && assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
+            globalSymbolTable.getStackOffset(name) + (if (globalSymbolTable.containsNodeLocal(name)) globalSymbolTable.localStackSize() else 0) + if (!inElseStatement && assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
         } else {
             globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(name) + (if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0)
         }
