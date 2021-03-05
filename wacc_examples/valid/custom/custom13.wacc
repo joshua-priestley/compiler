@@ -8,12 +8,10 @@
 # Program:
 
 begin
-  int x = 2 ;
-  println x ;
-  begin
-    int x = 4;
-    println x
-  end ;
-  println x
+  int thing(int x, bool y) is
+    int b = x ;
+    return b
+  end
+  int z = call thing(3, true)
 end
 
