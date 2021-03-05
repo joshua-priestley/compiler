@@ -1,7 +1,11 @@
-package compiler.Instructions
+package compiler.CodeGen
 
 import AST.*
 import antlr.WACCParser
+import compiler.CodeGen.Instructions.ARM.*
+import compiler.CodeGen.Instructions.External.*
+import compiler.CodeGen.Instructions.Operators.*
+import compiler.Instructions.*
 import java.util.concurrent.atomic.AtomicInteger
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
@@ -195,7 +199,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
             for (param in parameters) {
                 callInstructions.addAll(generateExpr(param))
-                val offset = getExprParameterOffset(param)
+                val offset = getExprOffset(param)
                 totalOffset += offset
                 assert(offset != 0)
                 val byte = offset == 1
@@ -432,9 +436,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun addPairElem(elem: ExprNode, second: Boolean = false): List<Instruction> {
         val pairElemInstructions = mutableListOf<Instruction>()
         pairElemInstructions.addAll(generateExpr(elem, Register.r5))
-        pairElemInstructions.add(Load(Register.r0, getExprParameterOffset(elem)))
+        pairElemInstructions.add(Load(Register.r0, getExprOffset(elem)))
         pairElemInstructions.add(Branch("malloc", true))
-        pairElemInstructions.add(Store(Register.r5, Register.r0, byte = (getExprParameterOffset(elem) == 1)))
+        pairElemInstructions.add(Store(Register.r5, Register.r0, byte = (getExprOffset(elem) == 1)))
         pairElemInstructions.add(Store(Register.r0, Register.r4, if (!second) 0 else 4))
         return pairElemInstructions
     }
@@ -460,11 +464,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val arraySize = if (elements.isEmpty()) {
             4
         } else {
-            typeSize = getExprParameterOffset(elements[0])
+            typeSize = getExprOffset(elements[0])
             4 + elements.size * typeSize
         }
 
-        // Instructions for allocating space for array
+        // CodeGen.Instructions for allocating space for array
         arrayLitInstructions.add(Load(Register.r0, arraySize))
         arrayLitInstructions.add(Branch("malloc", true))
         arrayLitInstructions.add(Move(Register.r4, Register.r0))
@@ -742,7 +746,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return totalOffset
     }
 
-    private fun getExprParameterOffset(expr: ExprNode): Int {
+    private fun getExprOffset(expr: ExprNode): Int {
         return when (expr) {
             is PairLiterNode -> 4
             is IntLiterNode -> 4

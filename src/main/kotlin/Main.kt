@@ -7,7 +7,7 @@ import AST.ProgramNode
 import ErrorHandler.SyntaxErrorHandler
 import org.antlr.v4.runtime.*
 import antlr.*
-import compiler.Instructions.CodeGeneration
+import compiler.CodeGen.CodeGeneration
 
 import kotlin.system.exitProcess
 import java.io.File

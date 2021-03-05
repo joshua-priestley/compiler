@@ -1,5 +1,6 @@
-package compiler.Instructions
+package compiler.CodeGen.Instructions.External
 
+import compiler.Instructions.Instruction
 import java.lang.StringBuilder
 
 class DataSegment : Instruction {

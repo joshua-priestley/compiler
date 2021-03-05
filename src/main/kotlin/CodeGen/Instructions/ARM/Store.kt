@@ -1,4 +1,8 @@
-package compiler.Instructions
+package compiler.CodeGen.Instructions.ARM
+
+import compiler.Instructions.Conditions
+import compiler.Instructions.Instruction
+import compiler.Instructions.Register
 
 class Store : Instruction {
     private val srcReg: Register
