@@ -630,6 +630,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
 
         when (binOp.operator) {
+
+            //Arithmetic operators
             BinOp.PLUS -> {
                 binOpInstructs.add(Add(dstRegister, operand1, operand2, true))
                 binOpInstructs.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
@@ -644,12 +646,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 binOpInstructs.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
             }
 
+            //Boolean operators
             BinOp.AND -> {
                 binOpInstructs.add(And(dstRegister, operand1, operand2))
             }
             BinOp.OR -> {
                 binOpInstructs.add(Or(dstRegister, operand1, operand2))
             }
+
+            //Comparisons
             BinOp.EQ -> {
                 binOpInstructs.add(Compare(operand1, operand2))
                 binOpInstructs.add(Move(dstRegister, ImmOp(TRUE_VAL), Conditions.EQ))
