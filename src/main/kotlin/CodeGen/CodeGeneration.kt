@@ -9,14 +9,20 @@ import compiler.Instructions.*
 import java.util.concurrent.atomic.AtomicInteger
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
+    // Global Variable to know which symbol table to step into
     private val currentSymbolID = AtomicInteger()
 
+    // Booleans to know at which section of code we are in
     private var inElseStatement = false
-    private var stackToAdd = 0
     private var assign = false
     private var printing = false
 
+    // Counter for the extra stack value we need to add when in different scopes
+    private var stackToAdd = 0
+
+    // Counter for the next available label
     private var labelCounter = 0
+
     private val data: DataSegment = DataSegment()
     private val predefined: PredefinedFuncs = PredefinedFuncs(data)
 
@@ -27,7 +33,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         private const val FALSE_VAL = 0
         private const val BOOL_CHAR_SIZE = 1
         private const val INT_STR_SIZE = 4
-        private const val REFERENCE_SIZE = 4
+        private const val REFERENCE_SIZE = 4    // Pairs and Arrays size
     }
 
     fun generateProgram(program: ProgramNode): List<Instruction> {
