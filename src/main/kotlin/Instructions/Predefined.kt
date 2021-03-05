@@ -172,7 +172,7 @@ class ReadInt : Predefined() {
 // TODO potentially combine with ReadInt to avoid duplication?
 class ReadChar : Predefined() {
     override val name = "p_read_char"
-    override val msg = "%c\\0"
+    override val msg = " %c\\0"
 
     override fun getInstructions(data: DataSegment): List<Instruction> =
             listOf(
