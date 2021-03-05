@@ -606,6 +606,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val binOpInstructs = mutableListOf<Instruction>()
         var operand1 = reg
         var pop = false
+
+        //If there are no registers left, use r10 and push onto the stack
         if (operand1 >= Register.r10) {
             pop = true
             operand1 = Register.r10
@@ -620,6 +622,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         binOpInstructs.addAll(expr2)
 
         var dstRegister = operand1
+        //If pushed onto the stack, pop from the stack into r11
         if (pop) {
             binOpInstructs.add(Pop(mutableListOf(Register.r11)))
             dstRegister = operand2
@@ -677,7 +680,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 binOpInstructs.add(Move(dstRegister, ImmOp(TRUE_VAL), Conditions.LE))
                 binOpInstructs.add(Move(dstRegister, ImmOp(FALSE_VAL), Conditions.GT))
             }
-
+            //MOD and DIV are handled by external libraries
             BinOp.MOD -> {
                 binOpInstructs.add(Move(Register.r0, operand1))
                 binOpInstructs.add(Move(Register.r1, operand2))
