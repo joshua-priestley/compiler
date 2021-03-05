@@ -338,12 +338,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return arrayLitInstructions
     }
 
-    private fun loadIdentValue(ident: Ident, type : Type = Type(ANY)): List<Instruction> {
+    private fun loadIdentValue(ident: Ident): List<Instruction> {
         val loadInstructions = mutableListOf<Instruction>()
-        //val type = globalSymbolTable.getNodeGlobal(ident.toString())!!
-        //var byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
+        val type = globalSymbolTable.getNodeGlobal(ident.toString())!!
+        val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
         val offset = getStackOffsetValue(ident.toString(),type)
-        val byte = offset == 1
         loadInstructions.add(Store(Register.r4, Register.sp, offset, byte = byte))
         return loadInstructions
     }
@@ -352,7 +351,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val lhsInstructions = mutableListOf<Instruction>()
 
         when (lhs) {
-            is AssignLHSIdentNode -> lhsInstructions.addAll(loadIdentValue(lhs.ident, type))
+            is AssignLHSIdentNode -> lhsInstructions.addAll(loadIdentValue(lhs.ident))
             is LHSArrayElemNode -> {
                 lhsInstructions.addAll(generateExpr(lhs.arrayElem, reg))
             }
