@@ -5,7 +5,6 @@ import com.github.kittinunf.fuel.gson.responseObject
 import com.google.gson.Gson
 import compiler.Compiler
 import org.junit.jupiter.api.Assertions.assertEquals
-
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.DynamicTest
 import java.io.File
@@ -88,13 +87,16 @@ class TestPrograms {
         val cachedFile = File(cachedName)
         if(!cachedFile.exists()) {
             // Contact the reference compiler using Fuel and gson
-            val referenceCompiler = Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
-                .add(FileDataPart(inputFile, "testfile", inputFile.name, "text/plain"))
-                .add(InlineDataPart("-x","options[]"))
-                .add(InlineDataPart(stdin, "stdin"))
-                .responseObject<CompilerOutput>(gson).third
-                .component1()
-            cachedFile.writeText(referenceCompiler!!.compiler_out)
+            val referenceCompiler =
+                Fuel.upload("https://teaching.doc.ic.ac.uk/wacc_compiler/run.cgi")
+                    .add(FileDataPart(inputFile, "testfile", inputFile.name, "text/plain"))
+                    .add(InlineDataPart("-x","options[]"))
+                    .add(InlineDataPart(stdin, "stdin"))
+                    .responseObject<CompilerOutput>(gson)
+                    .third
+                    .component1()!!
+
+            cachedFile.writeText(referenceCompiler.compiler_out)
         }
 
         val expectedContent = cachedFile.readText()
@@ -107,7 +109,8 @@ class TestPrograms {
         assertEquals(expectedContent, actualContent)
     }
 
-    fun formatToReferenceStyle(outputContent: String, exitCode: String): String {
+    // Helper function to match style of reference compiler
+    private fun formatToReferenceStyle(outputContent: String, exitCode: String): String {
         val str = StringBuilder()
         str.append("-- Compiling...\n")
         str.append("-- Assembling and Linking...\n")
@@ -121,4 +124,7 @@ class TestPrograms {
     }
 }
 
+// Data class to store results given from reference compiler
+// Note the names of the fields have to stay the same (as these are predefined
+// by the reference compiler)
 data class CompilerOutput(val test: String, val upload: String, val compiler_out: String)
