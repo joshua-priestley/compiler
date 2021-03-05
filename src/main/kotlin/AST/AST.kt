@@ -89,7 +89,7 @@ enum class BinOp(val value: Int) : Node {
 /*
  * RHS Assignment
  */
-interface AssignRHSNode : Node
+interface AssignRHSNode : ExprNode
 data class RHSExprNode(val expr: ExprNode) : AssignRHSNode
 data class RHSArrayLitNode(val exprs: List<ExprNode>) : AssignRHSNode
 data class RHSNewPairNode(val expr1: ExprNode, val expr2: ExprNode) : AssignRHSNode
