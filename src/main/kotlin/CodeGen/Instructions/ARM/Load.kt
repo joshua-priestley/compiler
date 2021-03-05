@@ -1,5 +1,8 @@
-package compiler.Instructions
+package compiler.CodeGen.Instructions.ARM
 
+import compiler.Instructions.Conditions
+import compiler.Instructions.Instruction
+import compiler.Instructions.Register
 import java.lang.StringBuilder
 
 class Load : Instruction {
