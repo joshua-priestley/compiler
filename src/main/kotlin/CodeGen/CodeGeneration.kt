@@ -312,6 +312,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         whileInstruction.add(Branch(conditionLabel, false))
 
         // Loop body
+        whileInstruction.add(FunctionDeclaration(bodyLabel))
         if (!inElseStatement) stackToAdd += globalSymbolTable.localStackSize()
         enterNewScope(whileInstruction, stat.do_)
         if (!inElseStatement) stackToAdd -= globalSymbolTable.localStackSize()
