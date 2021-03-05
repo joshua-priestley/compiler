@@ -432,13 +432,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         // Else Branch
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         stackToAdd += globalSymbolTable.localStackSize()
+        println("Local stack size: ${globalSymbolTable.localStackSize()}")
         ifInstruction.add(FunctionDeclaration(elseLabel))
         if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(growStack(globalSymbolTable.localStackSize()))
         ifInstruction.addAll(generateStat(stat.else_))
         if (globalSymbolTable.localStackSize() > 0) ifInstruction.addAll(shrinkStack(globalSymbolTable.localStackSize()))
         stackToAdd -= globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.parentT!!
-
         stackToAdd -= globalSymbolTable.localStackSize()
 
         ifInstruction.add(FunctionDeclaration(endLabel))
@@ -456,7 +456,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         whileInstruction.add(Branch(conditionLabel, false))
 
         // Loop body
-        stackToAdd += globalSymbolTable.localStackSize()
+        if (!inIfStatement) stackToAdd += globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
         stackToAdd += globalSymbolTable.localStackSize()
         whileInstruction.add(FunctionDeclaration(bodyLabel))
@@ -465,7 +465,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         if (globalSymbolTable.localStackSize() > 0) whileInstruction.addAll(shrinkStack(globalSymbolTable.localStackSize()))
         stackToAdd -= globalSymbolTable.localStackSize()
         globalSymbolTable = globalSymbolTable.parentT!!
-        stackToAdd -= globalSymbolTable.localStackSize()
+        if (!inIfStatement) stackToAdd -= globalSymbolTable.localStackSize()
 
         // Conditional
         assign = true
