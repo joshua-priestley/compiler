@@ -649,33 +649,33 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
             BinOp.EQ -> {
                 binOpInstructs.add(Compare(operand1, operand2))
-                binOpInstructs.add(Move(dstRegister, ImmOp(1), Conditions.EQ))
-                binOpInstructs.add(Move(dstRegister, ImmOp(0), Conditions.NE))
+                binOpInstructs.add(Move(dstRegister, ImmOp(TRUE_VAL), Conditions.EQ))
+                binOpInstructs.add(Move(dstRegister, ImmOp(FALSE_VAL), Conditions.NE))
             }
             BinOp.NEQ -> {
                 binOpInstructs.add(Compare(operand1, operand2))
-                binOpInstructs.add(Move(dstRegister, ImmOp(1), Conditions.NE))
-                binOpInstructs.add(Move(dstRegister, ImmOp(0), Conditions.EQ))
+                binOpInstructs.add(Move(dstRegister, ImmOp(TRUE_VAL), Conditions.NE))
+                binOpInstructs.add(Move(dstRegister, ImmOp(FALSE_VAL), Conditions.EQ))
             }
             BinOp.LT -> {
                 binOpInstructs.add(Compare(operand1, operand2))
-                binOpInstructs.add(Move(dstRegister, ImmOp(1), Conditions.LT))
-                binOpInstructs.add(Move(dstRegister, ImmOp(0), Conditions.GE))
+                binOpInstructs.add(Move(dstRegister, ImmOp(TRUE_VAL), Conditions.LT))
+                binOpInstructs.add(Move(dstRegister, ImmOp(FALSE_VAL), Conditions.GE))
             }
             BinOp.GT -> {
                 binOpInstructs.add(Compare(operand1, operand2))
-                binOpInstructs.add(Move(dstRegister, ImmOp(1), Conditions.GT))
-                binOpInstructs.add(Move(dstRegister, ImmOp(0), Conditions.LE))
+                binOpInstructs.add(Move(dstRegister, ImmOp(TRUE_VAL), Conditions.GT))
+                binOpInstructs.add(Move(dstRegister, ImmOp(FALSE_VAL), Conditions.LE))
             }
             BinOp.GTE -> {
                 binOpInstructs.add(Compare(operand1, operand2))
-                binOpInstructs.add(Move(dstRegister, ImmOp(1), Conditions.GE))
-                binOpInstructs.add(Move(dstRegister, ImmOp(0), Conditions.LT))
+                binOpInstructs.add(Move(dstRegister, ImmOp(TRUE_VAL), Conditions.GE))
+                binOpInstructs.add(Move(dstRegister, ImmOp(FALSE_VAL), Conditions.LT))
             }
             BinOp.LTE -> {
                 binOpInstructs.add(Compare(operand1, operand2))
-                binOpInstructs.add(Move(dstRegister, ImmOp(1), Conditions.LE))
-                binOpInstructs.add(Move(dstRegister, ImmOp(0), Conditions.GT))
+                binOpInstructs.add(Move(dstRegister, ImmOp(TRUE_VAL), Conditions.LE))
+                binOpInstructs.add(Move(dstRegister, ImmOp(FALSE_VAL), Conditions.GT))
             }
 
             BinOp.MOD -> {
