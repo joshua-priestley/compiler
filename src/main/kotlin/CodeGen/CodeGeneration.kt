@@ -34,7 +34,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         private const val BOOL_CHAR_SIZE = 1
         private const val INT_STR_SIZE = 4
         private const val REFERENCE_SIZE = 4    // Pairs and Arrays size
+        private const val PAIR_SIZE = 8
     }
+
+    //------------------------------------------------
+    //            Start the Assembly
+    //------------------------------------------------
 
     fun generateProgram(program: ProgramNode): List<Instruction> {
         val labelInstructions = mutableListOf<Instruction>()
@@ -62,6 +67,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 mainInstructions +
                 predefined.toInstructionList()
     }
+
+    //------------------------------------------------
+    //            Generate Function Nodes
+    //------------------------------------------------
 
     private fun generateFunction(function: FunctionNode): List<Instruction> {
         val instructions = mutableListOf<Instruction>()
@@ -455,7 +464,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val newPairInstructions = mutableListOf<Instruction>()
 
         // Initialisation
-        newPairInstructions.add(Load(Register.r0, 8))
+        newPairInstructions.add(Load(Register.r0, PAIR_SIZE))
         newPairInstructions.add(Branch("malloc", true))
         newPairInstructions.add(Move(Register.r4, Register.r0))
 
@@ -468,12 +477,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateArrayLitNode(elements: List<ExprNode>, reg: Register = Register.r5): List<Instruction> {
         val arrayLitInstructions = mutableListOf<Instruction>()
 
-        var typeSize = 4
+        var typeSize = INT_STR_SIZE
         val arraySize = if (elements.isEmpty()) {
-            4
+            REFERENCE_SIZE
         } else {
             typeSize = getExprOffset(elements[0])
-            4 + elements.size * typeSize
+            REFERENCE_SIZE + elements.size * typeSize
         }
 
         // CodeGen.Instructions for allocating space for array
