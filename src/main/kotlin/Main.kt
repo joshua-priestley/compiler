@@ -22,8 +22,6 @@ fun main(args: Array<String>) {
         throw IllegalArgumentException("Wrong number of arguments: expected: 1, actual: {$args.size}")
     }
 
-    val assembly = "-OC" in args
-
     val compiler = Compiler(args[0], true)
 
     exitProcess(compiler.compile())
