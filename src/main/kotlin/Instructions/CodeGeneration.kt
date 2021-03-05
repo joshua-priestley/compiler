@@ -11,6 +11,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private var inIfStatement = false
     private var stackToAdd = 0
     private var assign = false
+    private var printing = false
 
     private var labelCounter = 0
     private val data: DataSegment = DataSegment()
@@ -133,10 +134,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generatePrint(stat: PrintNode): List<Instruction> {
+        assign = true
+        printing = true
         val printInstruction = mutableListOf<Instruction>()
         printInstruction.addAll(generateExpr(stat.expr))
         printInstruction.add(Move(Register.r0, Register.r4))
-
+        assign = false
+        printing = false
         val funcName: String = when (getType(stat.expr)) {
             Type(WACCParser.INT) -> predefined.addFunc(PrintInt())
             Type(WACCParser.STRING) -> predefined.addFunc(PrintString())
@@ -509,7 +513,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
         }
         if (type != null) {
-            if (!assign) {
+            if (!assign || printing) {
                 arrayElemInstructions.add(Load(Register.r4, reg))
             } else {
                 arrayElemInstructions.add(Store(Register.r4, reg, byte = type.getTypeSize() == 1))
