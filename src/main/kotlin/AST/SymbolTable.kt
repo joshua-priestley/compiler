@@ -120,4 +120,11 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
         }
     }
 
+    fun containsNodeParent(name: String): Boolean {
+        if (parentT != null) {
+            return parentT!!.containsNodeLocal(name)
+        }
+        return false
+    }
+
 }
