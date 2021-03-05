@@ -244,7 +244,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is RHSCallNode -> {
                 rhsInstruction.addAll(generateCallNode(rhs))
             }
-            is RHSExprNode -> rhsInstruction.addAll(generateExpr(rhs.expr))
+            is RHSExprNode -> {
+                rhsInstruction.addAll(generateExpr(rhs.expr))
+            }
             is RHSArrayLitNode -> rhsInstruction.addAll(generateArrayLitNode(rhs.exprs, reg))
             is RHSNewPairNode -> rhsInstruction.addAll(generateNewPair(rhs))
             is RHSPairElemNode -> rhsInstruction.addAll(generatePairAccess(rhs.pairElem, false))
@@ -366,6 +368,20 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateAssign(stat: AssignNode, reg: Register = Register.r5): List<Instruction> {
         assign = true
         val assignInstructions = mutableListOf<Instruction>()
+        if(stat.rhs is RHSExprNode) {
+            val a = getType(stat.rhs.expr)
+            if(stat.lhs is AssignLHSIdentNode) {
+                val b = globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString())!!
+                if(a != b) {
+                    globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString(), a)!!
+                    assignInstructions.addAll(generateRHSNode(stat.rhs, reg.nextAvailable()))
+                    assignInstructions.addAll(generateLHSAssign(stat.lhs, reg))
+                    globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString(), b)!!
+                    assign = false
+                    return assignInstructions
+                }
+            }
+        }
         assignInstructions.addAll(generateRHSNode(stat.rhs, reg.nextAvailable()))
         assignInstructions.addAll(generateLHSAssign(stat.lhs, reg))
         assign = false
