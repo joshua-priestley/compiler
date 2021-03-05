@@ -26,6 +26,7 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
         return childrenTables[ID]
     }
 
+    //Add a node to the symbol table
     fun addNode(name: String, type: Type) {
         if (!type.isFunction() && !type.isParameter()) {
             tableOffset += type.getTypeSize()
@@ -34,6 +35,7 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
             parameterOffset += type.getTypeSize()
             table[name] = type.setOffset(parameterOffset)
         } else {
+            //Temporarily update the type in the symbol table
             table[name] = type
         }
     }
@@ -64,6 +66,7 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
         return table.containsKey(name)
     }
 
+
     fun containsNodeGlobal(name: String): Boolean {
         // Same as getting a node but just returning true or false
         var currTable: SymbolTable? = this
@@ -78,20 +81,24 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
         return false
     }
 
+    //Return the size of the local stack
     fun localStackSize(): Int {
         return this.tableOffset
     }
 
+    //Add to the offset of the local stack
     fun addToOffset(n: Int) {
         this.tableOffset += n
     }
 
+    //Return the offset of the variable within the symbol table
     private fun offsetInTable(name: String): Int {
         val entry = getNodeGlobal(name)
         assert(entry != null && !entry.isFunction())
         return entry!!.getOffset() + (if (entry.getTypeSize() == 1 && entry.isParameter()) 3 else 0)
     }
 
+    //Get the total stack offset of the variable
     fun getStackOffset(name: String): Int {
         var offset = 0
         var scopeST = this
