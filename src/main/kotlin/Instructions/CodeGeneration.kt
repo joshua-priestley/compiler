@@ -475,6 +475,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
 
         returnInstruction.add(Move(Register.r0, Register.r4))
+        if (stackToAdd > 0) {
+            returnInstruction.add(Add(Register.sp, Register.sp, ImmOp(stackToAdd)))
+            returnInstruction.add(Pop(listOf(Register.pc)))
+        }
         return returnInstruction
     }
 
@@ -601,6 +605,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return if (globalSymbolTable.getNodeGlobal(name)!!.isParameter()) {
             globalSymbolTable.getStackOffset(name) + if (globalSymbolTable.containsNodeLocal(name)) globalSymbolTable.localStackSize() else 0 + if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
         } else {
+            println("Name: $name, Local Stack: ${globalSymbolTable.localStackSize()}, ${globalSymbolTable.getStackOffset(name)}, ${if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0}")
             globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(name) + if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
         }
     }
