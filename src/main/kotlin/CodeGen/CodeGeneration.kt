@@ -165,14 +165,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
             is AssignLHSIdentNode -> {
                 val offset = getStackOffsetValue(stat.lhs.ident.toString())
-                //TODO change value of register
-                println(offset)
                 readInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
                 stat.lhs.ident
             }
             is LHSArrayElemNode -> {
                 val offset = getStackOffsetValue(stat.lhs.arrayElem.ident.toString())
-                //TODO change value of register
                 readInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
                 stat.lhs.arrayElem
             }
@@ -517,7 +514,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val arrayElemInstructions = mutableListOf<Instruction>()
         val offset = getStackOffsetValue(expr.ident.toString())
         val reg2 = reg.nextAvailable()
-        // TODO Registers dont work correctly - need to implement next register section
         var type: Type? = null
         arrayElemInstructions.add(Add(reg, Register.sp, ImmOp(offset)))
         for (element in expr.expr) {
@@ -557,7 +553,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 loadInstruction.add(Load(dstRegister, data.getLabel(exprNode.value)))
             }
             is CharLiterNode -> {
-                // TODO do we have to deal with other escaped characters?
                 if (exprNode.value == "\\0") {
                     loadInstruction.add(Move(dstRegister, ImmOp(0)))
                 } else {
