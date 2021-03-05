@@ -3,6 +3,7 @@ package compiler.Instructions
 import AST.*
 import antlr.WACCParser
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.abs
 import kotlin.math.max
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
@@ -619,12 +620,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun getStackOffsetValue(name: String): Int {
-        println("N: $name, Param: ${globalSymbolTable.getNodeGlobal(name)!!.isParameter()}, Local: ${globalSymbolTable.containsNodeLocal(name)}, ${globalSymbolTable.getStackOffset(name)}, ${globalSymbolTable.localStackSize()}, $assign && ${!globalSymbolTable.containsNodeLocal(name)}, $stackToAdd")
+        println("N: $name, Param: ${globalSymbolTable.getNodeGlobal(name)!!.isParameter()}, Local: ${globalSymbolTable.containsNodeLocal(name)}, ${globalSymbolTable.parameterStackSize()}, ${globalSymbolTable.getStackOffset(name)}, ${globalSymbolTable.localStackSize()}, $assign && ${!globalSymbolTable.containsNodeLocal(name)}, $stackToAdd")
         return if (globalSymbolTable.getNodeGlobal(name)!!.isParameter()) {
             globalSymbolTable.getStackOffset(name) + (if (globalSymbolTable.containsNodeLocal(name)) globalSymbolTable.localStackSize() else 0) + if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
         } else {
-            //println("Name: $name, Local Stack: ${globalSymbolTable.localStackSize()}, ${globalSymbolTable.getStackOffset(name)}, ${if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0}")
-            globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(name) + if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
+            abs(globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(name) + (if (assign && !globalSymbolTable.containsNodeLocal(name) && !globalSymbolTable.containsNodeParent(name)) stackToAdd else 0))
         }
     }
 

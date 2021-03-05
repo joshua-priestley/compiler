@@ -8,11 +8,10 @@
 # Program:
 
 begin
-  int x = 2 ;
-  println x ;
-  begin
-    println x
-  end ;
-  println x
+  int fibonacci(int n, bool toPrint) is
+    int f1 = n ;
+    return f1
+  end
+  int x = call fibonacci(5, true)
 end
 

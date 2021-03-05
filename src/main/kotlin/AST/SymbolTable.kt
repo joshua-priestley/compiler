@@ -89,7 +89,7 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
     private fun offsetInTable(name: String): Int {
         val entry = getNodeGlobal(name)
         assert(entry != null && !entry.isFunction())
-        return entry!!.getOffset() + (if (entry.getTypeSize() == 1 && entry.isParameter()) 3 else 0)
+        return entry!!.getOffset() + (if (entry.getTypeSize() == 1 && entry.isParameter()) 3 else 0) + (if (entry.isParameter() && entry.getTypeSize() != 1) parameterStackSize().rem(4) else 0)
     }
 
     fun getStackOffset(name: String): Int {
@@ -118,6 +118,13 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
         for (key in childrenTables.keys) {
             childrenTables[key]?.printChildTables()
         }
+    }
+
+    fun containsNodeParent(name: String): Boolean {
+        if (parentT != null) {
+            return parentT!!.containsNodeLocal(name)
+        }
+        return false
     }
 
 }
