@@ -577,123 +577,123 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generateUnOp(unOp: UnaryOpNode, reg: Register = Register.r4): List<Instruction> {
-        val list = mutableListOf<Instruction>()
+        val unOpInstructs = mutableListOf<Instruction>()
         val expr = generateExpr(unOp.expr, reg)
-        list.addAll(expr)
+        unOpInstructs.addAll(expr)
         when (unOp.operator) {
             //ORD and CHR are handled by print_int and print_char
             UnOp.NOT -> {
-                list.add(Not(reg, reg))
+                unOpInstructs.add(Not(reg, reg))
             }
             UnOp.MINUS -> {
-                list.add(Minus(reg))
-                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
+                unOpInstructs.add(Minus(reg))
+                unOpInstructs.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
             }
             UnOp.LEN -> {
-                list.add(Load(Register.r4, reg))
+                unOpInstructs.add(Load(Register.r4, reg))
             }
             else -> emptyList<Instruction>()
         }
-        return list
+        return unOpInstructs
     }
 
     private fun generateBinOp(binOp: BinaryOpNode, reg: Register = Register.r4): List<Instruction> {
-        val list = mutableListOf<Instruction>()
+        val binOpInstructs = mutableListOf<Instruction>()
         var operand1 = reg
         var pop = false
         if (operand1 >= Register.r10) {
             pop = true
             operand1 = Register.r10
-            list.addAll(generateExpr(binOp.expr1, operand1))
-            list.add(Push(mutableListOf(Register.r10)))
+            binOpInstructs.addAll(generateExpr(binOp.expr1, operand1))
+            binOpInstructs.add(Push(mutableListOf(Register.r10)))
         } else {
-            list.addAll(generateExpr(binOp.expr1, operand1))
+            binOpInstructs.addAll(generateExpr(binOp.expr1, operand1))
         }
         var operand2 = operand1.nextAvailable()
         if (operand2 >= Register.r10) operand2 = Register.r10
         val expr2 = generateExpr(binOp.expr2, operand2)
-        list.addAll(expr2)
+        binOpInstructs.addAll(expr2)
 
         var dstRegister = operand1
         if (pop) {
-            list.add(Pop(mutableListOf(Register.r11)))
+            binOpInstructs.add(Pop(mutableListOf(Register.r11)))
             dstRegister = operand2
             operand1 = Register.r11
         }
 
         when (binOp.operator) {
             BinOp.PLUS -> {
-                list.add(Add(dstRegister, operand1, operand2, true))
-                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
+                binOpInstructs.add(Add(dstRegister, operand1, operand2, true))
+                binOpInstructs.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
             }
             BinOp.MINUS -> {
-                list.add(Sub(dstRegister, operand1, operand2, true))
-                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
+                binOpInstructs.add(Sub(dstRegister, operand1, operand2, true))
+                binOpInstructs.add(Branch(predefined.addFunc(Overflow()), true, Conditions.VS))
             }
             BinOp.MUL -> {
-                list.add(Multiply(operand1, operand2, operand1, operand2, true))
-                list.add(Compare(operand2, ArithmeticShiftRight(operand1, 31)))
-                list.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
+                binOpInstructs.add(Multiply(operand1, operand2, operand1, operand2, true))
+                binOpInstructs.add(Compare(operand2, ArithmeticShiftRight(operand1, 31)))
+                binOpInstructs.add(Branch(predefined.addFunc(Overflow()), true, Conditions.NE))
             }
 
             BinOp.AND -> {
-                list.add(And(dstRegister, operand1, operand2))
+                binOpInstructs.add(And(dstRegister, operand1, operand2))
             }
             BinOp.OR -> {
-                list.add(Or(dstRegister, operand1, operand2))
+                binOpInstructs.add(Or(dstRegister, operand1, operand2))
             }
             BinOp.EQ -> {
-                list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, ImmOp(1), Conditions.EQ))
-                list.add(Move(dstRegister, ImmOp(0), Conditions.NE))
+                binOpInstructs.add(Compare(operand1, operand2))
+                binOpInstructs.add(Move(dstRegister, ImmOp(1), Conditions.EQ))
+                binOpInstructs.add(Move(dstRegister, ImmOp(0), Conditions.NE))
             }
             BinOp.NEQ -> {
-                list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, ImmOp(1), Conditions.NE))
-                list.add(Move(dstRegister, ImmOp(0), Conditions.EQ))
+                binOpInstructs.add(Compare(operand1, operand2))
+                binOpInstructs.add(Move(dstRegister, ImmOp(1), Conditions.NE))
+                binOpInstructs.add(Move(dstRegister, ImmOp(0), Conditions.EQ))
             }
             BinOp.LT -> {
-                list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, ImmOp(1), Conditions.LT))
-                list.add(Move(dstRegister, ImmOp(0), Conditions.GE))
+                binOpInstructs.add(Compare(operand1, operand2))
+                binOpInstructs.add(Move(dstRegister, ImmOp(1), Conditions.LT))
+                binOpInstructs.add(Move(dstRegister, ImmOp(0), Conditions.GE))
             }
             BinOp.GT -> {
-                list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, ImmOp(1), Conditions.GT))
-                list.add(Move(dstRegister, ImmOp(0), Conditions.LE))
+                binOpInstructs.add(Compare(operand1, operand2))
+                binOpInstructs.add(Move(dstRegister, ImmOp(1), Conditions.GT))
+                binOpInstructs.add(Move(dstRegister, ImmOp(0), Conditions.LE))
             }
             BinOp.GTE -> {
-                list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, ImmOp(1), Conditions.GE))
-                list.add(Move(dstRegister, ImmOp(0), Conditions.LT))
+                binOpInstructs.add(Compare(operand1, operand2))
+                binOpInstructs.add(Move(dstRegister, ImmOp(1), Conditions.GE))
+                binOpInstructs.add(Move(dstRegister, ImmOp(0), Conditions.LT))
             }
             BinOp.LTE -> {
-                list.add(Compare(operand1, operand2))
-                list.add(Move(dstRegister, ImmOp(1), Conditions.LE))
-                list.add(Move(dstRegister, ImmOp(0), Conditions.GT))
+                binOpInstructs.add(Compare(operand1, operand2))
+                binOpInstructs.add(Move(dstRegister, ImmOp(1), Conditions.LE))
+                binOpInstructs.add(Move(dstRegister, ImmOp(0), Conditions.GT))
             }
 
             BinOp.MOD -> {
-                list.add(Move(Register.r0, operand1))
-                list.add(Move(Register.r1, operand2))
+                binOpInstructs.add(Move(Register.r0, operand1))
+                binOpInstructs.add(Move(Register.r1, operand2))
                 val funcName = predefined.addFunc(DivideByZero())
-                list.add(Branch(funcName, true))
-                list.add(Branch("__aeabi_idivmod", true))
-                list.add(Move(dstRegister, Register.r1))
+                binOpInstructs.add(Branch(funcName, true))
+                binOpInstructs.add(Branch("__aeabi_idivmod", true))
+                binOpInstructs.add(Move(dstRegister, Register.r1))
             }
             BinOp.DIV -> {
-                list.add(Move(Register.r0, operand1))
-                list.add(Move(Register.r1, operand2))
+                binOpInstructs.add(Move(Register.r0, operand1))
+                binOpInstructs.add(Move(Register.r1, operand2))
                 val funcName = predefined.addFunc(DivideByZero())
-                list.add(Branch(funcName, true))
-                list.add(Branch("__aeabi_idiv", true))
-                list.add(Move(dstRegister, Register.r0))
+                binOpInstructs.add(Branch(funcName, true))
+                binOpInstructs.add(Branch("__aeabi_idiv", true))
+                binOpInstructs.add(Move(dstRegister, Register.r0))
             }
             else -> {
                 throw Error("Should not get here")
             }
         }
-        return list
+        return binOpInstructs
 
     }
 
