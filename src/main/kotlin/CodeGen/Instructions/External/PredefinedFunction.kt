@@ -4,12 +4,12 @@ import compiler.CodeGen.Instructions.ARM.*
 import compiler.CodeGen.Instructions.Operators.Add
 import compiler.Instructions.*
 
-// Set of external functions that we are including in the program
+// Keeps track of external functions that should be added to the assembly code
 class PredefinedFuncs(private val data: DataSegment) {
-    // Use list to preserve order of functions
+    // Use list to preserve order of function inclusions
     private val funcSet: MutableList<Predefined> = ArrayList()
 
-    // Add a predefined function to the set, return the string name
+    // Add a predefined function to the list, return the string name
     fun addFunc(func: Predefined): String {
         // Add the data strings for the given function to the data segment
         if (func.msg.isNotEmpty()) {
@@ -22,7 +22,7 @@ class PredefinedFuncs(private val data: DataSegment) {
         if (!funcSet.contains(func)) {
             funcSet.add(func)
         }
-        // Adds other necessary functions for runtime errors
+        // Any runtime errors should include code for PrintString and ThrowRuntimeError
         if (func is RuntimeError && !funcSet.contains(ThrowRuntimeError())) {
             funcSet.add(ThrowRuntimeError())
             addFunc(PrintString())
@@ -30,20 +30,19 @@ class PredefinedFuncs(private val data: DataSegment) {
         return func.name
     }
 
-    // Get the list of all instructions for external functions
+    // Generate the list of all instructions for external functions
     fun toInstructionList(): List<Instruction> =
             funcSet.toList()
                     .map { it.getInstructions(data) }
                     .flatten()
 }
 
-//TODO finish once arithmetic ops have been done
 abstract class Predefined {
-    // Superclasses should use "by lazy" to get the msg label after it is added
     abstract val name: String
     abstract val msg: String
     open val msg2: String? = null
 
+    // Generates a list of instructions, using data to get the correct labels
     abstract fun getInstructions(data: DataSegment): List<Instruction>
 
     override fun hashCode(): Int {
@@ -52,14 +51,13 @@ abstract class Predefined {
 
     override fun equals(other: Any?): Boolean {
         if (other is Predefined) {
-            // Equivalence on name is sufficient for our predefined semantics
+            // Equivalence on name is sufficient
             return name == other.name
         }
         return false
     }
 }
 
-abstract class RuntimeError : Predefined()
 
 
 class PrintLn : Predefined() {
@@ -157,38 +155,29 @@ class PrintReference : Predefined() {
 
 }
 
-class ReadInt : Predefined() {
+abstract class Read : Predefined() {
+    override fun getInstructions(data: DataSegment): List<Instruction> =
+        listOf(
+            FunctionDeclaration(name),
+            Push(listOf(Register.lr)),
+            Move(Register.r1, Register.r0),
+            Load(Register.r0, data.getLabel(msg)),
+            Add(Register.r0, Register.r0, ImmOp(4), false),
+            Branch("scanf", true),
+            Pop(listOf(Register.pc))
+        )
+}
+
+class ReadInt : Read() {
     override val name = "p_read_int"
     override val msg = "%d\\0"
-
-    override fun getInstructions(data: DataSegment): List<Instruction> =
-            listOf(
-                    FunctionDeclaration(name),
-                    Push(listOf(Register.lr)),
-                    Move(Register.r1, Register.r0),
-                    Load(Register.r0, data.getLabel(msg)),
-                    Add(Register.r0, Register.r0, ImmOp(4), false),
-                    Branch("scanf", true),
-                    Pop(listOf(Register.pc))
-            )
 }
 
-// TODO potentially combine with ReadInt to avoid duplication?
-class ReadChar : Predefined() {
+class ReadChar : Read() {
     override val name = "p_read_char"
     override val msg = " %c\\0"
-
-    override fun getInstructions(data: DataSegment): List<Instruction> =
-            listOf(
-                    FunctionDeclaration(name),
-                    Push(listOf(Register.lr)),
-                    Move(Register.r1, Register.r0),
-                    Load(Register.r0, data.getLabel(msg)),
-                    Add(Register.r0, Register.r0, ImmOp(4), false),
-                    Branch("scanf", true),
-                    Pop(listOf(Register.pc))
-            )
 }
+
 
 class ThrowRuntimeError : Predefined() {
     override val name = "p_throw_runtime_error"
@@ -202,6 +191,8 @@ class ThrowRuntimeError : Predefined() {
                     Branch("exit", true)
             )
 }
+
+abstract class RuntimeError : Predefined()
 
 class DivideByZero : RuntimeError() {
     override val name = "p_check_divide_by_zero"

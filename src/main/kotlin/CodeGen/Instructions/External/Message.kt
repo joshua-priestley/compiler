@@ -2,7 +2,7 @@ package compiler.CodeGen.Instructions.External
 
 import compiler.Instructions.Instruction
 
-//TODO do we need this or can we just represent messages as strings?
+// Stores the value of a message in the data segment
 data class Message(val value : String) : Instruction {
 
     override fun equals(other: Any?): Boolean {
