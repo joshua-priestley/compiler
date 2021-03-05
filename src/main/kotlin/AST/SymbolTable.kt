@@ -91,6 +91,11 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
         this.tableOffset += n
     }
 
+    //Sub from the offset of the local stack
+    fun subFromOffset(n: Int) {
+        this.tableOffset -= n
+    }
+
     //Return the offset of the variable within the symbol table
     private fun offsetInTable(name: String): Int {
         val entry = getNodeGlobal(name)

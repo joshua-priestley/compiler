@@ -23,6 +23,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     companion object {
         private const val MAX_SIZE = 1024
+        private const val TRUE_VAL = 1
+        private const val FALSE_VAL = 0
+        private const val BOOL_CHAR_SIZE = 1
+        private const val INT_STR_SIZE = 4
+        private const val REFERENCE_SIZE = 4
     }
 
     fun generateProgram(program: ProgramNode): List<Instruction> {
@@ -199,12 +204,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 val offset = getExprOffset(param)
                 totalOffset += offset
                 assert(offset != 0)
-                val byte = offset == 1
+                val byte = offset == BOOL_CHAR_SIZE
                 callInstructions.add(Store(Register.r4, Register.sp, offset * -1, parameter = true, byte = byte))
                 globalSymbolTable.addToOffset(offset)
             }
         }
-        globalSymbolTable.addToOffset(-1 * totalOffset)
+        globalSymbolTable.subFromOffset(totalOffset)
 
         val functionName = "f_${call.ident.name}"
         callInstructions.add(Branch(functionName, true))
@@ -474,7 +479,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         var count = 0
         for (expr in elements) {
             arrayLitInstructions.addAll(generateExpr(expr, reg))
-            arrayLitInstructions.add(Store(reg, Register.r4, 4 + count * typeSize, byte = typeSize == 1))
+            arrayLitInstructions.add(Store(reg, Register.r4, INT_STR_SIZE + count * typeSize, byte = typeSize == 1))
             count++
         }
 
@@ -562,9 +567,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
             is BoolLiterNode -> {
                 loadInstruction.add(Move(dstRegister, if (exprNode.value == "true") {
-                    ImmOp(1)
+                    ImmOp(TRUE_VAL)
                 } else {
-                    ImmOp(0)
+                    ImmOp(FALSE_VAL)
                 }))
             }
             is Ident -> {
@@ -743,11 +748,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun getExprOffset(expr: ExprNode): Int {
         return when (expr) {
-            is PairLiterNode -> 4
-            is IntLiterNode -> 4
-            is StrLiterNode -> 4
-            is CharLiterNode -> 1
-            is BoolLiterNode -> 1
+            is PairLiterNode -> REFERENCE_SIZE
+            is IntLiterNode -> INT_STR_SIZE
+            is StrLiterNode -> INT_STR_SIZE
+            is CharLiterNode -> BOOL_CHAR_SIZE
+            is BoolLiterNode -> BOOL_CHAR_SIZE
             is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value).getTypeSize()
             is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value).getTypeSize()
             is ArrayElem -> {
