@@ -89,33 +89,18 @@ class SymbolTable(var parentT: SymbolTable?, val ID: kotlin.Int) {
         return if (entry!!.getTypeSize() == 1 && entry.isParameter()) entry.getOffset() + 3 else entry.getOffset()
     }
 
-    fun getStackOffset(name: String, type : Type = Type(ANY)): Int {
+    fun getStackOffset(name: String): Int {
         var offset = 0
         var scopeST = this
-        if (parentT != null){
-            val inParent = scopeST.parentT!!.containsNodeLocal(name)
-            var inCurr = false
-
-            if (containsNodeLocal(name)){
-                inCurr = type == table[name]
-            }
-
-            if (inParent && !inCurr && type != Type(ANY)){
-                offset += scopeST.localStackSize()
-            }
-        }
-
 
         // Get to the right scope
         while (!scopeST.containsNodeLocal(name)) {
-            println("doing this $name")
             offset += scopeST.localStackSize()
             scopeST = scopeST.parentT!!
         }
 
         // Now in the scope that has the variable we want
-        println("offset: ${offset + scopeST.offsetInTable(name)}")
-        return offset + scopeST.offsetInTable(name)
+        return offset + offsetInTable(name)
     }
 
     fun printEntries() {
