@@ -599,7 +599,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun getStackOffsetValue(name: String): Int {
         //println("${globalSymbolTable.getStackOffset(name)}, ${globalSymbolTable.localStackSize()}, $stackToAdd")
         return if (globalSymbolTable.getNodeGlobal(name)!!.isParameter()) {
-            globalSymbolTable.getStackOffset(name) + globalSymbolTable.localStackSize() + if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
+            globalSymbolTable.getStackOffset(name) + if (globalSymbolTable.containsNodeLocal(name)) globalSymbolTable.localStackSize() else 0 + if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
         } else {
             globalSymbolTable.localStackSize() - globalSymbolTable.getStackOffset(name) + if (assign && !globalSymbolTable.containsNodeLocal(name)) stackToAdd else 0
         }
