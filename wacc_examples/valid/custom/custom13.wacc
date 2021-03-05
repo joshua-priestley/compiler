@@ -11,6 +11,7 @@ begin
   int x = 2 ;
   println x ;
   begin
+    int x = 4;
     println x
   end ;
   println x
