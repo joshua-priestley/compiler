@@ -222,7 +222,7 @@ class Overflow : RuntimeError() {
             listOf(
                     FunctionDeclaration(name),
                     Load(Register.r0, data.getLabel(msg)),
-                    Branch(ThrowRuntimeError().name, true, Conditions.EQ)
+                    Branch(ThrowRuntimeError().name, true)
             )
 }
 
