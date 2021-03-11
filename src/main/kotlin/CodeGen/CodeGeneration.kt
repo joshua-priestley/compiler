@@ -136,8 +136,18 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is BeginEndNode -> generateBegin(stat)
             is SequenceNode -> generateSeq(stat)
             is SideExpressionNode -> generateSideExpression(stat)
+            is BreakNode -> generateBreak()
+            is ContinueNode -> generateContinue()
             else -> throw Error("Should not get here")
         }
+    }
+
+    private fun generateBreak(): List<Instruction> {
+        return emptyList()
+    }
+
+    private fun generateContinue(): List<Instruction> {
+        return emptyList()
     }
 
     private fun generateSideExpression(stat: SideExpressionNode): List<Instruction> {

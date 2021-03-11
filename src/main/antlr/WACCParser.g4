@@ -26,6 +26,8 @@ stat: SKP                                           # skip
   | BEGIN stat END                                  # begin
   | <assoc=right> stat SEMICOLON stat               # sequence
   | assign_lhs sideExpr                             # sideExpression
+  | CONTINUE                                        # continue
+  | BREAK                                           # break
   ;
 
 assign_lhs: ident                                   # assignLhsId

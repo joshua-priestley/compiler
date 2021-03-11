@@ -18,6 +18,8 @@ class ASTBuilder(
         private var globalSymbolTable: SymbolTable
 ) : WACCParserBaseVisitor<Node>() {
     private val nextSymbolID = AtomicInteger()
+    private var inWhile = false
+    private var inIf = false
 
     // A map to store all the functions and their parameters for semantic checking
     private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
@@ -210,6 +212,20 @@ class ASTBuilder(
         return AssignNode(lhs, rhs)
     }
 
+    override fun visitBreak(ctx: BreakContext): Node {
+        if (!inWhile && !inIf) {
+            syntaxHandler.addSyntaxError(ctx, "Break outside of If statement or While loop")
+        }
+        return BreakNode()
+    }
+
+    override fun visitContinue(ctx: ContinueContext): Node {
+        if (!inWhile && !inIf) {
+            syntaxHandler.addSyntaxError(ctx, "Continue outside of If statement or While loop")
+        }
+        return ContinueNode()
+    }
+
     override fun visitSideExpression(ctx: SideExpressionContext): Node {
         val ident = visit(ctx.assign_lhs()) as AssignLHSIdentNode
         val lhsType = getLHSType(ident, ctx.assign_lhs())
@@ -352,6 +368,7 @@ class ASTBuilder(
     }
 
     override fun visitIf(ctx: IfContext): Node {
+        inIf = true
         val condExpr = getConditionExpression(ctx.expr(), ctx)
 
         // Create new scope for each branch of the conditional to make sure there are no scoping issues
@@ -365,11 +382,13 @@ class ASTBuilder(
         globalSymbolTable = elseSymbolTable
         val stat2 = visit(ctx.stat(1)) as StatementNode
         globalSymbolTable = globalSymbolTable.parentT!!
+        inIf = false
 
         return IfElseNode(condExpr, stat1, stat2)
     }
 
     override fun visitWhile(ctx: WhileContext): Node {
+        inWhile = true
         val condExpr = getConditionExpression((ctx.expr()), ctx)
 
         // Create a new scope for the loop
@@ -378,6 +397,7 @@ class ASTBuilder(
         val stat = visit(ctx.stat()) as StatementNode
         globalSymbolTable = globalSymbolTable.parentT!!
 
+        inWhile = false
         return WhileNode(condExpr, stat)
     }
 

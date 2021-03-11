@@ -39,6 +39,8 @@ data class MulNNode(val value: ExprNode): SideExprOperator
 data class DivNNode(val value: ExprNode): SideExprOperator
 
 class SkipNode : StatementNode
+class ContinueNode: StatementNode
+class BreakNode: StatementNode
 data class DeclarationNode(val type: TypeNode, val ident: Ident, val value: AssignRHSNode) : StatementNode
 data class AssignNode(val lhs: AssignLHSNode, val rhs: AssignRHSNode) : StatementNode
 data class ReadNode(val lhs: AssignLHSNode) : StatementNode
