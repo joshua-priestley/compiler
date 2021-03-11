@@ -26,8 +26,6 @@ class Interpreter {
 
 
     fun run() {
-
-
         println("-----WACC Interpreter-----")
         println(" - type *quit to exit")
         println(" - you don't need the global begin/end statements")
@@ -37,8 +35,9 @@ class Interpreter {
         while (true) {
             print(">".repeat(indentLevel + 1) + "  ")
             val line = readLine()
-            //val aaa = WACCLexer.
 
+            // true if line can be executed
+            var valid = true
 
             val listener = SyntaxErrorHandler()
             val input = CharStreams.fromString(makeProgram(line))
@@ -54,6 +53,7 @@ class Interpreter {
 
             if (listener.hasSyntaxErrors()) {
                 listener.printSyntaxErrors()
+                valid = false
             }
 
             val symbolTable = SymbolTable(null, 0)
@@ -62,10 +62,12 @@ class Interpreter {
 
             if (listener.hasSyntaxErrors()) {
                 listener.printSyntaxErrors()
+                valid = false
             }
 
             if (semanticErrorHandler.hasSemanticErrors()) {
                 semanticErrorHandler.printSemanticErrors()
+                valid = false
             }
 
             /*
@@ -73,8 +75,9 @@ class Interpreter {
             print(input)
             println(tokens[0].toString())
              */
-
-            generateCode(symbolTable, root as ProgramNode)
+            if (valid && indentLevel == 0) {
+                generateCode(symbolTable, root as ProgramNode)
+            }
             // if can parse properly, then execute
             // else set moreinput, wait until
             if (line == "*tog") {
@@ -119,5 +122,8 @@ class Interpreter {
             print(outputContent.toString())
             println()
         }
+
+        File(assemblyFileName).delete()
+        File(executableName).delete()
     }
 }
