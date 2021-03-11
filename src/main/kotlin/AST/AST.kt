@@ -39,6 +39,8 @@ data class MulNNode(val value: ExprNode): SideExprOperator
 data class DivNNode(val value: ExprNode): SideExprOperator
 
 class SkipNode : StatementNode
+class ContinueNode: StatementNode
+class BreakNode: StatementNode
 data class DeclarationNode(val type: TypeNode, val ident: Ident, val value: AssignRHSNode) : StatementNode
 data class AssignNode(val lhs: AssignLHSNode, val rhs: AssignRHSNode) : StatementNode
 data class ReadNode(val lhs: AssignLHSNode) : StatementNode
@@ -118,6 +120,8 @@ data class SndExpr(override val expr: ExprNode) : PairElemNode(expr)
 interface TypeNode : Node {
     val type: Type
 }
+
+class VoidType(override val type: Type = Type(VOID)): TypeNode
 
 // Base Types
 interface BaseType : TypeNode

@@ -102,6 +102,7 @@ BOOL: 'bool';
 CHAR: 'char';
 STRING: 'string';
 PAIR: 'pair';
+VOID: 'void';
 
 //characters
 fragment QUOTE: '\'';

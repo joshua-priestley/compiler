@@ -6,6 +6,7 @@ import compiler.CodeGen.Instructions.ARM.*
 import compiler.CodeGen.Instructions.External.*
 import compiler.CodeGen.Instructions.Operators.*
 import compiler.Instructions.*
+import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
@@ -16,6 +17,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private var inElseStatement = false
     private var assign = false
     private var printing = false
+
+    private var endLabel = Stack<String>()
+    private var conditionLabel = Stack<String>()
 
     // Counter for the extra stack value we need to add when in different scopes
     private var stackToAdd = 0
@@ -42,6 +46,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     //------------------------------------------------
 
     fun generateProgram(program: ProgramNode): List<Instruction> {
+        globalSymbolTable.printEntries()
+
         val labelInstructions = mutableListOf<Instruction>()
         labelInstructions.add(GlobalLabel("text"))
         labelInstructions.add(GlobalLabel("global main"))
@@ -136,8 +142,18 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is BeginEndNode -> generateBegin(stat)
             is SequenceNode -> generateSeq(stat)
             is SideExpressionNode -> generateSideExpression(stat)
+            is BreakNode -> generateBreak()
+            is ContinueNode -> generateContinue()
             else -> throw Error("Should not get here")
         }
+    }
+
+    private fun generateBreak(): List<Instruction> {
+        return listOf(Branch(endLabel.peek(), false))
+    }
+
+    private fun generateContinue(): List<Instruction> {
+        return listOf(Branch(conditionLabel.peek(), false))
     }
 
     private fun generateSideExpression(stat: SideExpressionNode): List<Instruction> {
@@ -321,10 +337,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateWhile(stat: WhileNode): List<Instruction> {
         val whileInstruction = mutableListOf<Instruction>()
 
-        val conditionLabel = nextLabel()
+        conditionLabel.push(nextLabel())
         val bodyLabel = nextLabel()
+        endLabel.push(nextLabel())
 
-        whileInstruction.add(Branch(conditionLabel, false))
+        whileInstruction.add(Branch(conditionLabel.peek(), false))
 
         // Loop body
         whileInstruction.add(FunctionDeclaration(bodyLabel))
@@ -334,7 +351,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         // Conditional
         assign = true
-        whileInstruction.add(FunctionDeclaration(conditionLabel))
+        whileInstruction.add(FunctionDeclaration(conditionLabel.peek()))
         if (stat.expr is LiterNode) {
             whileInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
         } else {
@@ -342,7 +359,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
         whileInstruction.add(Compare(Register.r4, ImmOp(1)))
         whileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
+        whileInstruction.add(FunctionDeclaration(endLabel.peek()))
         assign = false
+
+        endLabel.pop()
+        conditionLabel.pop()
 
         return whileInstruction
     }
