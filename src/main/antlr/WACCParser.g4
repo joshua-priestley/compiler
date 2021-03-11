@@ -49,6 +49,7 @@ pair_elem: FST expr                             # pairFst
   ;
 
 type: base_type
+  | void_type
   | type OPEN_SQUARE CLOSE_SQUARE
   | pair_type;
 
@@ -57,6 +58,8 @@ base_type: INT                                  # baseT
   | CHAR                                        # baseT
   | STRING                                      # baseT
   ;
+
+void_type: VOID # voidT;
 
 array_type: type OPEN_SQUARE CLOSE_SQUARE;
 

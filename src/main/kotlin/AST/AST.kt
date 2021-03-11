@@ -121,6 +121,8 @@ interface TypeNode : Node {
     val type: Type
 }
 
+class VoidType(override val type: Type = Type(VOID)): TypeNode
+
 // Base Types
 interface BaseType : TypeNode
 

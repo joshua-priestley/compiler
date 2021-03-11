@@ -46,6 +46,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     //------------------------------------------------
 
     fun generateProgram(program: ProgramNode): List<Instruction> {
+        globalSymbolTable.printEntries()
+
         val labelInstructions = mutableListOf<Instruction>()
         labelInstructions.add(GlobalLabel("text"))
         labelInstructions.add(GlobalLabel("global main"))

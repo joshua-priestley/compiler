@@ -1,0 +1,14 @@
+# a simple increment function definition and usage
+
+# Output:
+# 1
+# 4
+
+# Program:
+
+begin
+  void thing(pair(bool, bool) t) is
+    int x = 3
+  end
+  int x = 4
+end

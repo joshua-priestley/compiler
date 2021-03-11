@@ -103,7 +103,7 @@ class ASTBuilder(
         // Assign the current scope to the scope of the function when building its statement node
         globalSymbolTable = functionSymbolTable
         val stat = visit(ctx.stat()) as StatementNode
-        if (!stat.valid()) {
+        if (!stat.valid() && type !is VoidType)  {
             syntaxHandler.addSyntaxError(ctx, "return type of function invalid")
         }
 
@@ -323,7 +323,7 @@ class ASTBuilder(
         boolTypeResult = false
         val expected = globalSymbolTable.getNodeGlobal("\$RET")
 
-        if (expected != returnType) {
+        if (expected != returnType || expected == Type(VOID)) {
             semanticListener.incompatibleTypeReturn(expected.toString(), returnType.toString(), ctx)
         }
         return ReturnNode(exprType)
@@ -450,6 +450,7 @@ class ASTBuilder(
             ctx.base_type() != null -> visit(ctx.base_type())
             ctx.OPEN_SQUARE() != null -> return ArrayNode(visit(ctx.type()) as TypeNode)
             ctx.pair_type() != null -> return visit(ctx.pair_type())
+            ctx.void_type() != null -> return VoidType()
         }
 
         return visitChildren(ctx)
