@@ -19,7 +19,6 @@ class ASTBuilder(
 ) : WACCParserBaseVisitor<Node>() {
     private val nextSymbolID = AtomicInteger()
     private var inWhile = false
-    private var inIf = false
 
     // A map to store all the functions and their parameters for semantic checking
     private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
@@ -213,7 +212,7 @@ class ASTBuilder(
     }
 
     override fun visitBreak(ctx: BreakContext): Node {
-        if (!inWhile && !inIf) {
+        if (!inWhile) {
             syntaxHandler.addSyntaxError(ctx, "Break outside of If statement or While loop")
         }
         return BreakNode()
@@ -368,7 +367,6 @@ class ASTBuilder(
     }
 
     override fun visitIf(ctx: IfContext): Node {
-        inIf = true
         val condExpr = getConditionExpression(ctx.expr(), ctx)
 
         // Create new scope for each branch of the conditional to make sure there are no scoping issues
@@ -382,7 +380,6 @@ class ASTBuilder(
         globalSymbolTable = elseSymbolTable
         val stat2 = visit(ctx.stat(1)) as StatementNode
         globalSymbolTable = globalSymbolTable.parentT!!
-        inIf = false
 
         return IfElseNode(condExpr, stat1, stat2)
     }
