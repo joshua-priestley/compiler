@@ -6,6 +6,7 @@ import compiler.CodeGen.Instructions.ARM.*
 import compiler.CodeGen.Instructions.External.*
 import compiler.CodeGen.Instructions.Operators.*
 import compiler.Instructions.*
+import java.awt.Label
 import java.util.concurrent.atomic.AtomicInteger
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
@@ -16,6 +17,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private var inElseStatement = false
     private var assign = false
     private var printing = false
+
+    private var endLabel = ""
+    private var conditionLabel = ""
 
     // Counter for the extra stack value we need to add when in different scopes
     private var stackToAdd = 0
@@ -143,11 +147,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generateBreak(): List<Instruction> {
-        return emptyList()
+        return listOf(Branch(endLabel, false))
     }
 
     private fun generateContinue(): List<Instruction> {
-        return emptyList()
+        return listOf(Branch(conditionLabel, false))
     }
 
     private fun generateSideExpression(stat: SideExpressionNode): List<Instruction> {
@@ -296,7 +300,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val ifInstruction = mutableListOf<Instruction>()
 
         val elseLabel = nextLabel()
-        val endLabel = nextLabel()
+        endLabel = nextLabel()
 
         // Load up the conditional
         assign = true
@@ -331,8 +335,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateWhile(stat: WhileNode): List<Instruction> {
         val whileInstruction = mutableListOf<Instruction>()
 
-        val conditionLabel = nextLabel()
+        conditionLabel = nextLabel()
         val bodyLabel = nextLabel()
+        endLabel = nextLabel()
 
         whileInstruction.add(Branch(conditionLabel, false))
 
@@ -352,6 +357,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
         whileInstruction.add(Compare(Register.r4, ImmOp(1)))
         whileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
+        whileInstruction.add(FunctionDeclaration(endLabel))
         assign = false
 
         return whileInstruction

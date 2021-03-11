@@ -220,7 +220,7 @@ class ASTBuilder(
     }
 
     override fun visitContinue(ctx: ContinueContext): Node {
-        if (!inWhile && !inIf) {
+        if (!inWhile) {
             syntaxHandler.addSyntaxError(ctx, "Continue outside of If statement or While loop")
         }
         return ContinueNode()
