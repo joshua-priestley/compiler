@@ -8,5 +8,7 @@
 
 begin
   int a = 4;
-  a+= 4
+  int b = 3 ;
+  a+= 4 ;
+  a = 2 + 3
 end

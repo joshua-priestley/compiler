@@ -70,13 +70,14 @@ class Compiler(private val inputFile: String, private val assembly: Boolean = fa
 
         println(root)
 
-        if (false) {
+        if (assembly) {
             val codeGeneration = CodeGeneration(symbolTable)
             val listOfInstructions = codeGeneration.generateProgram(root as ProgramNode)
             val instructions = listOfInstructions.joinToString(separator = "\n") + "\n"
 
             val assemblyFileName = file.name.replace(".wacc", ".s")
             File(assemblyFileName).writeText(instructions)
+            println(instructions)
         }
 
         println("Successfully finished compilation with exit code 0.")
