@@ -6,7 +6,7 @@ import compiler.CodeGen.Instructions.ARM.*
 import compiler.CodeGen.Instructions.External.*
 import compiler.CodeGen.Instructions.Operators.*
 import compiler.Instructions.*
-import java.awt.Label
+import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
@@ -18,8 +18,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private var assign = false
     private var printing = false
 
-    private var endLabel = ""
-    private var conditionLabel = ""
+    private var endLabel = Stack<String>()
+    private var conditionLabel = Stack<String>()
 
     // Counter for the extra stack value we need to add when in different scopes
     private var stackToAdd = 0
@@ -147,11 +147,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generateBreak(): List<Instruction> {
-        return listOf(Branch(endLabel, false))
+        return listOf(Branch(endLabel.peek(), false))
     }
 
     private fun generateContinue(): List<Instruction> {
-        return listOf(Branch(conditionLabel, false))
+        return listOf(Branch(conditionLabel.peek(), false))
     }
 
     private fun generateSideExpression(stat: SideExpressionNode): List<Instruction> {
@@ -335,11 +335,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateWhile(stat: WhileNode): List<Instruction> {
         val whileInstruction = mutableListOf<Instruction>()
 
-        conditionLabel = nextLabel()
+        conditionLabel.push(nextLabel())
         val bodyLabel = nextLabel()
-        endLabel = nextLabel()
+        endLabel.push(nextLabel())
 
-        whileInstruction.add(Branch(conditionLabel, false))
+        whileInstruction.add(Branch(conditionLabel.peek(), false))
 
         // Loop body
         whileInstruction.add(FunctionDeclaration(bodyLabel))
@@ -349,7 +349,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         // Conditional
         assign = true
-        whileInstruction.add(FunctionDeclaration(conditionLabel))
+        whileInstruction.add(FunctionDeclaration(conditionLabel.peek()))
         if (stat.expr is LiterNode) {
             whileInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
         } else {
@@ -357,8 +357,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
         whileInstruction.add(Compare(Register.r4, ImmOp(1)))
         whileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
-        whileInstruction.add(FunctionDeclaration(endLabel))
+        whileInstruction.add(FunctionDeclaration(endLabel.peek()))
         assign = false
+
+        endLabel.pop()
+        conditionLabel.pop()
 
         return whileInstruction
     }
