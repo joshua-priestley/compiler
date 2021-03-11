@@ -68,6 +68,8 @@ class Compiler(private val inputFile: String, private val assembly: Boolean = fa
             return SEMANTIC_ERROR
         }
 
+        println(root)
+
         if (assembly) {
             val codeGeneration = CodeGeneration(symbolTable)
             val listOfInstructions = codeGeneration.generateProgram(root as ProgramNode)
@@ -75,6 +77,7 @@ class Compiler(private val inputFile: String, private val assembly: Boolean = fa
 
             val assemblyFileName = file.name.replace(".wacc", ".s")
             File(assemblyFileName).writeText(instructions)
+            println(instructions)
         }
 
         println("Successfully finished compilation with exit code 0.")

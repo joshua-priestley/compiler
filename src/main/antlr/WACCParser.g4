@@ -25,6 +25,7 @@ stat: SKP                                           # skip
   | WHILE expr DO stat DONE                         # while
   | BEGIN stat END                                  # begin
   | <assoc=right> stat SEMICOLON stat               # sequence
+  | assign_lhs sideExpr                             # sideExpression
   ;
 
 assign_lhs: ident                                   # assignLhsId
@@ -86,3 +87,11 @@ ident: ID ;
 array_elem: ident (OPEN_SQUARE expr CLOSE_SQUARE)+;
 
 array_liter: OPEN_SQUARE (expr (COMMA expr)*)? CLOSE_SQUARE;
+
+sideExpr: nunOp           # sideOperator
+  | opN                   # sideOperator
+  ;
+
+nunOp: (PLUS PLUS) | (MINUS MINUS);
+
+opN: (ADDN | SUBN | MULN | DIVN) expr;

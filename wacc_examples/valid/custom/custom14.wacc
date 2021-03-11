@@ -1,0 +1,14 @@
+# a simple increment function definition and usage
+
+# Output:
+# 1
+# 4
+
+# Program:
+
+begin
+  int a = 4;
+  int b = 3 ;
+  a+= 4 ;
+  a = 2 + 3
+end

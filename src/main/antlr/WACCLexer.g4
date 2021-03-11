@@ -20,6 +20,10 @@ NOT: '!';
 LEN: 'len';
 ORD: 'ord';
 CHR: 'chr';
+ADDN: '+=';
+SUBN: '-=';
+MULN: '*=';
+DIVN: '/=';
 
 //program
 BEGIN: 'begin';
