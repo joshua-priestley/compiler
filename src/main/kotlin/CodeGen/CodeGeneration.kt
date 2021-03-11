@@ -604,6 +604,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is IntLiterNode -> {
                 loadInstruction.add(Load(dstRegister, exprNode.value.toInt()))
             }
+            is HexLiterNode -> {
+                loadInstruction.add(Load(dstRegister, exprNode.value.replace("0X", "0x")))
+            }
+            is BinLiterNode -> {
+                loadInstruction.add(Load(dstRegister, exprNode.value.replace("0b", "2_").replace("0B", "2_")))
+            }
+            is OctLiterNode -> {
+                loadInstruction.add(Load(dstRegister, exprNode.value))
+            }
             is StrLiterNode -> {
                 data.addMessage(Message(exprNode.value))
                 loadInstruction.add(Load(dstRegister, data.getLabel(exprNode.value)))

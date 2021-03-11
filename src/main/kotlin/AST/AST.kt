@@ -69,6 +69,9 @@ data class LHSPairElemNode(val pairElem: PairElemNode) : AssignLHSNode
 interface ExprNode : Node
 interface LiterNode : ExprNode
 data class IntLiterNode(val value: String) : LiterNode
+data class HexLiterNode(val value: String) : LiterNode
+data class BinLiterNode(val value: String) : LiterNode
+data class OctLiterNode(val value: String) : LiterNode
 data class StrLiterNode(val value: String) : LiterNode
 data class CharLiterNode(val value: String) : LiterNode
 data class BoolLiterNode(val value: String) : LiterNode

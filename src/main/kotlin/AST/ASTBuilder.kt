@@ -643,6 +643,9 @@ class ASTBuilder(
     private fun getExprType(expr: ExprNode, ctx: ParserRuleContext): Type? {
         return when (expr) {
             is IntLiterNode -> Type(INT)
+            is HexLiterNode -> Type(INT)
+            is BinLiterNode -> Type(INT)
+            is OctLiterNode -> Type(INT)
             is StrLiterNode -> Type(STRING)
             is BoolLiterNode -> Type(BOOL)
             is CharLiterNode -> Type(CHAR)
@@ -703,6 +706,33 @@ class ASTBuilder(
             ctx.CHAR_LITER() != null -> CharLiterNode(ctx.text.substring(1, ctx.text.length - 1))
             // Remove double quotes from the literal
             ctx.STR_LITER() != null -> StrLiterNode(ctx.text.substring(1, ctx.text.length - 1))
+            ctx.HEX_LITER() != null -> {
+                if (ctx.text.length > 10) {
+                    syntaxHandler.addSyntaxError(
+                            ctx,
+                            "int value (${ctx.text.toLong()}) must be between -2147483648 and 2147483647"
+                    )
+                }
+                HexLiterNode(ctx.text)
+            }
+            ctx.OCT_LITER() != null -> {
+                if (ctx.text.length > 13) {
+                    syntaxHandler.addSyntaxError(
+                            ctx,
+                            "int value (${ctx.text.toLong()}) must be between -2147483648 and 2147483647"
+                    )
+                }
+                OctLiterNode(ctx.text)
+            }
+            ctx.BIN_LITER() != null -> {
+                if (ctx.text.length > 34) {
+                    syntaxHandler.addSyntaxError(
+                            ctx,
+                            "int value (${ctx.text.toLong()}) must be between -2147483648 and 2147483647"
+                    )
+                }
+                BinLiterNode(ctx.text)
+            }
             else -> {
                 val value = ctx.text.toLong()
                 // Check the integer is within the accepted range
