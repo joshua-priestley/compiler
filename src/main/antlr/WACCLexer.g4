@@ -38,8 +38,18 @@ CLOSE_SQUARE: ']';
 
 //numbers
 fragment DIGIT: '0'..'9' ;
+fragment LOWER_HEX: 'a'..'f';
+fragment UPPER_HEX: 'A'..'F';
+fragment OCT_DIGIT: '0'..'7';
 
 INT_LITER: DIGIT+ ;
+HEX_LITER: HEX_PREFIX (DIGIT | LOWER_HEX | UPPER_HEX)+ ;
+BIN_LITER: BIN_PREFIX DIGIT+ ;
+OCT_LITER: OCT_PREFIX OCT_DIGIT+ ;
+
+HEX_PREFIX: '0x' | '0X' ;
+BIN_PREFIX: '0b' | '0B' | '2_' ;
+OCT_PREFIX: '8_' ;
 
 //skips
 SKP: 'skip';

@@ -69,6 +69,9 @@ pair_elem_type: base_type | array_type| PAIR;
 
 
 expr: (PLUS | MINUS)? INT_LITER                 # liter
+  | HEX_LITER                                   # liter
+  | OCT_LITER                                   # liter
+  | BIN_LITER                                   # liter
   | BOOL_LITER                                  # liter
   | CHAR_LITER                                  # liter
   | STR_LITER                                   # liter
