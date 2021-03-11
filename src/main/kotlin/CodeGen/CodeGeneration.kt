@@ -135,8 +135,23 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is WhileNode -> generateWhile(stat)
             is BeginEndNode -> generateBegin(stat)
             is SequenceNode -> generateSeq(stat)
+            is SideExpressionNode -> generateSideExpression(stat)
             else -> throw Error("Should not get here")
         }
+    }
+
+    private fun generateSideExpression(stat: SideExpressionNode): List<Instruction> {
+        val rhsConversion = when (stat.sideExpr) {
+            is AddOneNode -> RHSExprNode(BinaryOpNode(BinOp.PLUS, stat.ident.ident, IntLiterNode("1")))
+            is SubOneNode -> RHSExprNode(BinaryOpNode(BinOp.MINUS, stat.ident.ident, IntLiterNode("1")))
+            is AddNNode -> RHSExprNode(BinaryOpNode(BinOp.PLUS, stat.ident.ident, stat.sideExpr.value))
+            is SubNNode -> RHSExprNode(BinaryOpNode(BinOp.MINUS, stat.ident.ident, stat.sideExpr.value))
+            is MulNNode -> RHSExprNode(BinaryOpNode(BinOp.MUL, stat.ident.ident, stat.sideExpr.value))
+            is DivNNode -> RHSExprNode(BinaryOpNode(BinOp.DIV, stat.ident.ident, stat.sideExpr.value))
+            else -> throw Error("Should not get here")
+        }
+        val assignConversion = AssignNode(stat.ident, rhsConversion)
+        return generateAssign(assignConversion)
     }
 
     private fun generateBegin(stat: BeginEndNode): List<Instruction> {
