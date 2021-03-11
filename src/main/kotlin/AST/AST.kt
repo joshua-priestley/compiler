@@ -30,6 +30,14 @@ interface StatementNode : Node {
     }
 }
 
+interface SideExprOperator: Node
+class AddOneNode: SideExprOperator
+class SubOneNode: SideExprOperator
+data class AddNNode(val value: ExprNode): SideExprOperator
+data class SubNNode(val value: ExprNode): SideExprOperator
+data class MulNNode(val value: ExprNode): SideExprOperator
+data class DivNNode(val value: ExprNode): SideExprOperator
+
 class SkipNode : StatementNode
 data class DeclarationNode(val type: TypeNode, val ident: Ident, val value: AssignRHSNode) : StatementNode
 data class AssignNode(val lhs: AssignLHSNode, val rhs: AssignRHSNode) : StatementNode
@@ -43,6 +51,7 @@ data class IfElseNode(val expr: ExprNode, val then: StatementNode, val else_: St
 data class WhileNode(val expr: ExprNode, val do_: StatementNode) : StatementNode
 data class BeginEndNode(val stat: StatementNode) : StatementNode
 data class SequenceNode(val statList: List<StatementNode>) : StatementNode
+data class SideExpressionNode(val expr: ExprNode, val sideExpr: SideExprOperator): StatementNode
 
 /*
  * LHS Assignment
