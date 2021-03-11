@@ -25,7 +25,7 @@ stat: SKP                                           # skip
   | WHILE expr DO stat DONE                         # while
   | BEGIN stat END                                  # begin
   | <assoc=right> stat SEMICOLON stat               # sequence
-  | sideExpr                                        # sideExpression
+  | ident sideExpr                                  # sideExpression
   ;
 
 assign_lhs: ident                                   # assignLhsId
@@ -38,8 +38,6 @@ assign_rhs: expr                                                  # assignRhsExp
   | NEWPAIR OPEN_PARENTHESES expr COMMA expr CLOSE_PARENTHESES    # assignRhsNewpair
   | pair_elem                                                     # assignRhsPairElem
   | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES     # assignRhsCall
-  | nunOp                                                         # nunaryOp
-  | opN                                                           # binOpN
   ;
 
 arg_list: expr (COMMA expr)*;
@@ -90,7 +88,9 @@ array_elem: ident (OPEN_SQUARE expr CLOSE_SQUARE)+;
 
 array_liter: OPEN_SQUARE (expr (COMMA expr)*)? CLOSE_SQUARE;
 
-sideExpr: expr (nunOp | opN);
+sideExpr: nunOp           # sideOperator
+  | opN                   # sideOperator
+  ;
 
 nunOp: (PLUS PLUS) | (MINUS MINUS);
 

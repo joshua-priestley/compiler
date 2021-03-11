@@ -210,6 +210,37 @@ class ASTBuilder(
         return AssignNode(lhs, rhs)
     }
 
+    override fun visitSideExpression(ctx: SideExpressionContext): Node {
+        val ident = visit(ctx.ident()) as Ident
+        val operator = visit(ctx.sideExpr()) as SideExprOperator
+        return SideExpressionNode(ident, operator)
+    }
+
+    override fun visitSideOperator(ctx: SideOperatorContext): Node {
+        return when {
+            ctx.nunOp() != null -> visit(ctx.nunOp())
+            else -> visit(ctx.opN())
+        }
+    }
+
+    override fun visitNunOp(ctx: NunOpContext): Node {
+        return when {
+            ctx.MINUS() != null -> AddOneNode()
+            else -> SubOneNode()
+        }
+    }
+
+    override fun visitOpN(ctx: OpNContext): Node {
+        val expr = visit(ctx.expr()) as ExprNode
+        return when {
+            ctx.ADDN() != null -> AddNNode(expr)
+            ctx.SUBN() != null -> SubNNode(expr)
+            ctx.MULN() != null -> MulNNode(expr)
+            else -> DivNNode(expr)
+        }
+    }
+
+
     override fun visitRead(ctx: ReadContext): Node {
         // Get the type of the variable
         val lhsNode = visit(ctx.assign_lhs()) as AssignLHSNode
@@ -273,6 +304,7 @@ class ASTBuilder(
         }
         return ReturnNode(exprType)
     }
+
 
     // Check that if we are printing a variable, it exists
     private fun checkPrint(expr: ExprNode, ctx: ParserRuleContext) {
@@ -641,9 +673,9 @@ class ASTBuilder(
         return when {
             ctx.BOOL_LITER() != null -> BoolLiterNode(ctx.text)
             // Remove single quotes from the literal
-            ctx.CHAR_LITER() != null -> CharLiterNode(ctx.text.substring(1, ctx.text.length-1))
+            ctx.CHAR_LITER() != null -> CharLiterNode(ctx.text.substring(1, ctx.text.length - 1))
             // Remove double quotes from the literal
-            ctx.STR_LITER() != null -> StrLiterNode(ctx.text.substring(1, ctx.text.length-1))
+            ctx.STR_LITER() != null -> StrLiterNode(ctx.text.substring(1, ctx.text.length - 1))
             else -> {
                 val value = ctx.text.toLong()
                 // Check the integer is within the accepted range

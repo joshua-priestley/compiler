@@ -51,7 +51,7 @@ data class IfElseNode(val expr: ExprNode, val then: StatementNode, val else_: St
 data class WhileNode(val expr: ExprNode, val do_: StatementNode) : StatementNode
 data class BeginEndNode(val stat: StatementNode) : StatementNode
 data class SequenceNode(val statList: List<StatementNode>) : StatementNode
-data class SideExpressionNode(val expr: ExprNode, val sideExpr: SideExprOperator): StatementNode
+data class SideExpressionNode(val ident: Ident, val sideExpr: SideExprOperator): StatementNode
 
 /*
  * LHS Assignment
