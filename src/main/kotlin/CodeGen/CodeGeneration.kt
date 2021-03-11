@@ -300,7 +300,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val ifInstruction = mutableListOf<Instruction>()
 
         val elseLabel = nextLabel()
-        endLabel = nextLabel()
+        val endLabel = nextLabel()
 
         // Load up the conditional
         assign = true
