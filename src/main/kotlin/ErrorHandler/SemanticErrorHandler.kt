@@ -64,6 +64,11 @@ class SemanticErrorHandler {
         addErrorMessage(msg, errorPosition(ctx))
     }
 
+    fun incompatibleTypeSideExpr(actual: String, ctx: ParserRuleContext) {
+        val msg = "incompatible type side expression (expected: INT, actual $actual)"
+        addErrorMessage(msg, errorPosition(ctx))
+    }
+
     fun incompatibleTypeReturn(expected: String, actual: String, ctx: ParserRuleContext) {
         val msg = "incompatible return type (expected: $expected, actual: $actual)"
         addErrorMessage(msg, errorPosition(ctx))

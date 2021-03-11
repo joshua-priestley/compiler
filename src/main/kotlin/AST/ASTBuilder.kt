@@ -211,7 +211,12 @@ class ASTBuilder(
     }
 
     override fun visitSideExpression(ctx: SideExpressionContext): Node {
-        val ident = visit(ctx.ident()) as Ident
+        val ident = visit(ctx.assign_lhs()) as AssignLHSIdentNode
+        val lhsType = getLHSType(ident, ctx.assign_lhs())
+        if (lhsType != Type(INT)) {
+            semanticListener.incompatibleTypeSideExpr(lhsType.toString(), ctx)
+        }
+
         val operator = visit(ctx.sideExpr()) as SideExprOperator
         return SideExpressionNode(ident, operator)
     }
@@ -232,6 +237,10 @@ class ASTBuilder(
 
     override fun visitOpN(ctx: OpNContext): Node {
         val expr = visit(ctx.expr()) as ExprNode
+        val type = getExprType(expr, ctx)
+        if (type != Type(INT)) {
+            semanticListener.incompatibleTypeSideExpr(type.toString(), ctx)
+        }
         return when {
             ctx.ADDN() != null -> AddNNode(expr)
             ctx.SUBN() != null -> SubNNode(expr)

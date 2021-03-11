@@ -68,7 +68,9 @@ class Compiler(private val inputFile: String, private val assembly: Boolean = fa
             return SEMANTIC_ERROR
         }
 
-        if (assembly) {
+        println(root)
+
+        if (false) {
             val codeGeneration = CodeGeneration(symbolTable)
             val listOfInstructions = codeGeneration.generateProgram(root as ProgramNode)
             val instructions = listOfInstructions.joinToString(separator = "\n") + "\n"
