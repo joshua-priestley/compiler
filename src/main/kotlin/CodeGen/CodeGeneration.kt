@@ -305,11 +305,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         var elseLabel = ""
         val endLabel = nextLabel()
 
-        if (!doElse) {
-            if (stat.else_ != null) {
-                elseLabel = nextLabel()
-            }
+        if (stat.else_ != null) {
+            elseLabel = nextLabel()
+        }
 
+        if (!doElse && !doIf) {
             // Load up the conditional
             assign = true
             if (stat.expr is LiterNode) {
@@ -318,7 +318,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 ifInstruction.addAll(generateExpr(stat.expr))
             }
             assign = false
-
             // Compare the conditional
             ifInstruction.add(Compare(Register.r4, ImmOp(0)))
             if (stat.else_ != null) {
@@ -326,7 +325,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             } else {
                 ifInstruction.add(Branch(endLabel, false, Conditions.EQ))
             }
+        }
 
+        if (!doElse) {
             // Then Branch
             stackToAdd += globalSymbolTable.localStackSize()
             enterNewScope(ifInstruction, stat.then)
