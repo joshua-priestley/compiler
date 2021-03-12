@@ -357,6 +357,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         if (stat.expr is BoolLiterNode && stat.expr.value == "false") {
             return whileInstruction
         }
+        val forever = stat.expr is BoolLiterNode && stat.expr.value == "true"
 
         conditionLabel.push(nextLabel())
         val bodyLabel = nextLabel()
@@ -371,17 +372,21 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         if (!inElseStatement) stackToAdd -= globalSymbolTable.localStackSize()
 
         // Conditional
-        assign = true
         whileInstruction.add(FunctionDeclaration(conditionLabel.peek()))
-        if (stat.expr is LiterNode) {
-            whileInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
+        if (forever) {
+            whileInstruction.add(Branch(bodyLabel, false))
         } else {
-            whileInstruction.addAll(generateExpr(stat.expr))
+            assign = true
+            if (stat.expr is LiterNode) {
+                whileInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
+            } else {
+                whileInstruction.addAll(generateExpr(stat.expr))
+            }
+            whileInstruction.add(Compare(Register.r4, ImmOp(1)))
+            whileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
+            assign = false
         }
-        whileInstruction.add(Compare(Register.r4, ImmOp(1)))
-        whileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
         whileInstruction.add(FunctionDeclaration(endLabel.peek()))
-        assign = false
 
         endLabel.pop()
         conditionLabel.pop()
