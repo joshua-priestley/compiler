@@ -7,7 +7,9 @@
 # Program:
 
 begin
-  while false do
-    int x = 3
-  done
+  if false then
+    int x = 4
+  else
+    int x = 40
+  fi
 end

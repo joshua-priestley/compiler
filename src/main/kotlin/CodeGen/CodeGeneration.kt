@@ -300,39 +300,44 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val ifInstruction = mutableListOf<Instruction>()
 
         var elseLabel = ""
-        if (stat.else_ != null) {
-            elseLabel = nextLabel()
-        }
         val endLabel = nextLabel()
 
-        // Load up the conditional
-        assign = true
-        if (stat.expr is LiterNode) {
-            ifInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
-        } else {
-            ifInstruction.addAll(generateExpr(stat.expr))
-        }
-        assign = false
+        if (!(stat.expr is BoolLiterNode && stat.expr.value == "false")) {
+            if (stat.else_ != null) {
+                elseLabel = nextLabel()
+            }
 
-        // Compare the conditional
-        ifInstruction.add(Compare(Register.r4, ImmOp(0)))
-        if (stat.else_ != null) {
-            ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
-        } else {
-            ifInstruction.add(Branch(endLabel, false, Conditions.EQ))
-        }
+            // Load up the conditional
+            assign = true
+            if (stat.expr is LiterNode) {
+                ifInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
+            } else {
+                ifInstruction.addAll(generateExpr(stat.expr))
+            }
+            assign = false
 
-        // Then Branch
-        stackToAdd += globalSymbolTable.localStackSize()
-        enterNewScope(ifInstruction, stat.then)
-        if (stat.else_ != null) {
-            ifInstruction.add(Branch(endLabel, false))
+            // Compare the conditional
+            ifInstruction.add(Compare(Register.r4, ImmOp(0)))
+            if (stat.else_ != null) {
+                ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
+            } else {
+                ifInstruction.add(Branch(endLabel, false, Conditions.EQ))
+            }
+
+            // Then Branch
+            stackToAdd += globalSymbolTable.localStackSize()
+            enterNewScope(ifInstruction, stat.then)
+            if (stat.else_ != null) {
+                ifInstruction.add(Branch(endLabel, false))
+            }
         }
 
         if (stat.else_ != null) {
             inElseStatement = true
             // Else Branch
-            ifInstruction.add(FunctionDeclaration(elseLabel))
+            if (elseLabel != "") {
+                ifInstruction.add(FunctionDeclaration(elseLabel))
+            }
             enterNewScope(ifInstruction, stat.else_)
             stackToAdd -= globalSymbolTable.localStackSize()
         }
