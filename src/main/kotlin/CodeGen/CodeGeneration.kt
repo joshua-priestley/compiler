@@ -299,13 +299,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateIf(stat: IfElseNode): List<Instruction> {
         val ifInstruction = mutableListOf<Instruction>()
 
-        val doIf = stat.expr is BoolLiterNode && stat.expr.value == "false"
-        val doElse = stat.expr is BoolLiterNode && stat.expr.value == "true"
+        val doElse = stat.expr is BoolLiterNode && stat.expr.value == "false"
+        val doIf = stat.expr is BoolLiterNode && stat.expr.value == "true"
 
         var elseLabel = ""
         val endLabel = nextLabel()
 
-        if (!doIf) {
+        if (!doElse) {
             if (stat.else_ != null) {
                 elseLabel = nextLabel()
             }
@@ -335,7 +335,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
         }
 
-        if (stat.else_ != null && doIf) {
+        if (stat.else_ != null && !doIf) {
             inElseStatement = true
             // Else Branch
             if (elseLabel != "") {
