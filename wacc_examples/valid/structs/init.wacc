@@ -1,0 +1,16 @@
+# a simple increment function definition and usage
+
+# Output:
+# 1
+# 4
+
+# Program:
+
+begin
+  struct {
+    int a;
+    int b;
+  }
+
+  int a = 13
+end

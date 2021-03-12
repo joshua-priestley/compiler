@@ -34,6 +34,11 @@ class ASTBuilder(
 
     // Visits the main program to build the AST
     override fun visitProgram(ctx: ProgramContext): Node {
+        visitAllStructs(ctx.struct())
+
+        val structNodes = mutableListOf<StructNode>()
+        ctx.func().map { structNodes.add(visit(it) as StructNode) }
+
         // First add all the functions to the map
         addAllFunctions(ctx.func())
 
@@ -42,7 +47,31 @@ class ASTBuilder(
         ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
         val stat = visit(ctx.stat()) as StatementNode
 
-        return ProgramNode(functionNodes, stat)
+        return ProgramNode(structNodes, functionNodes, stat)
+    }
+
+    private fun visitAllStructs(structs: List<StructContext>) {
+        val structNodes = mutableListOf<StructNode>()
+    }
+
+    /*
+    =================================================================
+                                STRUCTS
+    =================================================================
+     */
+
+    override fun visitStruct(ctx: StructContext): Node {
+        val members = mutableListOf<MemberNode>()
+
+        val symbolTable = SymbolTable(null, -1)
+        for (mem in ctx.member()) {
+            val type = visit(mem.type()) as TypeNode
+            val ident = visit(mem.ident()) as Ident
+            symbolTable.addNode(ident.toString(), type.type)
+            members.add(MemberNode(type, ident))
+        }
+
+        return StructNode(members, symbolTable)
     }
 
     /*
@@ -103,7 +132,7 @@ class ASTBuilder(
         // Assign the current scope to the scope of the function when building its statement node
         globalSymbolTable = functionSymbolTable
         val stat = visit(ctx.stat()) as StatementNode
-        if (!stat.valid() && type !is VoidType)  {
+        if (!stat.valid() && type !is VoidType) {
             syntaxHandler.addSyntaxError(ctx, "return type of function invalid")
         }
 

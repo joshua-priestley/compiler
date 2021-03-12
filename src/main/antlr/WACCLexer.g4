@@ -35,6 +35,8 @@ OPEN_PARENTHESES: '(' ;
 CLOSE_PARENTHESES: ')' ;
 OPEN_SQUARE: '[';
 CLOSE_SQUARE: ']';
+OPEN_CURLY: '{';
+CLOSE_CURLY: '}';
 
 //numbers
 fragment DIGIT: '0'..'9' ;
@@ -113,6 +115,9 @@ CHAR: 'char';
 STRING: 'string';
 PAIR: 'pair';
 VOID: 'void';
+
+//structs
+STRUCT: 'struct';
 
 //characters
 fragment QUOTE: '\'';
