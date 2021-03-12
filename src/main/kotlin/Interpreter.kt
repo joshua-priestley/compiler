@@ -1,8 +1,6 @@
 package compiler
 
 import AST.*
-import kotlin.system.exitProcess
-
 
 class InterpreterFrontend : FrontendUtils() {
     fun run(fileName: String): Int {
@@ -23,9 +21,20 @@ class InterpreterBackend (
     private val root: ProgramNode
 ) {
     private var exitCode = 0
+    private var varStore: MutableMap<String, Any> = HashMap()
+
+
+    fun displayVarStore() {
+        println("All vars:")
+        varStore.forEach{
+            println("${it.key} = ${it.value}")
+        }
+    }
 
     fun execute(): Int {
         visitProgram(root)
+        displayVarStore()
+        println("Exitcode: $exitCode")
         return exitCode
     }
 
@@ -81,7 +90,6 @@ class InterpreterBackend (
     }
 
     private fun visitExit(stat: ExitNode) {
-        // This cast is safe as the program is semantically correct
         exitCode = visitExpr(stat.expr) as Int
     }
 
@@ -98,14 +106,36 @@ class InterpreterBackend (
     }
 
     private fun visitAssign(stat: AssignNode) {
-        TODO("Not yet implemented")
+        val value = visitAssignRhs(stat.rhs)
+        when (stat.lhs) {
+            is AssignLHSIdentNode -> {
+                varStore[stat.lhs.ident.name] = value
+                println("${stat.lhs.ident.name} = $value")
+            }
+            is LHSArrayElemNode -> TODO("Not yet implemented")
+            is LHSPairElemNode -> TODO("Not yet implemented")
+            else -> throw Error("Should not get here")
+        }
     }
 
     private fun visitDeclaration(stat: DeclarationNode) {
-        TODO("Not yet implemented")
+        val value = visitAssignRhs(stat.value)
+        varStore[stat.ident.name] = value
+        println("${stat.ident.name} = $value")
     }
 
-    fun visitExpr(expr: ExprNode): Any {
+    private fun visitAssignRhs(stat: AssignRHSNode): Any {
+        return when (stat) {
+            is RHSExprNode -> visitExpr(stat.expr)
+            is RHSArrayLitNode -> TODO("Not yet implemented")
+            is RHSNewPairNode -> TODO("Not yet implemented")
+            is RHSPairElemNode -> TODO("Not yet implemented")
+            is RHSCallNode -> TODO("Not yet implemented")
+            else -> throw Error("Should not get here")
+        }
+    }
+
+    private fun visitExpr(expr: ExprNode): Any {
         return when (expr) {
             is LiterNode -> generateLiterNode(expr)
             is BinaryOpNode -> generateBinOp(expr)
@@ -134,6 +164,7 @@ class InterpreterBackend (
             is StrLiterNode -> expr.value
             is CharLiterNode -> expr.value[0] //TODO deal with escapes later
             is BoolLiterNode -> expr.value == "true"
+            is Ident -> varStore[expr.name]!!
             else -> throw Error("Should not get here")
         }
     }

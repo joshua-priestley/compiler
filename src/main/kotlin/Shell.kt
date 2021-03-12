@@ -38,7 +38,7 @@ class Shell {
             print(">".repeat(indentLevel + 1) + "  ")
             val line = readLine()
 
-            // if can parse properly, then execute
+            // if can parse properly, then executea
             // else set moreinput, wait until
             if (line == "*tog") {
                 indentLevel++
