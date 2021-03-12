@@ -1,23 +1,44 @@
 package compiler
 
 import AST.*
+import kotlin.system.exitProcess
 
-class Interpreter(
+fun main(args: Array<String>) {
+    if (args.size != 1) {
+        throw IllegalArgumentException("Wrong number of arguments: expected: 1, actual: {$args.size}")
+    }
+    val frontend = InterpreterFrontend()
+    val parseResult = frontend.lexAndParse(frontend.fileToString(args[0]))
+
+    val exitCode = when (parseResult) {
+        is SuccessfulParse -> {
+            val backend = InterpreterBackend(parseResult.symbolTable, parseResult.root)
+            backend.execute()
+        }
+        is FailedParse -> parseResult.statusCode
+        else -> throw Error("Should not get here")
+    }
+    exitProcess(exitCode)
+}
+
+class InterpreterFrontend : FrontendUtils()
+
+class InterpreterBackend (
     private var globalSymbolTable: SymbolTable,
     private val root: ProgramNode
 ) {
-    var exitCode = 0
+    private var exitCode = 0
 
     fun execute(): Int {
         visitProgram(root)
         return exitCode
     }
 
-    fun visitProgram(program: ProgramNode) {
+    private fun visitProgram(program: ProgramNode) {
         visitStat(program.stat)
     }
 
-    fun visitStat(stat: StatementNode) {
+    private fun visitStat(stat: StatementNode) {
         when (stat) {
             is SkipNode -> return
             is DeclarationNode -> visitDeclaration(stat)
@@ -48,7 +69,11 @@ class Interpreter(
     }
 
     private fun visitIf(stat: IfElseNode) {
-        TODO("Not yet implemented")
+        if (visitExpr(stat.expr) as Boolean) {
+            visitStat(stat.then)
+        } else {
+            visitStat(stat.else_)
+        }
     }
 
     private fun visitPrintln(stat: PrintlnNode) {
@@ -86,7 +111,7 @@ class Interpreter(
     }
 
     fun visitExpr(expr: ExprNode): Any {
-        when (expr) {
+        return when (expr) {
             is LiterNode -> generateLiterNode(expr)
             is BinaryOpNode -> generateBinOp(expr)
             is UnaryOpNode -> generateUnOp(expr)
