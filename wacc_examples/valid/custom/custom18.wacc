@@ -7,7 +7,7 @@
 # Program:
 
 begin
-  if false then
+  if true then
     int x = 4
   else
     int x = 40
