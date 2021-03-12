@@ -6,7 +6,7 @@ options {
 
 program: BEGIN (struct)* (func)* stat END EOF;
 
-struct: STRUCT OPEN_CURLY (member)+ CLOSE_CURLY;
+struct: STRUCT ident OPEN_CURLY (member)+ CLOSE_CURLY SEMICOLON;
 
 member: type ident SEMICOLON;
 
@@ -53,6 +53,7 @@ pair_elem: FST expr                             # pairFst
   ;
 
 type: base_type
+  | struct_type
   | void_type
   | type OPEN_SQUARE CLOSE_SQUARE
   | pair_type;
@@ -64,6 +65,8 @@ base_type: INT                                  # baseT
   ;
 
 void_type: VOID # voidT;
+
+struct_type: struct;
 
 array_type: type OPEN_SQUARE CLOSE_SQUARE;
 

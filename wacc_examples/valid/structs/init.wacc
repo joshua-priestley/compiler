@@ -7,10 +7,14 @@
 # Program:
 
 begin
-  struct {
+  struct ab {
     int a;
     int b;
-  }
+  };
+  struct cd {
+    int c;
+    int d;
+  };
 
   int a = 13
 end

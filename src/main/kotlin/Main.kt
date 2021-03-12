@@ -69,6 +69,7 @@ class Compiler(private val inputFile: String, private val assembly: Boolean = fa
         }
 
         println(root)
+        symbolTable.printEntries()
 
         if (false) {
             val codeGeneration = CodeGeneration(symbolTable)

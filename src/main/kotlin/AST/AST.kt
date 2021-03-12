@@ -13,7 +13,7 @@ data class ProgramNode(val stucts: List<StructNode>, val funcs: List<FunctionNod
 /*
  * Structs
  */
-data class StructNode(val members: List<MemberNode>, val symbolTable: SymbolTable) : Node
+data class StructNode(val ident: Ident, val members: List<MemberNode>, val symbolTable: SymbolTable) : Node
 data class MemberNode(val type: TypeNode, val ident: Ident) : Node
 
 /*
@@ -131,6 +131,7 @@ interface TypeNode : Node {
 }
 
 class VoidType(override val type: Type = Type(VOID)): TypeNode
+class StructType(override val type: Type = Type(STRUCT)): TypeNode
 
 // Base Types
 interface BaseType : TypeNode

@@ -37,7 +37,7 @@ class ASTBuilder(
         visitAllStructs(ctx.struct())
 
         val structNodes = mutableListOf<StructNode>()
-        ctx.func().map { structNodes.add(visit(it) as StructNode) }
+        ctx.struct().map { structNodes.add(visit(it) as StructNode) }
 
         // First add all the functions to the map
         addAllFunctions(ctx.func())
@@ -50,28 +50,38 @@ class ASTBuilder(
         return ProgramNode(structNodes, functionNodes, stat)
     }
 
-    private fun visitAllStructs(structs: List<StructContext>) {
-        val structNodes = mutableListOf<StructNode>()
-    }
-
     /*
     =================================================================
                                 STRUCTS
     =================================================================
      */
 
+    private fun visitAllStructs(structs: List<StructContext>) {
+        val structNodes = mutableListOf<StructNode>()
+
+        structs.map { structNodes.add(visit(it) as StructNode) }
+
+    }
+
     override fun visitStruct(ctx: StructContext): Node {
         val members = mutableListOf<MemberNode>()
 
         val symbolTable = SymbolTable(null, -1)
-        for (mem in ctx.member()) {
-            val type = visit(mem.type()) as TypeNode
-            val ident = visit(mem.ident()) as Ident
+
+        val structIdent = visit(ctx.ident()) as Ident
+
+        ctx.member().map {
+            val type = visit(it.type()) as TypeNode
+            val ident = visit(it.ident()) as Ident
             symbolTable.addNode(ident.toString(), type.type)
             members.add(MemberNode(type, ident))
         }
 
-        return StructNode(members, symbolTable)
+        val structNode = StructNode(structIdent, members, symbolTable)
+
+        globalSymbolTable.addNode(structIdent.toString(), Type(STRUCT))
+
+        return structNode
     }
 
     /*
@@ -483,6 +493,7 @@ class ASTBuilder(
             ctx.OPEN_SQUARE() != null -> return ArrayNode(visit(ctx.type()) as TypeNode)
             ctx.pair_type() != null -> return visit(ctx.pair_type())
             ctx.void_type() != null -> return VoidType()
+            ctx.struct_type() != null -> return StructType()
         }
 
         return visitChildren(ctx)

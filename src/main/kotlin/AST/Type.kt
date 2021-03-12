@@ -45,6 +45,10 @@ class Type {
         this.arrType = null
     }
 
+    fun isStruct(): Boolean {
+        return this.type == STRUCT
+    }
+
     fun setFunction(function: Boolean): Type {
         this.function = function
         return this
