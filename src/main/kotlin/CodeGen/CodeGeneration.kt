@@ -346,6 +346,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateWhile(stat: WhileNode): List<Instruction> {
         val whileInstruction = mutableListOf<Instruction>()
 
+        if (stat.expr is BoolLiterNode && stat.expr.value == "false") {
+            return whileInstruction
+        }
+
         conditionLabel.push(nextLabel())
         val bodyLabel = nextLabel()
         endLabel.push(nextLabel())

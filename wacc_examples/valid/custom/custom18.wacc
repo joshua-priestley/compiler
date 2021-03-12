@@ -7,7 +7,7 @@
 # Program:
 
 begin
-  if true then
+  while false do
     int x = 3
-  fi
+  done
 end
