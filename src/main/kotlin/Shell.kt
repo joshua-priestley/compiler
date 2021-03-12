@@ -26,7 +26,7 @@ class Shell {
 
 
     fun run() {
-        println("-----WACC Interpreter-----")
+        println("-----WACC Shell-----")
         println(" - type *quit to exit")
         println(" - you don't need the global begin/end statements")
         println(" - the number of '>'s at the start of the line represents the level of nesting")

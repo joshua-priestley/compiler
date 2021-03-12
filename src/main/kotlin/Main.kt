@@ -18,13 +18,25 @@ const val SEMANTIC_ERROR = 200
 const val OK = 0
 
 fun main(args: Array<String>) {
-    if (args.size != 1) {
-        throw IllegalArgumentException("Wrong number of arguments: expected: 1, actual: {$args.size}")
+    when (args.size) {
+        1 -> {
+            when (args[0]) {
+                "-s" -> {
+                    val shell = Shell()
+                    shell.run()
+                }
+                else -> {
+                    val compiler = Compiler(args[0], true)
+                    exitProcess(compiler.compile())
+                }
+            }
+        }
+        2 -> {
+            val interpreter = InterpreterFrontend()
+            exitProcess(interpreter.run(args[0]))
+        }
+        else -> throw IllegalArgumentException("Wrong number of arguments: expected: 1 or 2, actual: ${args.size}")
     }
-
-    val compiler = Compiler(args[0], true)
-
-    exitProcess(compiler.compile())
 }
 
 class Compiler(private val inputFile: String, private val assembly: Boolean = false) {

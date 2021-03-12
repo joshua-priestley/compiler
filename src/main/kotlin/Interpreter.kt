@@ -3,25 +3,20 @@ package compiler
 import AST.*
 import kotlin.system.exitProcess
 
-fun main(args: Array<String>) {
-    if (args.size != 1) {
-        throw IllegalArgumentException("Wrong number of arguments: expected: 1, actual: {$args.size}")
-    }
-    val frontend = InterpreterFrontend()
-    val parseResult = frontend.lexAndParse(frontend.fileToString(args[0]))
 
-    val exitCode = when (parseResult) {
-        is SuccessfulParse -> {
-            val backend = InterpreterBackend(parseResult.symbolTable, parseResult.root)
-            backend.execute()
+class InterpreterFrontend : FrontendUtils() {
+    fun run(fileName: String): Int {
+        val parseResult = lexAndParse(fileToString(fileName))
+        return when (parseResult) {
+            is SuccessfulParse -> {
+                val backend = InterpreterBackend(parseResult.symbolTable, parseResult.root)
+                backend.execute()
+            }
+            is FailedParse -> parseResult.statusCode
+            else -> throw Error("Should not get here")
         }
-        is FailedParse -> parseResult.statusCode
-        else -> throw Error("Should not get here")
     }
-    exitProcess(exitCode)
 }
-
-class InterpreterFrontend : FrontendUtils()
 
 class InterpreterBackend (
     private var globalSymbolTable: SymbolTable,
