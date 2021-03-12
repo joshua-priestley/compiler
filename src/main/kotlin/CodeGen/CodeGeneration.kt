@@ -691,10 +691,27 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return unOpInstructs
     }
 
+    private fun constantEvaluation(operator: BinOp, expr1: ExprNode, expr2: ExprNode): Int? {
+        if (expr1 is IntLiterNode && expr2 is IntLiterNode) {
+            return when (operator.value) {
+                1 -> expr1.value.toInt() + expr2.value.toInt()
+                2 -> expr1.value.toInt() - expr2.value.toInt()
+                3 -> expr1.value.toInt() * expr2.value.toInt()
+                else -> null
+            }
+        }
+        return null
+    }
+
     private fun generateBinOp(binOp: BinaryOpNode, reg: Register = Register.r4): List<Instruction> {
         val binOpInstructs = mutableListOf<Instruction>()
         var operand1 = reg
         var pop = false
+
+        val const = constantEvaluation(binOp.operator, binOp.expr1, binOp.expr2)
+        if (const != null) {
+            return listOf(Load(reg, const))
+        }
 
         //If there are no registers left, use r10 and push onto the stack
         if (operand1 >= Register.r10) {
