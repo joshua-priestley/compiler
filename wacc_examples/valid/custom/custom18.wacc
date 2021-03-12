@@ -1,0 +1,13 @@
+# a simple increment function definition and usage
+
+# Output:
+# 1
+# 4
+
+# Program:
+
+begin
+  if true then
+    int x = 3
+  fi
+end

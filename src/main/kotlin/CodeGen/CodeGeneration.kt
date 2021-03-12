@@ -299,7 +299,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateIf(stat: IfElseNode): List<Instruction> {
         val ifInstruction = mutableListOf<Instruction>()
 
-        val elseLabel = nextLabel()
+        var elseLabel = ""
+        if (stat.else_ != null) {
+            elseLabel = nextLabel()
+        }
         val endLabel = nextLabel()
 
         // Load up the conditional
@@ -313,18 +316,26 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         // Compare the conditional
         ifInstruction.add(Compare(Register.r4, ImmOp(0)))
-        ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
+        if (stat.else_ != null) {
+            ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
+        } else {
+            ifInstruction.add(Branch(endLabel, false, Conditions.EQ))
+        }
 
         // Then Branch
         stackToAdd += globalSymbolTable.localStackSize()
         enterNewScope(ifInstruction, stat.then)
-        ifInstruction.add(Branch(endLabel, false))
+        if (stat.else_ != null) {
+            ifInstruction.add(Branch(endLabel, false))
+        }
 
-        inElseStatement = true
-        // Else Branch
-        ifInstruction.add(FunctionDeclaration(elseLabel))
-        enterNewScope(ifInstruction, stat.else_)
-        stackToAdd -= globalSymbolTable.localStackSize()
+        if (stat.else_ != null) {
+            inElseStatement = true
+            // Else Branch
+            ifInstruction.add(FunctionDeclaration(elseLabel))
+            enterNewScope(ifInstruction, stat.else_)
+            stackToAdd -= globalSymbolTable.localStackSize()
+        }
 
         ifInstruction.add(FunctionDeclaration(endLabel))
 
@@ -848,7 +859,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is BoolLiterNode -> Type(WACCParser.BOOL)
             is CharLiterNode -> Type(WACCParser.CHAR)
             is Ident -> globalSymbolTable.getNodeGlobal(expr.toString())
-            is ArrayElem -> globalSymbolTable.getNodeGlobal(expr.ident.toString())?.getBaseType() ?: Type(INVALID)
+            is ArrayElem -> globalSymbolTable.getNodeGlobal(expr.ident.toString())?.getBaseType()
+                    ?: Type(INVALID)
             is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value)
             is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value)
             is PairLiterNode -> Type(PAIR_LITER)

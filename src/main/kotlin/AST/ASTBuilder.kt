@@ -376,10 +376,13 @@ class ASTBuilder(
         val stat1 = visit(ctx.stat(0)) as StatementNode
         globalSymbolTable = globalSymbolTable.parentT!!
 
-        val elseSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
-        globalSymbolTable = elseSymbolTable
-        val stat2 = visit(ctx.stat(1)) as StatementNode
-        globalSymbolTable = globalSymbolTable.parentT!!
+        var stat2: StatementNode? = null
+        if (ctx.stat(1) != null) {
+            val elseSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
+            globalSymbolTable = elseSymbolTable
+            stat2 = visit(ctx.stat(1)) as StatementNode
+            globalSymbolTable = globalSymbolTable.parentT!!
+        }
 
         return IfElseNode(condExpr, stat1, stat2)
     }

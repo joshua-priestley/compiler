@@ -21,7 +21,7 @@ stat: SKP                                           # skip
   | EXIT expr                                       # exit
   | PRINT expr                                      # print
   | PRINTLN expr                                    # println
-  | IF expr THEN stat ELSE stat FI                  # if
+  | IF expr THEN stat (ELSE stat)? FI               # if
   | WHILE expr DO stat DONE                         # while
   | BEGIN stat END                                  # begin
   | <assoc=right> stat SEMICOLON stat               # sequence
