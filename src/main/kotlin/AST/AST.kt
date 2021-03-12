@@ -21,7 +21,7 @@ data class FunctionNode(val type: TypeNode, val ident: Ident, val params: List<P
 interface StatementNode : Node {
     fun valid(): Boolean {
         return when (this) {
-            is IfElseNode -> !(!this.then.valid() || !this.else_.valid())
+            is IfElseNode -> !(!this.then.valid() || !this.else_?.valid()!!)
             is SequenceNode -> this.statList[this.statList.size - 1].valid()
             is ExitNode -> true
             is ReturnNode -> true
@@ -49,7 +49,7 @@ data class ReturnNode(val expr: ExprNode) : StatementNode
 data class ExitNode(val expr: ExprNode) : StatementNode
 data class PrintNode(val expr: ExprNode) : StatementNode
 data class PrintlnNode(val expr: ExprNode) : StatementNode
-data class IfElseNode(val expr: ExprNode, val then: StatementNode, val else_: StatementNode) : StatementNode
+data class IfElseNode(val expr: ExprNode, val then: StatementNode, val else_: StatementNode?) : StatementNode
 data class WhileNode(val expr: ExprNode, val do_: StatementNode) : StatementNode
 data class BeginEndNode(val stat: StatementNode) : StatementNode
 data class SequenceNode(val statList: List<StatementNode>) : StatementNode
@@ -69,6 +69,9 @@ data class LHSPairElemNode(val pairElem: PairElemNode) : AssignLHSNode
 interface ExprNode : Node
 interface LiterNode : ExprNode
 data class IntLiterNode(val value: String) : LiterNode
+data class HexLiterNode(val value: String) : LiterNode
+data class BinLiterNode(val value: String) : LiterNode
+data class OctLiterNode(val value: String) : LiterNode
 data class StrLiterNode(val value: String) : LiterNode
 data class CharLiterNode(val value: String) : LiterNode
 data class BoolLiterNode(val value: String) : LiterNode

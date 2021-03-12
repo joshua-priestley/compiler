@@ -1,0 +1,13 @@
+# a simple increment function definition and usage
+
+# Output:
+# 1
+# 4
+
+# Program:
+
+begin
+  while true do
+    int x = 3
+  done
+end

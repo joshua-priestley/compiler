@@ -21,7 +21,7 @@ stat: SKP                                           # skip
   | EXIT expr                                       # exit
   | PRINT expr                                      # print
   | PRINTLN expr                                    # println
-  | IF expr THEN stat ELSE stat FI                  # if
+  | IF expr THEN stat (ELSE stat)? FI               # if
   | WHILE expr DO stat DONE                         # while
   | BEGIN stat END                                  # begin
   | <assoc=right> stat SEMICOLON stat               # sequence
@@ -69,6 +69,9 @@ pair_elem_type: base_type | array_type| PAIR;
 
 
 expr: (PLUS | MINUS)? INT_LITER                 # liter
+  | HEX_LITER                                   # liter
+  | OCT_LITER                                   # liter
+  | BIN_LITER                                   # liter
   | BOOL_LITER                                  # liter
   | CHAR_LITER                                  # liter
   | STR_LITER                                   # liter

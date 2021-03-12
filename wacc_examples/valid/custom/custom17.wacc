@@ -1,0 +1,11 @@
+# a simple increment function definition and usage
+
+# Output:
+# 1
+# 4
+
+# Program:
+
+begin
+  int x = 0b1101
+end
