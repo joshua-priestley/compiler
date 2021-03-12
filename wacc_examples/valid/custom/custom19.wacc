@@ -7,5 +7,5 @@
 # Program:
 
 begin
-  int x = 3 + 45
+  int x = 1 & 2
 end

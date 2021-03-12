@@ -78,13 +78,15 @@ expr: (PLUS | MINUS)? INT_LITER                 # liter
   | pair_liter                                  # pairLiter
   | ident                                       # id
   | array_elem                                  # arrayElem
-  | (NOT | MINUS | LEN | ORD | CHR) expr        # unaryOp
+  | (NOT | MINUS | LEN | ORD
+   | CHR | BITWISENOT) expr                     # unaryOp
   | expr (MUL | DIV | MOD) expr                 # binaryOp
   | expr (PLUS | MINUS) expr                    # binaryOp
   | expr (GT | GTE | LT | LTE) expr             # binaryOp
   | expr (EQ | NEQ) expr                        # binaryOp
   | expr (AND) expr                             # binaryOp
   | expr (OR) expr                              # binaryOp
+  | expr (BITWISEAND | BITWISEOR) expr          # binaryOp
   | OPEN_PARENTHESES expr CLOSE_PARENTHESES     # parentheses
   ;
 

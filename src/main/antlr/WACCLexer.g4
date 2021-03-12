@@ -25,6 +25,11 @@ SUBN: '-=';
 MULN: '*=';
 DIVN: '/=';
 
+//extension
+BITWISEAND: '&';
+BITWISEOR: '|';
+BITWISENOT: '~';
+
 //program
 BEGIN: 'begin';
 END: 'end';

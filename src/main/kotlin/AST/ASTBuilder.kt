@@ -488,7 +488,6 @@ class ASTBuilder(
         return PairElemTypeNode(type as TypeNode)
     }
 
-
     private fun getPairElemType(pairElem: PairElemNode, ctx: ParserRuleContext): Type? {
         // Checks that the variable used is valid and defined, otherwise a semantic error is thrown
         // if there are no issues, it returns the type of the element
@@ -778,6 +777,7 @@ class ASTBuilder(
             ctx.LEN() != null -> UnOp.LEN
             ctx.ORD() != null -> UnOp.ORD
             ctx.CHR() != null -> UnOp.CHR
+            ctx.BITWISENOT() != null -> UnOp.BITWISENOT
             else -> UnOp.NOT_SUPPORTED
         }
         return UnaryOpNode(op, visit(ctx.expr()) as ExprNode)
@@ -798,6 +798,8 @@ class ASTBuilder(
             ctx.NEQ() != null -> BinOp.NEQ
             ctx.AND() != null -> BinOp.AND
             ctx.OR() != null -> BinOp.OR
+            ctx.BITWISEAND() != null -> BinOp.BITWISEAND
+            ctx.BITWISEOR() != null -> BinOp.BITWISEOR
             else -> BinOp.NOT_SUPPORTED
         }
 

@@ -686,6 +686,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             UnOp.LEN -> {
                 unOpInstructs.add(Load(Register.r4, reg))
             }
+            UnOp.BITWISENOT -> {
+                unOpInstructs.add(Not(reg, reg))
+            }
             else -> emptyList<Instruction>()
         }
         return unOpInstructs
@@ -807,6 +810,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 binOpInstructs.add(Branch(funcName, true))
                 binOpInstructs.add(Branch("__aeabi_idiv", true))
                 binOpInstructs.add(Move(dstRegister, Register.r0))
+            }
+            BinOp.BITWISEAND -> {
+                binOpInstructs.add(And(dstRegister, operand1, operand2))
+            }
+            BinOp.BITWISEOR -> {
+                binOpInstructs.add(Or(dstRegister, operand1, operand2))
             }
             else -> {
                 throw Error("Should not get here")
