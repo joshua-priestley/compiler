@@ -16,5 +16,5 @@ begin
     int d;
   };
 
-  int a = 13
+
 end

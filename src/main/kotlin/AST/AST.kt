@@ -66,6 +66,7 @@ data class SideExpressionNode(val ident: AssignLHSIdentNode, val sideExpr: SideE
  */
 interface AssignLHSNode : Node
 data class AssignLHSIdentNode(val ident: Ident) : AssignLHSNode
+data class AssignLHSStructNode(val structMemberNode: StructMemberNode): AssignLHSNode
 data class LHSArrayElemNode(val arrayElem: ArrayElem) : AssignLHSNode
 data class LHSPairElemNode(val pairElem: PairElemNode) : AssignLHSNode
 
@@ -82,6 +83,7 @@ data class StrLiterNode(val value: String) : LiterNode
 data class CharLiterNode(val value: String) : LiterNode
 data class BoolLiterNode(val value: String) : LiterNode
 class PairLiterNode : ExprNode
+data class StructMemberNode(val structIdent: Ident, val memberIdent: Ident): ExprNode
 data class Ident(val name: String) : LiterNode
 data class ArrayElem(val ident: Ident, val expr: List<ExprNode>) : ExprNode
 data class UnaryOpNode(val operator: UnOp, val expr: ExprNode) : ExprNode

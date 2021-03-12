@@ -22,6 +22,7 @@ class ASTBuilder(
 
     // A map to store all the functions and their parameters for semantic checking
     private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
+    private val structLists: LinkedHashMap<String, SymbolTable> = linkedMapOf()
 
     // A flag to know if we want the type a boolean returns or requires
     private var boolTypeResult = false
@@ -34,10 +35,7 @@ class ASTBuilder(
 
     // Visits the main program to build the AST
     override fun visitProgram(ctx: ProgramContext): Node {
-        visitAllStructs(ctx.struct())
-
-        val structNodes = mutableListOf<StructNode>()
-        ctx.struct().map { structNodes.add(visit(it) as StructNode) }
+        val structNodes = visitAllStructs(ctx.struct())
 
         // First add all the functions to the map
         addAllFunctions(ctx.func())
@@ -56,11 +54,10 @@ class ASTBuilder(
     =================================================================
      */
 
-    private fun visitAllStructs(structs: List<StructContext>) {
+    private fun visitAllStructs(structs: List<StructContext>): List<StructNode> {
         val structNodes = mutableListOf<StructNode>()
-
         structs.map { structNodes.add(visit(it) as StructNode) }
-
+        return structNodes
     }
 
     override fun visitStruct(ctx: StructContext): Node {
@@ -78,8 +75,11 @@ class ASTBuilder(
         }
 
         val structNode = StructNode(structIdent, members, symbolTable)
+        println(symbolTable.localStackSize())
+        symbolTable.printEntries()
 
-        globalSymbolTable.addNode(structIdent.toString(), Type(STRUCT))
+        globalSymbolTable.addNode(structIdent.toString(), TypeStruct(symbolTable.localStackSize()))
+        structLists[structIdent.toString()] = symbolTable
 
         return structNode
     }
@@ -570,6 +570,17 @@ class ASTBuilder(
                 }
                 globalSymbolTable.getNodeGlobal(lhs.ident.toString())
             }
+            is AssignLHSStructNode -> {
+                //TODO
+                if (!globalSymbolTable.containsNodeGlobal(lhs.structMemberNode.structIdent.toString())) {
+                    semanticListener.undefinedVar(lhs.structMemberNode.structIdent.name, ctx)
+                } else if (globalSymbolTable.getNodeGlobal(lhs.structMemberNode.structIdent.toString())!!.isFunction()) {
+                    semanticListener.assigningFunction(lhs.structMemberNode.structIdent.name, ctx)
+                } else if (!structLists[lhs.structMemberNode.structIdent.toString()]!!.containsNodeLocal(lhs.structMemberNode.memberIdent.toString())) {
+                    semanticListener.structMemberNonExistent(lhs.structMemberNode.structIdent.name, lhs.structMemberNode.memberIdent.name, ctx)
+                }
+                structLists[lhs.structMemberNode.structIdent.toString()]!!.getNodeLocal(lhs.structMemberNode.memberIdent.toString())
+            }
             is LHSArrayElemNode -> {
                 // Check the array exists, the type is valid and the index is an integer
                 if (!globalSymbolTable.containsNodeGlobal(lhs.arrayElem.ident.toString())) {
@@ -865,6 +876,14 @@ class ASTBuilder(
 
     override fun visitAssignLhsId(ctx: AssignLhsIdContext): Node {
         return AssignLHSIdentNode(visit(ctx.ident()) as Ident)
+    }
+
+    override fun visitAssignLhsStruct(ctx: AssignLhsStructContext): Node {
+        return AssignLHSStructNode(visit(ctx.struct_access()) as StructMemberNode)
+    }
+
+    override fun visitStruct_access(ctx: Struct_accessContext): Node {
+        return StructMemberNode(visit(ctx.ident(0)) as Ident, visit(ctx.ident(1)) as Ident)
     }
 
     override fun visitAssignLhsArray(ctx: AssignLhsArrayContext): Node {

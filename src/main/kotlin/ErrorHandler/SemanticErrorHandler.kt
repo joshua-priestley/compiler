@@ -1,5 +1,6 @@
 package ErrorHandler
 
+import antlr.WACCParser
 import org.antlr.v4.runtime.ParserRuleContext
 
 class SemanticErrorHandler {
@@ -120,6 +121,9 @@ class SemanticErrorHandler {
         addErrorMessage(msg, errorPosition(ctx))
     }
 
+    fun structMemberNonExistent(structName: String, memberName: String, ctx: WACCParser.Assign_lhsContext) {
+        val msg = "$memberName does not exist in the struct $structName"
+        addErrorMessage(msg, errorPosition(ctx))    }
 
     //Build a full error message given the message, line, and char of the error
     private fun addErrorMessage(msg: String, location: String) {

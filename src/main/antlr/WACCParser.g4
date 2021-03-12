@@ -35,6 +35,7 @@ stat: SKP                                           # skip
   ;
 
 assign_lhs: ident                                   # assignLhsId
+  | struct_access                                   # assignLhsStruct
   | array_elem                                      # assignLhsArray
   | pair_elem                                       # assignLhsPair
   ;
@@ -45,6 +46,8 @@ assign_rhs: expr                                                  # assignRhsExp
   | pair_elem                                                     # assignRhsPairElem
   | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES     # assignRhsCall
   ;
+
+struct_access: ident DOT ident;
 
 arg_list: expr (COMMA expr)*;
 
@@ -93,6 +96,7 @@ expr: (PLUS | MINUS)? INT_LITER                 # liter
   | expr (AND) expr                             # binaryOp
   | expr (OR) expr                              # binaryOp
   | OPEN_PARENTHESES expr CLOSE_PARENTHESES     # parentheses
+  | struct_access                               # structExpr
   ;
 
 pair_liter: NULL;

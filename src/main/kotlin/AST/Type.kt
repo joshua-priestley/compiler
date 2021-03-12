@@ -9,7 +9,7 @@ const val ANY = -3
 const val EMPTY_ARR = -4
 const val PAIR_LITER = -5
 
-class Type {
+open class Type {
 
     private val type: Int
     private val pairFst: Type?
@@ -104,7 +104,7 @@ class Type {
         return (this.type == PAIR_LITER)
     }
 
-    fun getTypeSize(): Int {
+    open fun getTypeSize(): Int {
         return when (this.type) {
             STRING -> 4
             INT -> 4
@@ -230,6 +230,12 @@ class Type {
         result = 31 * result + function.hashCode()
         return result
     }
+}
 
+class TypeStruct(size: Int) : Type(STRUCT) {
+    private val sizeOfStruct: Int = size
 
+    override fun getTypeSize(): Int {
+        return this.sizeOfStruct
+    }
 }

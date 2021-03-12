@@ -60,6 +60,7 @@ CONTINUE: 'continues';
 EXIT: 'exit';
 
 //
+DOT: '.';
 SEMICOLON: ';';
 COLON: ':';
 COMMA: ',';
