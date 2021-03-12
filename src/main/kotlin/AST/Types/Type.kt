@@ -1,6 +1,7 @@
-package AST
+package AST.Types
 
 import antlr.WACCParser.*
+import compiler.AST.Types.BaseType
 import kotlin.Int
 
 const val INVALID = -1
@@ -9,41 +10,9 @@ const val ANY = -3
 const val EMPTY_ARR = -4
 const val PAIR_LITER = -5
 
-class Type {
+interface Type {
 
-    private val type: Int
-    private val pairFst: Type?
-    private val pairSnd: Type?
-    private var arrType: Type?
-    private var function: Boolean = false
-    private var parameter: Boolean = false
-
-    private var offsetInTable: Int = 0
-
-
-    //Constructor for singleton types
-    constructor(type: Int) {
-        this.type = type
-        this.pairFst = null
-        this.pairSnd = null
-        this.arrType = null
-    }
-
-    //Constructor for arrayTypes
-    constructor(arrType: Type) {
-        this.type = ARRAY
-        this.arrType = arrType
-        this.pairFst = null
-        this.pairSnd = null
-    }
-
-    //Constructor for pair types
-    constructor(type1: Type, type2: Type) {
-        this.type = PAIR_LITER
-        this.pairFst = type1
-        this.pairSnd = type2
-        this.arrType = null
-    }
+    var offsetInTable: Int
 
     fun setFunction(function: Boolean): Type {
         this.function = function
@@ -51,7 +20,7 @@ class Type {
     }
 
     fun isFunction(): Boolean {
-        return this.function
+        return false
     }
 
     fun setParameter(parameter: Boolean): Type {
@@ -78,22 +47,13 @@ class Type {
     }
 
     //Get the type value of a single type
-    fun getType(): Int {
-        return type
-    }
 
     //Get the type of the fst of a pair
-    fun getPairFst(): Type? {
-        return pairFst
-    }
 
     //Get the type of the snd of a pair
-    fun getPairSnd(): Type? {
-        return pairSnd
-    }
 
     fun getArray(): Boolean {
-        return (this.type == ARRAY)
+        return false
     }
 
     fun getPair(): Boolean {
@@ -117,43 +77,43 @@ class Type {
         fun binaryOpsProduces(operator: Int): Type {
             return when {
                 //Tokens 1-5 are int operators
-                operator <= 5 -> Type(INT)
+                operator <= 5 -> BaseType(INT)
                 //Tokens 6-13 are bool operators
-                operator in 6..13 -> Type(BOOL)
-                else -> Type(INVALID)
+                operator in 6..13 -> BaseType(BOOL)
+                else -> BaseType(INVALID)
             }
         }
 
         // Get the type a binary operator requires
         fun binaryOpsRequires(operator: Int): List<Type> {
             return when {
-                operator < 6 -> mutableListOf(Type(INT))
-                operator in 6..9 -> mutableListOf(Type(INT), Type(CHAR))
-                operator in 10..11 -> mutableListOf(Type(ANY)) // EQ and NEQ can take any type
-                operator in 12..14 -> mutableListOf(Type(BOOL))
-                operator in 12..14 -> mutableListOf(Type(BOOL))
-                else -> mutableListOf(Type(INVALID))
+                operator < 6 -> mutableListOf(BaseType(INT))
+                operator in 6..9 -> mutableListOf(BaseType(INT), BaseType(CHAR))
+                operator in 10..11 -> mutableListOf(BaseType(ANY)) // EQ and NEQ can take any type
+                operator in 12..14 -> mutableListOf(BaseType(BOOL))
+                operator in 12..14 -> mutableListOf(BaseType(BOOL))
+                else -> mutableListOf(BaseType(INVALID))
             }
         }
 
         // Get the type a unary operator produces
         fun unaryOpsProduces(operator: Int): Type {
             return when (operator) {
-                NOT -> Type(BOOL)
-                LEN, ORD, MINUS -> Type(INT)
-                CHR -> Type(CHAR)
-                else -> Type(INVALID)
+                NOT -> BaseType(BOOL)
+                LEN, ORD, MINUS -> BaseType(INT)
+                CHR -> BaseType(CHAR)
+                else -> BaseType(INVALID)
             }
         }
 
         // Get the type a unary operator requires
         fun unaryOpsRequires(operator: Int): Type {
             return when (operator) {
-                NOT -> Type(BOOL)
-                ORD -> Type(CHAR)
-                MINUS, CHR -> Type(INT)
-                LEN -> Type(ARRAY)
-                else -> Type(INVALID)
+                NOT -> BaseType(BOOL)
+                ORD -> BaseType(CHAR)
+                MINUS, CHR -> BaseType(INT)
+                LEN -> BaseType(ARRAY)
+                else -> BaseType(INVALID)
             }
         }
     }
