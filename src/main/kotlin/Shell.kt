@@ -4,7 +4,6 @@ import AST.SymbolTable
 import org.jline.terminal.TerminalBuilder
 import org.jline.utils.NonBlockingReader
 import java.util.*
-import kotlin.collections.HashMap
 
 fun main() {
     val shell = Shell()
@@ -55,7 +54,7 @@ class Shell : FrontendUtils() {
         println()
 
         val symbolTable = SymbolTable(null, 0)
-        val varStore: MutableMap<String, Any> = HashMap()
+        val varStore = VarStore()
         var indentLevel = 0
 
         while (true) {

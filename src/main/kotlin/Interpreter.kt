@@ -1,12 +1,11 @@
 package compiler
 
 import AST.*
-import antlr.WACCParser
 
 class InterpreterFrontend : FrontendUtils() {
     fun run(fileName: String): Int {
         val parseResult = lexAndParse(fileToString(fileName))
-        val varStore: MutableMap<String, Any> = HashMap()
+        val varStore = VarStore()
         return when (parseResult) {
             is SuccessfulParse -> {
                 val backend = InterpreterBackend(parseResult.symbolTable, varStore)
@@ -23,14 +22,14 @@ data class PairObject<T, S>(var fst: T?, var snd: S?)
 
 class InterpreterBackend (
     private var globalSymbolTable: SymbolTable,
-    private var varStore: MutableMap<String, Any> = HashMap()
+    private var varStore: VarStore
 ) {
     private var exitCode = 0
 
 
-    fun displayVarStore() {
+    fun displayVarStore(varStore: VarStore) {
         println("\n\nAll vars:")
-        varStore.forEach{
+        varStore.varStore.forEach{
             println("${it.key} = ${it.value}")
         }
     }
@@ -112,19 +111,15 @@ class InterpreterBackend (
 
     private fun visitRead(stat: ReadNode) {
         val input = readLine()
-        // TODO is it better to copy lhs switching when here and duplicate
         when (stat.lhs) {
             is AssignLHSIdentNode -> {
-                // TODO make less hacky, without st if poss
-                // TODO maybe make generic similar to assignPair/ArrayElem
-                val type = globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString())
-                if (type == Type(WACCParser.CHAR)) {
-                    varStore[stat.lhs.ident.name] = input!![0]
+                if (varStore.typeIsInt(stat.lhs.ident.name)) {
+                    varStore.assignBaseValue(stat.lhs.ident.name, input!!.toInt())
                 } else {
-                    varStore[stat.lhs.ident.name] = input!!.toInt()
+                    varStore.assignBaseValue(stat.lhs.ident.name, input!![0])
                 }
-                //println("${stat.lhs.ident.name} = $value")
             }
+            // Pair and array assigning handle checking of char and int types
             is LHSArrayElemNode -> assignArrayElem(input, stat.lhs)
             is LHSPairElemNode -> assignPairElem(input, stat.lhs)
             else -> throw Error("Should not get here")
@@ -135,7 +130,7 @@ class InterpreterBackend (
         val value = visitAssignRhs(stat.rhs)
         when (stat.lhs) {
             is AssignLHSIdentNode -> {
-                varStore[stat.lhs.ident.name] = value
+                varStore.assignBaseValue(stat.lhs.ident.name, value)
                 //println("${stat.lhs.ident.name} = $value")
             }
             is LHSArrayElemNode -> assignArrayElem(value, stat.lhs)
@@ -145,8 +140,7 @@ class InterpreterBackend (
     }
 
     private fun <T> assignPairElem(value: T, stat: LHSPairElemNode) {
-        val pairElem = stat.pairElem
-        when (pairElem) {
+        when (val pairElem = stat.pairElem) {
             // These unchecked casts are safe as any errors would be caught during semantic checks
             is FstExpr -> ((visitExpr(pairElem.expr)) as PairObject<T, *>).fst = value
             is SndExpr -> ((visitExpr(pairElem.expr)) as PairObject<*, T>).snd = value
@@ -156,7 +150,7 @@ class InterpreterBackend (
 
     private fun <T> assignArrayElem(value: T, stat: LHSArrayElemNode) {
         val expr = stat.arrayElem
-        var current: Any = varStore[expr.ident.name]!!
+        var current: Any = varStore.getValue(expr.ident.name)
         // Keep indexing into subarrays for each index expression there is
         for (i in 0 .. expr.expr.size - 2) {
             current = (current as Array<*>)[(visitExpr(expr.expr[i]) as Int)]!!
@@ -167,7 +161,7 @@ class InterpreterBackend (
 
     private fun visitDeclaration(stat: DeclarationNode) {
         val value = visitAssignRhs(stat.value)
-        varStore[stat.ident.name] = value
+        varStore.declareBaseValue(stat.ident.name, value)
         //println("${stat.ident.name} = $value")
     }
 
@@ -212,7 +206,7 @@ class InterpreterBackend (
     }
 
     private fun visitArrayElem(expr: ArrayElem): Any {
-        var current: Any = varStore[expr.ident.name]!!
+        var current: Any = varStore.getValue(expr.ident.name)
         // Keep indexing into subarrays for each index expression there is
         for (index in expr.expr) {
             current = (current as Array<*>)[(visitExpr(index) as Int)]!!
@@ -259,7 +253,7 @@ class InterpreterBackend (
             is StrLiterNode -> expr.value
             is CharLiterNode -> expr.value[0] //TODO deal with escapes later
             is BoolLiterNode -> expr.value == "true"
-            is Ident -> varStore[expr.name]!!
+            is Ident -> varStore.getValue(expr.name)
             else -> throw Error("Should not get here")
         }
     }
