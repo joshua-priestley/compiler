@@ -1,29 +1,51 @@
 package compiler
 
-import AST.ASTBuilder
-import AST.ProgramNode
 import AST.SymbolTable
-import ErrorHandler.SemanticErrorHandler
-import ErrorHandler.SyntaxErrorHandler
-import antlr.WACCLexer
-import antlr.WACCParser
-import com.sun.java.accessibility.util.Translator
-import compiler.CodeGen.CodeGeneration
-import org.antlr.v4.runtime.CharStreams
-import org.antlr.v4.runtime.CommonTokenStream
-import java.io.File
-import java.lang.StringBuilder
-
+import org.jline.terminal.TerminalBuilder
+import org.jline.utils.NonBlockingReader
+import java.util.*
+import kotlin.collections.HashMap
 
 fun main() {
     val shell = Shell()
-    shell.run()
+    shell.test()
 }
 
 class Shell : FrontendUtils() {
 
+    private val history = mutableListOf<String>()
+    private val scanner = Scanner(System.`in`)
+    private val terminal = TerminalBuilder.builder()
+        .jna(true)
+        .system(true)
+        .build();
+
+
     private fun makeProgram(input: String?): String = "begin\n$input\nend\n"
 
+
+    //TODO look into raw mode
+    fun getUserInput(reader: NonBlockingReader): String {
+// raw mode means we get keypresses rather than line buffered input
+        var read = '0'.toInt()
+        val sb = StringBuilder()
+        while (read != '\n'.toInt()) {
+            read = reader.read();
+            sb.append(read.toChar())
+        }
+        return sb.toString()
+    }
+
+    fun test() {
+        terminal.enterRawMode();
+        val reader = terminal.reader();
+        while (true) {
+            print("> ")
+            println(getUserInput(reader))
+        }
+        reader.close();
+        terminal.close();
+    }
 
     fun run() {
         println("-----WACC Shell-----")
@@ -31,6 +53,7 @@ class Shell : FrontendUtils() {
         println(" - you don't need the global begin/end statements")
         println(" - the number of '>'s at the start of the line represents the level of nesting")
         println()
+
         val symbolTable = SymbolTable(null, 0)
         val varStore: MutableMap<String, Any> = HashMap()
         var indentLevel = 0
@@ -59,39 +82,6 @@ class Shell : FrontendUtils() {
                 val backend = InterpreterBackend(symbolTable, varStore)
                 backend.executeProgram((result as SuccessfulParse).root)
             }
-
-            /*
-            val listener = SyntaxErrorHandler()
-            val input = CharStreams.fromString(makeProgram(line))
-            val lexer = WACCLexer(input)
-            lexer.removeErrorListeners()
-            lexer.addErrorListener(listener)
-            val tokens = CommonTokenStream(lexer)
-            val parser = WACCParser(tokens)
-            parser.removeErrorListeners()
-            parser.addErrorListener(listener)
-            val tree = parser.program()
-            val semanticErrorHandler = SemanticErrorHandler()
-
-            if (listener.hasSyntaxErrors()) {
-                listener.printSyntaxErrors()
-                valid = false
-            }
-
-            val visitor = ASTBuilder(semanticErrorHandler, listener, symbolTable)
-            val root = visitor.visit(tree)
-
-            if (listener.hasSyntaxErrors()) {
-                listener.printSyntaxErrors()
-                valid = false
-            }
-
-            if (semanticErrorHandler.hasSemanticErrors()) {
-                semanticErrorHandler.printSemanticErrors()
-                valid = false
-            }
-            */
-
         }
     }
 }

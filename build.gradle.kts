@@ -27,6 +27,10 @@ dependencies {
     implementation("com.github.kittinunf.fuel:fuel:2.3.1")
     implementation("com.github.kittinunf.fuel:fuel-gson:2.3.1")
     implementation("com.google.code.gson:gson:2.8.5")
+    // Use JLine3 command-line library
+    implementation("org.jline:jline-builtins:3.11.0")
+    implementation("org.jline:jline-reader:3.11.0")
+    implementation("org.jline:jline-terminal:3.11.0")
 }
 
 repositories {
