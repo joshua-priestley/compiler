@@ -31,7 +31,7 @@ abstract class FrontendUtils {
     }
 
 
-    fun lexAndParse(program: String): ParseResult {
+    fun lexAndParse(program: String, st: SymbolTable = SymbolTable(null, 0)): ParseResult {
 
         val listener = SyntaxErrorHandler()
         val input = CharStreams.fromString(program)
@@ -50,7 +50,6 @@ abstract class FrontendUtils {
             return FailedParse(SYNTACTIC_ERROR)
         }
 
-        val st = SymbolTable(null, 0)
         val visitor = ASTBuilder(semanticErrorHandler, listener, st)
         val root = visitor.visit(tree)
 

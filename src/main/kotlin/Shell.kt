@@ -7,6 +7,7 @@ import ErrorHandler.SemanticErrorHandler
 import ErrorHandler.SyntaxErrorHandler
 import antlr.WACCLexer
 import antlr.WACCParser
+import com.sun.java.accessibility.util.Translator
 import compiler.CodeGen.CodeGeneration
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
@@ -19,10 +20,9 @@ fun main() {
     shell.run()
 }
 
-class Shell {
+class Shell : FrontendUtils() {
 
-
-    fun makeProgram(input: String?): String = "begin\n$input\nend\n"
+    private fun makeProgram(input: String?): String = "begin\n$input\nend\n"
 
 
     fun run() {
@@ -32,6 +32,7 @@ class Shell {
         println(" - the number of '>'s at the start of the line represents the level of nesting")
         println()
         val symbolTable = SymbolTable(null, 0)
+        val varStore: MutableMap<String, Any> = HashMap()
         var indentLevel = 0
 
         while (true) {
@@ -50,9 +51,16 @@ class Shell {
                 break
             }
 
-            // true if line can be executed
-            var valid = true
+            val toRun = makeProgram(line)
+            val result = lexAndParse(toRun, symbolTable)
 
+
+            if (result !is FailedParse && indentLevel == 0) {
+                val backend = InterpreterBackend(symbolTable, varStore)
+                backend.executeProgram((result as SuccessfulParse).root)
+            }
+
+            /*
             val listener = SyntaxErrorHandler()
             val input = CharStreams.fromString(makeProgram(line))
             val lexer = WACCLexer(input)
@@ -82,17 +90,8 @@ class Shell {
                 semanticErrorHandler.printSemanticErrors()
                 valid = false
             }
+            */
 
-            /*
-            println(root)
-            print(input)
-            println(tokens[0].toString())
-             */
-            if (valid && indentLevel == 0) {
-                println("valid")
-
-                //generateCode(symbolTable, root as ProgramNode)
-            }
         }
     }
 }

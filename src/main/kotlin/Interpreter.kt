@@ -2,15 +2,15 @@ package compiler
 
 import AST.*
 import antlr.WACCParser
-import kotlin.Pair
 
 class InterpreterFrontend : FrontendUtils() {
     fun run(fileName: String): Int {
         val parseResult = lexAndParse(fileToString(fileName))
+        val varStore: MutableMap<String, Any> = HashMap()
         return when (parseResult) {
             is SuccessfulParse -> {
-                val backend = InterpreterBackend(parseResult.symbolTable, parseResult.root)
-                backend.execute()
+                val backend = InterpreterBackend(parseResult.symbolTable, varStore)
+                backend.executeProgram(parseResult.root)
             }
             is FailedParse -> parseResult.statusCode
             else -> throw Error("Should not get here")
@@ -23,10 +23,9 @@ data class PairObject<T, S>(var fst: T?, var snd: S?)
 
 class InterpreterBackend (
     private var globalSymbolTable: SymbolTable,
-    private val root: ProgramNode
+    private var varStore: MutableMap<String, Any> = HashMap()
 ) {
     private var exitCode = 0
-    private var varStore: MutableMap<String, Any> = HashMap()
 
 
     fun displayVarStore() {
@@ -36,10 +35,10 @@ class InterpreterBackend (
         }
     }
 
-    fun execute(): Int {
+    fun executeProgram(root: ProgramNode): Int {
         visitProgram(root)
-        displayVarStore()
-        println("Exitcode: $exitCode")
+        //displayVarStore()
+        //println("Exitcode: $exitCode")
         return exitCode
     }
 
@@ -47,7 +46,7 @@ class InterpreterBackend (
         visitStat(program.stat)
     }
 
-    private fun visitStat(stat: StatementNode) {
+    fun visitStat(stat: StatementNode) {
         when (stat) {
             is SkipNode -> return
             is DeclarationNode -> visitDeclaration(stat)
