@@ -753,12 +753,26 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return unOpInstructs
     }
 
+    private fun literToBool(value: String): Boolean {
+        return value == "true"
+    }
+
     private fun constantEvaluation(operator: BinOp, expr1: ExprNode, expr2: ExprNode): Int? {
         if (expr1 is IntLiterNode && expr2 is IntLiterNode) {
+            println(operator.value)
             return when (operator.value) {
-                1 -> expr1.value.toInt() + expr2.value.toInt()
-                2 -> expr1.value.toInt() - expr2.value.toInt()
-                3 -> expr1.value.toInt() * expr2.value.toInt()
+                BinOp.PLUS.value -> expr1.value.toInt() + expr2.value.toInt()
+                BinOp.MINUS.value -> expr1.value.toInt() - expr2.value.toInt()
+                BinOp.MUL.value -> expr1.value.toInt() * expr2.value.toInt()
+                BinOp.BITWISEAND.value -> expr1.value.toInt() and expr2.value.toInt()
+                BinOp.BITWISEOR.value -> expr1.value.toInt() or expr2.value.toInt()
+                else -> null
+            }
+        }
+        if (expr1 is BoolLiterNode && expr2 is BoolLiterNode) {
+            return when (operator.value) {
+                BinOp.AND.value -> if (literToBool(expr1.value) && literToBool(expr2.value)) TRUE_VAL else FALSE_VAL
+                BinOp.OR.value -> if (literToBool(expr1.value) || literToBool(expr2.value)) TRUE_VAL else FALSE_VAL
                 else -> null
             }
         }
