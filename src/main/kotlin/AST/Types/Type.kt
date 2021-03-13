@@ -1,35 +1,43 @@
 package AST.Types
 
 import antlr.WACCParser.*
+import compiler.AST.Types.ArrayType
 import compiler.AST.Types.BaseType
+import compiler.AST.Types.PairType
 import kotlin.Int
 
 const val INVALID = -1
 const val ARRAY = -2
 const val ANY = -3
-const val EMPTY_ARR = -4
 const val PAIR_LITER = -5
 
-interface Type {
-
-    var offsetInTable: Int
-
-    fun setFunction(function: Boolean): Type {
-        this.function = function
-        return this
+abstract class Type {
+    open val typeInt : Int = ANY
+    open var offsetInTable: Int = 0
+    open var isParam: Boolean = false
+    fun isParameter(): Boolean {
+        return isParam
     }
+
+    fun setParameter(bool: Boolean) {
+        this.isParam = bool
+    }
+
+    fun getType(): Int {
+        return this.typeInt
+    }
+
+    open fun getPairFst(): Type? {
+        return null
+    }
+
+    open fun getPairSnd(): Type? {
+        return null
+    }
+
 
     fun isFunction(): Boolean {
         return false
-    }
-
-    fun setParameter(parameter: Boolean): Type {
-        this.parameter = parameter
-        return this
-    }
-
-    fun isParameter(): Boolean {
-        return this.parameter
     }
 
     fun setOffset(o: Int): Type {
@@ -42,8 +50,8 @@ interface Type {
     }
 
     //Get the base type of an array
-    fun getBaseType(): Type {
-        return if (this.arrType == null) this else this.arrType!!.getBaseType()
+    open fun getBaseType(): Type {
+        return this
     }
 
     //Get the type value of a single type
@@ -52,16 +60,16 @@ interface Type {
 
     //Get the type of the snd of a pair
 
-    fun getArray(): Boolean {
-        return false
+    open fun getArray(): Boolean {
+        return (this is ArrayType)
     }
 
     fun getPair(): Boolean {
-        return (this.type == PAIR_LITER)
+        return this is PairType
     }
 
     fun getTypeSize(): Int {
-        return when (this.type) {
+        return when (this.typeInt) {
             STRING -> 4
             INT -> 4
             BOOL -> 1
@@ -116,75 +124,6 @@ interface Type {
                 else -> BaseType(INVALID)
             }
         }
-    }
-
-    //Equality for types for semantic checks
-    override fun equals(other: Any?): Boolean {
-        if (other is Type) {
-            val compare: Type = other
-            return when {
-                //Char array and string are equivalent
-                getArray() && !getBaseType().getArray() && getBaseType().getType() == CHAR && compare.getType() == STRING -> true
-                compare.getArray() && compare.getBaseType().getType() == CHAR && !compare.getBaseType()
-                        .getArray() && getType() == STRING -> true
-
-                //Check array base types
-                compare.getArray() && getArray() -> compare.getBaseType() == getBaseType()
-
-
-                compare.getPair() -> getPair()
-                //Check pair types
-                compare.getPair() && getPair() -> compare.getPairFst() == getPairFst() && compare.getPairSnd() == getPairSnd()
-
-                compare.getPair() && getPair() -> ((compare.getPairFst() == null && compare.getPairSnd() == null) || (getPairFst() == null && getPairSnd() == null))
-
-                //Check basic types
-                compare.getType() == getType() -> true
-
-                else -> false
-
-            }
-        } else {
-            return false
-        }
-    }
-
-    //Convert a type to a string for the printing of error messages
-    override fun toString(): String {
-        if (this.type == PAIR_LITER) {
-            return "AST.PAIR_LITER"
-        }
-        val symbolName = VOCABULARY.getSymbolicName(getType())
-        val sb = StringBuilder()
-        if (getPair()) {
-            //Return PAIR(<FstType>,<SndType>)
-            sb.append(symbolName)
-            if (!(getPairFst() == null && getPairSnd() == null)) {
-                sb.append('(')
-                sb.append(getPairFst().toString())
-                sb.append(',')
-                sb.append(getPairSnd().toString())
-                sb.append(')')
-            }
-            return sb.toString()
-        }
-        if (getArray()) {
-            //Return <AST.BaseType>[]
-            sb.append(getBaseType().toString())
-            sb.append("[]")
-            return sb.toString()
-        }
-        //Return <Type>
-        return symbolName
-    }
-
-    override fun hashCode(): Int {
-        var result = type
-        result = 31 * result + (pairFst?.hashCode() ?: 0)
-        result = 31 * result + (pairSnd?.hashCode() ?: 0)
-        result = 31 * result + (arrType?.hashCode() ?: 0)
-        result = 31 * result + function.hashCode()
-        return result
     }
 
 
