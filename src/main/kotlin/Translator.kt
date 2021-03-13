@@ -48,7 +48,7 @@ abstract class FrontendUtils {
 
         if (listener.hasSyntaxErrors()) {
             listener.printSyntaxErrors()
-            FailedParse(SYNTACTIC_ERROR)
+            return FailedParse(SYNTACTIC_ERROR)
         }
 
         val st = SymbolTable(null, 0)
@@ -57,12 +57,12 @@ abstract class FrontendUtils {
 
         if (listener.hasSyntaxErrors()) {
             listener.printSyntaxErrors()
-            FailedParse(SYNTACTIC_ERROR)
+            return FailedParse(SYNTACTIC_ERROR)
         }
 
         if (semanticErrorHandler.hasSemanticErrors()) {
             semanticErrorHandler.printSemanticErrors()
-            FailedParse(SEMANTIC_ERROR)
+            return FailedParse(SEMANTIC_ERROR)
         }
         return SuccessfulParse(root as ProgramNode, st)
     }
