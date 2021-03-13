@@ -331,8 +331,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateIf(stat: IfElseNode): List<Instruction> {
         val ifInstruction = mutableListOf<Instruction>()
 
-        val doElse = stat.expr is BoolLiterNode && stat.expr.value == "false"
-        var doIf = stat.expr is BoolLiterNode && stat.expr.value == "true"
+        val doElse = stat.expr is BoolLiterNode && stat.expr.value == "false" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr.operator, stat.expr.expr1, stat.expr.expr2) == FALSE_VAL
+        var doIf = stat.expr is BoolLiterNode && stat.expr.value == "true" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr.operator, stat.expr.expr1, stat.expr.expr2) == TRUE_VAL
 
         var elseLabel = ""
         var firstElseIfLabel = ""
@@ -414,10 +414,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateWhile(stat: WhileNode): List<Instruction> {
         val whileInstruction = mutableListOf<Instruction>()
 
-        if (stat.expr is BoolLiterNode && stat.expr.value == "false") {
+        if (stat.expr is BoolLiterNode && stat.expr.value == "false" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr.operator, stat.expr.expr1, stat.expr.expr2) == FALSE_VAL) {
             return whileInstruction
         }
-        val forever = stat.expr is BoolLiterNode && stat.expr.value == "true"
+        val forever = stat.expr is BoolLiterNode && stat.expr.value == "true" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr.operator, stat.expr.expr1, stat.expr.expr2) == TRUE_VAL
 
         conditionLabel.push(nextLabel())
         val bodyLabel = nextLabel()
