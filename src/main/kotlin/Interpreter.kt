@@ -137,28 +137,53 @@ class InterpreterBackend (
 
     private fun visitExpr(expr: ExprNode): Any {
         return when (expr) {
-            is LiterNode -> generateLiterNode(expr)
-            is BinaryOpNode -> generateBinOp(expr)
-            is UnaryOpNode -> generateUnOp(expr)
-            is ArrayElem -> generateArrayElem(expr)
+            is LiterNode -> visitLiterNode(expr)
+            is BinaryOpNode -> visitBinOp(expr)
+            is UnaryOpNode -> visitUnOp(expr)
+            is ArrayElem -> visitArrayElem(expr)
             is PairLiterNode -> TODO("Not yet implemented")
             else -> TODO("Not yet implemented")
         }
     }
 
-    private fun generateArrayElem(expr: ArrayElem): Any {
+    private fun visitArrayElem(expr: ArrayElem): Any {
         TODO("Not yet implemented")
     }
 
-    private fun generateUnOp(expr: UnaryOpNode): Any {
-        TODO("Not yet implemented")
+    private fun visitUnOp(expr: UnaryOpNode): Any {
+        return when (expr.operator) {
+            UnOp.NOT -> !(visitExpr(expr.expr) as Boolean)
+            UnOp.MINUS -> (visitExpr(expr.expr) as Int).unaryMinus()
+            UnOp.CHR -> (visitExpr(expr.expr) as Int).toChar()
+            UnOp.ORD -> (visitExpr(expr.expr) as Char).toInt()
+            UnOp.LEN -> TODO("Arrays not yet implemented")
+            else -> throw Error("Should not get here")
+        }
     }
 
-    private fun generateBinOp(expr: BinaryOpNode): Any {
-        TODO("Not yet implemented")
+    private fun visitBinOp(expr: BinaryOpNode): Any {
+        val expr1 = visitExpr(expr.expr1)
+        val expr2 = visitExpr(expr.expr2)
+        return when (expr.operator) {
+            BinOp.PLUS -> (expr1 as Int) + (expr2 as Int)
+            BinOp.MINUS -> (expr1 as Int) - (expr2 as Int)
+            BinOp.MUL -> (expr1 as Int) * (expr2 as Int)
+            BinOp.MOD -> (expr1 as Int) % (expr2 as Int)
+            BinOp.DIV -> (expr1 as Int) % (expr2 as Int)
+            BinOp.AND -> (expr1 as Boolean) && (expr2 as Boolean)
+            BinOp.OR -> (expr1 as Boolean) || (expr2 as Boolean)
+            BinOp.EQ -> expr1 == expr2
+            BinOp.NEQ -> expr1 != expr2
+            // We only ever compare ints and chars so are safe to cast to int
+            BinOp.LT -> (expr1 as Int) < (expr2 as Int)
+            BinOp.GT -> (expr1 as Int) > (expr2 as Int)
+            BinOp.GTE -> (expr1 as Int) >= (expr2 as Int)
+            BinOp.LTE -> (expr1 as Int) <= (expr2 as Int)
+            else -> throw Error("Should not get here")
+        }
     }
 
-    private fun generateLiterNode(expr: LiterNode): Any {
+    private fun visitLiterNode(expr: LiterNode): Any {
         return when(expr) {
             is IntLiterNode -> expr.value.toInt()
             is StrLiterNode -> expr.value
@@ -168,5 +193,4 @@ class InterpreterBackend (
             else -> throw Error("Should not get here")
         }
     }
-
 }
