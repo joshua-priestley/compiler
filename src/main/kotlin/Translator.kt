@@ -32,7 +32,6 @@ abstract class FrontendUtils {
 
 
     fun lexAndParse(program: String): ParseResult {
-        var statusCode = 0
 
         val listener = SyntaxErrorHandler()
         val input = CharStreams.fromString(program)

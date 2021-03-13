@@ -112,10 +112,21 @@ class InterpreterBackend (
                 varStore[stat.lhs.ident.name] = value
                 println("${stat.lhs.ident.name} = $value")
             }
-            is LHSArrayElemNode -> TODO("Not yet implemented")
+            is LHSArrayElemNode -> assignArrayElem(value, stat.lhs)
             is LHSPairElemNode -> TODO("Not yet implemented")
             else -> throw Error("Should not get here")
         }
+    }
+
+    private fun <T> assignArrayElem(value: T, stat: LHSArrayElemNode) {
+        val expr = stat.arrayElem
+        var current: Any = varStore[expr.ident.name]!!
+        // Keep indexing into subarrays for each index expression there is
+        for (i in 0 .. expr.expr.size - 2) {
+            current = (current as Array<*>)[(visitExpr(expr.expr[i]) as Int)]!!
+        }
+        // This unchecked cast is safe as any errors would be caught during semantic analysis
+        (current as Array<T>)[(visitExpr(expr.expr[expr.expr.size - 1]) as Int)] = value
     }
 
     private fun visitDeclaration(stat: DeclarationNode) {
@@ -127,12 +138,17 @@ class InterpreterBackend (
     private fun visitAssignRhs(stat: AssignRHSNode): Any {
         return when (stat) {
             is RHSExprNode -> visitExpr(stat.expr)
-            is RHSArrayLitNode -> TODO("Not yet implemented")
+            is RHSArrayLitNode -> visitRHSArrayLit(stat)
             is RHSNewPairNode -> TODO("Not yet implemented")
             is RHSPairElemNode -> TODO("Not yet implemented")
             is RHSCallNode -> TODO("Not yet implemented")
             else -> throw Error("Should not get here")
         }
+    }
+
+    private fun visitRHSArrayLit(expr: RHSArrayLitNode): Any {
+        return expr.exprs.stream()
+            .map{visitExpr(it)}.toArray()
     }
 
     private fun visitExpr(expr: ExprNode): Any {
@@ -147,7 +163,12 @@ class InterpreterBackend (
     }
 
     private fun visitArrayElem(expr: ArrayElem): Any {
-        TODO("Not yet implemented")
+        var current: Any = varStore[expr.ident.name]!!
+        // Keep indexing into subarrays for each index expression there is
+        for (index in expr.expr) {
+            current = (current as Array<*>)[(visitExpr(index) as Int)]!!
+        }
+        return current
     }
 
     private fun visitUnOp(expr: UnaryOpNode): Any {
