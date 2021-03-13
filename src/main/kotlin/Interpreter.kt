@@ -1,6 +1,7 @@
 package compiler
 
 import AST.*
+import antlr.WACCParser
 import kotlin.Pair
 
 class InterpreterFrontend : FrontendUtils() {
@@ -111,7 +112,24 @@ class InterpreterBackend (
     }
 
     private fun visitRead(stat: ReadNode) {
-        TODO("Not yet implemented")
+        val input = readLine()
+        // TODO is it better to copy lhs switching when here and duplicate
+        when (stat.lhs) {
+            is AssignLHSIdentNode -> {
+                // TODO make less hacky, without st if poss
+                // TODO maybe make generic similar to assignPair/ArrayElem
+                val type = globalSymbolTable.getNodeGlobal(stat.lhs.ident.toString())
+                if (type == Type(WACCParser.CHAR)) {
+                    varStore[stat.lhs.ident.name] = input!![0]
+                } else {
+                    varStore[stat.lhs.ident.name] = input!!.toInt()
+                }
+                //println("${stat.lhs.ident.name} = $value")
+            }
+            is LHSArrayElemNode -> assignArrayElem(input, stat.lhs)
+            is LHSPairElemNode -> assignPairElem(input, stat.lhs)
+            else -> throw Error("Should not get here")
+        }
     }
 
     private fun visitAssign(stat: AssignNode) {
