@@ -180,6 +180,7 @@ class ASTBuilder(
     }
 
     override fun visitMap(ctx: MapContext): Node {
+        globalSymbolTable.addNode(Ident("_____i").toString(), Type(INT))
         val funcName = visit(ctx.ident(0)) as Ident
         if (!globalSymbolTable.containsNodeGlobal(funcName.toString())) {
             semanticListener.funRefBeforeAss(funcName.name, ctx)
