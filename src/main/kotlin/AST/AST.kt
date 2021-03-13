@@ -56,6 +56,7 @@ data class DoWhileNode(val do_: StatementNode, val expr: ExprNode): StatementNod
 data class BeginEndNode(val stat: StatementNode) : StatementNode
 data class SequenceNode(val statList: List<StatementNode>) : StatementNode
 data class SideExpressionNode(val ident: AssignLHSIdentNode, val sideExpr: SideExprOperator) : StatementNode
+data class MapNode(val functionIdent: Ident, val array: Ident): StatementNode
 
 data class ElseIfNode(val expr: ExprNode, val then: StatementNode): StatementNode
 /*

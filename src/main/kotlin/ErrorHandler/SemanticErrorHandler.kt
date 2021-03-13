@@ -7,6 +7,16 @@ class SemanticErrorHandler {
 
     fun hasSemanticErrors() = errorList.isNotEmpty()
 
+    fun mapOperatesOnArray(ctx: ParserRuleContext) {
+        val msg = "must apply map to a list"
+        addErrorMessage(msg, errorPosition(ctx))
+    }
+
+    fun mapArgumentSizeError(ctx: ParserRuleContext) {
+        val msg = "map function must have only one parameter"
+        addErrorMessage(msg, errorPosition(ctx))
+    }
+
     fun fstSndMustBePair(ctx: ParserRuleContext) {
         val msg = "when calling fst or snd, must be a pair variable"
         addErrorMessage(msg, errorPosition(ctx))

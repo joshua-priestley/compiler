@@ -7,8 +7,9 @@
 # Program:
 
 begin
-  int a = 3 ;
-  do
-    int x = 5
-  while true done
+  int hello(int x) is
+    return 3
+  end
+  int[] x = [1, 2, 3] ;
+  map (hello) x
 end

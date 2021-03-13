@@ -29,6 +29,7 @@ stat: SKP                                           # skip
   | assign_lhs sideExpr                             # sideExpression
   | CONTINUE                                        # continue
   | BREAK                                           # break
+  | MAP OPEN_PARENTHESES ident CLOSE_PARENTHESES ident       # map
   ;
 
 else_if: ELSE IF expr THEN stat;

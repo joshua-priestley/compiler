@@ -179,6 +179,37 @@ class ASTBuilder(
         return SequenceNode(sequenceList(ctx))
     }
 
+    override fun visitMap(ctx: MapContext): Node {
+        val funcName = visit(ctx.ident(0)) as Ident
+        if (!globalSymbolTable.containsNodeGlobal(funcName.toString())) {
+            semanticListener.funRefBeforeAss(funcName.name, ctx)
+        }
+        val arrayName = visit(ctx.ident(1)) as Ident
+        if (!globalSymbolTable.containsNodeGlobal(arrayName.toString())) {
+            semanticListener.undefinedVar(arrayName.toString(), ctx)
+        }
+        val array = globalSymbolTable.getNodeGlobal(arrayName.toString())
+        if (array != null) {
+            if (!array.getArray()) {
+                semanticListener.mapOperatesOnArray(ctx)
+            }
+            val function = globalSymbolTable.getNodeGlobal(funcName.toString())
+            if (function != null && function != array.getBaseType()) {
+                semanticListener.incompatibleTypeAss(array.getBaseType().toString(), function.toString(), ctx)
+            }
+            val params = functionParameters[funcName.toString()]
+            if (params == null || params.size != 1) {
+                semanticListener.mapArgumentSizeError(ctx)
+            } else {
+                if (params[0] != array.getBaseType()) {
+                    semanticListener.mismatchedParamTypes(params[0].toString(), array.getBaseType().toString(), ctx)
+                }
+            }
+        }
+
+        return MapNode(funcName, arrayName)
+    }
+
     private fun sequenceList(ctx: SequenceContext): MutableList<StatementNode> {
         //visit head first so any variables will be added to the symbol table
         val head = visit(ctx.stat(0)) as StatementNode
