@@ -137,6 +137,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is PrintlnNode -> generatePrintln(stat)
             is IfElseNode -> generateIf(stat)
             is WhileNode -> generateWhile(stat)
+            is DoWhileNode -> generateDoWhile(stat)
             is BeginEndNode -> generateBegin(stat)
             is SequenceNode -> generateSeq(stat)
             is SideExpressionNode -> generateSideExpression(stat)
@@ -409,6 +410,44 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         inElseStatement = false
         return ifInstruction
+    }
+
+    private fun generateDoWhile(stat: DoWhileNode): List<Instruction> {
+        val doWhileInstruction = mutableListOf<Instruction>()
+
+        val bodyLabel = nextLabel()
+        endLabel.push(nextLabel())
+
+        // Loop body
+        doWhileInstruction.add(FunctionDeclaration(bodyLabel))
+        if (!inElseStatement) stackToAdd += globalSymbolTable.localStackSize()
+        enterNewScope(doWhileInstruction, stat.do_)
+        if (!inElseStatement) stackToAdd -= globalSymbolTable.localStackSize()
+
+        if (stat.expr is BoolLiterNode && stat.expr.value == "false" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == FALSE_VAL) {
+            return doWhileInstruction
+        }
+        val forever = stat.expr is BoolLiterNode && stat.expr.value == "true" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == TRUE_VAL
+
+
+        // Conditional
+        if (forever) {
+            doWhileInstruction.add(Branch(bodyLabel, false))
+        } else {
+            assign = true
+            if (stat.expr is LiterNode) {
+                doWhileInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
+            } else {
+                doWhileInstruction.addAll(generateExpr(stat.expr))
+            }
+            doWhileInstruction.add(Compare(Register.r4, ImmOp(1)))
+            doWhileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
+            assign = false
+        }
+        doWhileInstruction.add(FunctionDeclaration(endLabel.peek()))
+
+        endLabel.pop()
+        return doWhileInstruction
     }
 
     private fun generateWhile(stat: WhileNode): List<Instruction> {

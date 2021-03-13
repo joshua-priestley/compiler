@@ -7,9 +7,8 @@
 # Program:
 
 begin
-  if (true && true) && false then
+  int a = 3 ;
+  do
     int x = 5
-  else
-    int x = 10
-  fi
+  while true done
 end

@@ -417,6 +417,20 @@ class ASTBuilder(
         return WhileNode(condExpr, stat)
     }
 
+    override fun visitDo_while(ctx: Do_whileContext): Node {
+        inWhile = true
+        // Create a new scope for the loop
+        val loopSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
+        globalSymbolTable = loopSymbolTable
+        val stat = visit(ctx.stat()) as StatementNode
+        globalSymbolTable = globalSymbolTable.parentT!!
+
+        val condExpr = getConditionExpression((ctx.expr()), ctx)
+
+        inWhile = false
+        return DoWhileNode(stat, condExpr)
+    }
+
     override fun visitBegin(ctx: BeginContext): Node {
         // Create a new scope for each begin
         val scopeSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())

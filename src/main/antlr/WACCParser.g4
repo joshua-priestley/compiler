@@ -23,6 +23,7 @@ stat: SKP                                           # skip
   | PRINTLN expr                                    # println
   | IF expr THEN stat (else_if)* (ELSE stat)? FI    # if
   | WHILE expr DO stat DONE                         # while
+  | DO stat WHILE expr DONE                         # do_while
   | BEGIN stat END                                  # begin
   | <assoc=right> stat SEMICOLON stat               # sequence
   | assign_lhs sideExpr                             # sideExpression
