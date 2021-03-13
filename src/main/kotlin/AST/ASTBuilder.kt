@@ -376,6 +376,11 @@ class ASTBuilder(
         val stat1 = visit(ctx.stat(0)) as StatementNode
         globalSymbolTable = globalSymbolTable.parentT!!
 
+        val elseIfs = mutableListOf<ElseIfNode>()
+        if (!ctx.else_if().isEmpty()) {
+            ctx.else_if().map { elseIfs.add(visit(it) as ElseIfNode) }
+        }
+
         var stat2: StatementNode? = null
         if (ctx.stat(1) != null) {
             val elseSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
@@ -384,7 +389,18 @@ class ASTBuilder(
             globalSymbolTable = globalSymbolTable.parentT!!
         }
 
-        return IfElseNode(condExpr, stat1, stat2)
+        return IfElseNode(condExpr, stat1, elseIfs, stat2)
+    }
+
+    override fun visitElse_if(ctx: Else_ifContext): Node {
+        val condExpr = getConditionExpression(ctx.expr(), ctx)
+        val elseIfST = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
+        globalSymbolTable = elseIfST
+        val stat = visit(ctx.stat()) as StatementNode
+        globalSymbolTable = globalSymbolTable.parentT!!
+
+        return ElseIfNode(condExpr, stat)
+
     }
 
     override fun visitWhile(ctx: WhileContext): Node {

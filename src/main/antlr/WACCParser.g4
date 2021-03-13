@@ -21,7 +21,7 @@ stat: SKP                                           # skip
   | EXIT expr                                       # exit
   | PRINT expr                                      # print
   | PRINTLN expr                                    # println
-  | IF expr THEN stat (ELSE stat)? FI               # if
+  | IF expr THEN stat (else_if)* (ELSE stat)? FI    # if
   | WHILE expr DO stat DONE                         # while
   | BEGIN stat END                                  # begin
   | <assoc=right> stat SEMICOLON stat               # sequence
@@ -29,6 +29,8 @@ stat: SKP                                           # skip
   | CONTINUE                                        # continue
   | BREAK                                           # break
   ;
+
+else_if: ELSE IF expr THEN stat;
 
 assign_lhs: ident                                   # assignLhsId
   | array_elem                                      # assignLhsArray
