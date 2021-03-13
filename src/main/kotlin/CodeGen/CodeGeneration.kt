@@ -331,8 +331,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateIf(stat: IfElseNode): List<Instruction> {
         val ifInstruction = mutableListOf<Instruction>()
 
-        val doElse = stat.expr is BoolLiterNode && stat.expr.value == "false" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr.operator, stat.expr.expr1, stat.expr.expr2) == FALSE_VAL
-        var doIf = stat.expr is BoolLiterNode && stat.expr.value == "true" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr.operator, stat.expr.expr1, stat.expr.expr2) == TRUE_VAL
+        val doElse = stat.expr is BoolLiterNode && stat.expr.value == "false" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == FALSE_VAL
+        var doIf = stat.expr is BoolLiterNode && stat.expr.value == "true" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == TRUE_VAL
 
         var elseLabel = ""
         var firstElseIfLabel = ""
@@ -414,10 +414,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateWhile(stat: WhileNode): List<Instruction> {
         val whileInstruction = mutableListOf<Instruction>()
 
-        if (stat.expr is BoolLiterNode && stat.expr.value == "false" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr.operator, stat.expr.expr1, stat.expr.expr2) == FALSE_VAL) {
+        if (stat.expr is BoolLiterNode && stat.expr.value == "false" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == FALSE_VAL) {
             return whileInstruction
         }
-        val forever = stat.expr is BoolLiterNode && stat.expr.value == "true" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr.operator, stat.expr.expr1, stat.expr.expr2) == TRUE_VAL
+        val forever = stat.expr is BoolLiterNode && stat.expr.value == "true" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == TRUE_VAL
 
         conditionLabel.push(nextLabel())
         val bodyLabel = nextLabel()
@@ -759,7 +759,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun getConstEvalNested(expr: ExprNode): ExprNode? {
         if (expr is BinaryOpNode) {
-            val value = constantEvaluation(expr.operator, expr.expr1, expr.expr2)
+            val value = constantEvaluation(expr)
             if (value == null) return value
             return if (expr.operator == BinOp.AND || expr.operator == BinOp.OR) {
                 BoolLiterNode(if (value == TRUE_VAL) "true" else "false")
@@ -770,12 +770,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return null
     }
 
-    private fun constantEvaluation(operator: BinOp, expr1: ExprNode, expr2: ExprNode): Int? {
-        val lhsExpr = getConstEvalNested(expr1) ?: expr1
-        val rhsExpr = getConstEvalNested(expr2) ?: expr2
+    private fun constantEvaluation(binOp: BinaryOpNode): Int? {
+        val lhsExpr = getConstEvalNested(binOp.expr1) ?: binOp.expr1
+        val rhsExpr = getConstEvalNested(binOp.expr2) ?: binOp.expr2
 
         if (lhsExpr is IntLiterNode && rhsExpr is IntLiterNode) {
-            return when (operator.value) {
+            return when (binOp.operator.value) {
                 BinOp.PLUS.value -> lhsExpr.value.toInt() + rhsExpr.value.toInt()
                 BinOp.MINUS.value -> lhsExpr.value.toInt() - rhsExpr.value.toInt()
                 BinOp.MUL.value -> lhsExpr.value.toInt() * rhsExpr.value.toInt()
@@ -785,7 +785,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
         }
         if (lhsExpr is BoolLiterNode && rhsExpr is BoolLiterNode) {
-            return when (operator.value) {
+            return when (binOp.operator.value) {
                 BinOp.AND.value -> if (literToBool(lhsExpr.value) && literToBool(rhsExpr.value)) TRUE_VAL else FALSE_VAL
                 BinOp.OR.value -> if (literToBool(lhsExpr.value) || literToBool(rhsExpr.value)) TRUE_VAL else FALSE_VAL
                 else -> null
@@ -800,7 +800,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         var operand1 = reg
         var pop = false
 
-        val const = constantEvaluation(binOp.operator, binOp.expr1, binOp.expr2)
+        val const = constantEvaluation(binOp)
         if (const != null) {
             return listOf(Load(reg, const))
         }
