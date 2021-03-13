@@ -296,6 +296,34 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return declareInstructions
     }
 
+    private fun generateElseIf(elseIf: ElseIfNode, nextElse: String?, endLabel: String): List<Instruction> {
+        val elseIfInstructions = mutableListOf<Instruction>()
+
+        if (elseIf.expr is BoolLiterNode && elseIf.expr.value == "false") {
+            return elseIfInstructions
+        }
+
+        assign = true
+        if (elseIf.expr is LiterNode) {
+            elseIfInstructions.addAll(generateLiterNode(elseIf.expr, Register.r4))
+        } else {
+            elseIfInstructions.addAll(generateExpr(elseIf.expr))
+        }
+        assign = false
+        // Compare the conditional
+        elseIfInstructions.add(Compare(Register.r4, ImmOp(0)))
+        if (nextElse != null) {
+            elseIfInstructions.add(Branch(nextElse, false, Conditions.EQ))
+        } else {
+            elseIfInstructions.add(Branch(endLabel, false, Conditions.EQ))
+        }
+
+        enterNewScope(elseIfInstructions, elseIf.then)
+        elseIfInstructions.add(Branch(endLabel, false))
+
+        return elseIfInstructions
+    }
+
     private fun generateIf(stat: IfElseNode): List<Instruction> {
         val ifInstruction = mutableListOf<Instruction>()
 
@@ -303,10 +331,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val doIf = stat.expr is BoolLiterNode && stat.expr.value == "true"
 
         var elseLabel = ""
+        var firstElseIfLabel = ""
         val endLabel = nextLabel()
 
         if (stat.else_ != null) {
             elseLabel = nextLabel()
+        }
+
+        if (stat.elseIfs.isNotEmpty()) {
+            firstElseIfLabel = nextLabel()
         }
 
         if (!doElse && !doIf) {
@@ -320,7 +353,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             assign = false
             // Compare the conditional
             ifInstruction.add(Compare(Register.r4, ImmOp(0)))
-            if (stat.else_ != null) {
+            if (stat.elseIfs.isNotEmpty()) {
+                ifInstruction.add(Branch(firstElseIfLabel, false, Conditions.EQ))
+            } else if (stat.else_ != null) {
                 ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
             } else {
                 ifInstruction.add(Branch(endLabel, false, Conditions.EQ))
@@ -333,6 +368,20 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             enterNewScope(ifInstruction, stat.then)
             if (stat.else_ != null) {
                 ifInstruction.add(Branch(endLabel, false))
+            }
+        }
+
+        if (!doIf) {
+            for (i in stat.elseIfs.indices) {
+                ifInstruction.add(FunctionDeclaration(firstElseIfLabel))
+                val nextElse: String? = if (i != stat.elseIfs.size - 1) {
+                    nextLabel()
+                } else if (stat.else_ != null) {
+                    elseLabel
+                } else {
+                    null
+                }
+                ifInstruction.addAll(generateElseIf(stat.elseIfs[i], nextElse, endLabel))
             }
         }
 
