@@ -48,6 +48,6 @@ class VarStore {
         while (scope.varStore[id] == null) {
             scope = scope.parent!!
         }
-        return varStore[id]!!
+        return scope.varStore[id]!!
     }
 }

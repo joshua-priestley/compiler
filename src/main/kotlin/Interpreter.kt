@@ -28,10 +28,11 @@ class InterpreterBackend (
 
 
     fun displayVarStore(varStore: VarStore) {
-        println("\n\nAll vars:")
+        println("All vars:")
         varStore.varStore.forEach{
             println("${it.key} = ${it.value}")
         }
+        println("\n\n")
     }
 
     fun executeProgram(root: ProgramNode): Int {
@@ -68,18 +69,28 @@ class InterpreterBackend (
     }
 
     private fun visitBegin(stat: BeginEndNode) {
-        TODO("Not yet implemented")
+        varStore = varStore.newScope()
+        visitStat(stat.stat)
+        varStore = varStore.exitScope()
     }
 
     private fun visitWhile(stat: WhileNode) {
-        TODO("Not yet implemented")
+        varStore = varStore.newScope()
+        while (visitExpr(stat.expr) as Boolean) {
+            visitStat(stat.do_)
+        }
+        varStore = varStore.exitScope()
     }
 
     private fun visitIf(stat: IfElseNode) {
         if (visitExpr(stat.expr) as Boolean) {
+            varStore = varStore.newScope()
             visitStat(stat.then)
+            varStore = varStore.exitScope()
         } else {
+            varStore = varStore.newScope()
             visitStat(stat.else_)
+            varStore = varStore.exitScope()
         }
     }
 
@@ -92,7 +103,15 @@ class InterpreterBackend (
         val expr = visitExpr(stat.expr)
         when (expr) {
             is PairObject<*, *> -> print("#pair_addr#")
-            is Array<*> -> print("#arr_addr#")
+            is Array<*> -> {
+                // Print char array as a string
+                if (expr.isArrayOf<Char>()) {
+                    // TODO this doesn't work oop - printAllTypes test
+                    print(expr.joinToString(""))
+                } else {
+                    print("#arr_addr#")
+                }
+            }
             else -> print(expr)
         }
     }
