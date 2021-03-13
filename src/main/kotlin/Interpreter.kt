@@ -1,6 +1,7 @@
 package compiler
 
 import AST.*
+import kotlin.Pair
 
 class InterpreterFrontend : FrontendUtils() {
     fun run(fileName: String): Int {
@@ -16,6 +17,9 @@ class InterpreterFrontend : FrontendUtils() {
     }
 }
 
+
+data class PairObject<T, S>(var fst: T?, var snd: S?)
+
 class InterpreterBackend (
     private var globalSymbolTable: SymbolTable,
     private val root: ProgramNode
@@ -25,7 +29,7 @@ class InterpreterBackend (
 
 
     fun displayVarStore() {
-        println("All vars:")
+        println("\n\nAll vars:")
         varStore.forEach{
             println("${it.key} = ${it.value}")
         }
@@ -86,7 +90,12 @@ class InterpreterBackend (
     }
 
     private fun visitPrint(stat: PrintNode) {
-        print(visitExpr(stat.expr))
+        val expr = visitExpr(stat.expr)
+        when (expr) {
+            is PairObject<*, *> -> print("#pair_addr#")
+            is Array<*> -> print("#arr_addr#")
+            else -> print(expr)
+        }
     }
 
     private fun visitExit(stat: ExitNode) {
@@ -110,10 +119,20 @@ class InterpreterBackend (
         when (stat.lhs) {
             is AssignLHSIdentNode -> {
                 varStore[stat.lhs.ident.name] = value
-                println("${stat.lhs.ident.name} = $value")
+                //println("${stat.lhs.ident.name} = $value")
             }
             is LHSArrayElemNode -> assignArrayElem(value, stat.lhs)
-            is LHSPairElemNode -> TODO("Not yet implemented")
+            is LHSPairElemNode -> assignPairElem(value, stat.lhs)
+            else -> throw Error("Should not get here")
+        }
+    }
+
+    private fun <T> assignPairElem(value: T, stat: LHSPairElemNode) {
+        val pairElem = stat.pairElem
+        when (pairElem) {
+            // These unchecked casts are safe as any errors would be caught during semantic checks
+            is FstExpr -> ((visitExpr(pairElem.expr)) as PairObject<T, *>).fst = value
+            is SndExpr -> ((visitExpr(pairElem.expr)) as PairObject<*, T>).snd = value
             else -> throw Error("Should not get here")
         }
     }
@@ -132,18 +151,31 @@ class InterpreterBackend (
     private fun visitDeclaration(stat: DeclarationNode) {
         val value = visitAssignRhs(stat.value)
         varStore[stat.ident.name] = value
-        println("${stat.ident.name} = $value")
+        //println("${stat.ident.name} = $value")
     }
 
     private fun visitAssignRhs(stat: AssignRHSNode): Any {
         return when (stat) {
             is RHSExprNode -> visitExpr(stat.expr)
             is RHSArrayLitNode -> visitRHSArrayLit(stat)
-            is RHSNewPairNode -> TODO("Not yet implemented")
-            is RHSPairElemNode -> TODO("Not yet implemented")
+            is RHSNewPairNode -> visitRHSNewPair(stat)
+            is RHSPairElemNode -> visitRHSPairElem(stat)
             is RHSCallNode -> TODO("Not yet implemented")
             else -> throw Error("Should not get here")
         }
+    }
+
+    // TODO remove non null assertions with runtime errors
+    private fun visitRHSPairElem(expr: RHSPairElemNode): Any {
+        return when (expr.pairElem) {
+            is FstExpr -> ((visitExpr(expr.pairElem.expr)) as PairObject<*, *>).fst!!
+            is SndExpr -> ((visitExpr(expr.pairElem.expr)) as PairObject<*, *>).snd!!
+            else -> throw Error("Should not get here")
+        }
+    }
+
+    private fun visitRHSNewPair(expr: RHSNewPairNode): Any {
+        return PairObject(visitExpr(expr.expr1), visitExpr(expr.expr2))
     }
 
     private fun visitRHSArrayLit(expr: RHSArrayLitNode): Any {
@@ -157,7 +189,7 @@ class InterpreterBackend (
             is BinaryOpNode -> visitBinOp(expr)
             is UnaryOpNode -> visitUnOp(expr)
             is ArrayElem -> visitArrayElem(expr)
-            is PairLiterNode -> TODO("Not yet implemented")
+            is PairLiterNode -> PairObject(null, null)
             else -> TODO("Not yet implemented")
         }
     }
