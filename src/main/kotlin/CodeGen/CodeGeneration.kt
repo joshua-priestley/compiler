@@ -375,7 +375,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
         }
 
-        if (!doIf) {
+        if (!doIf && firstElseIfLabel != "") {
             ifInstruction.add(FunctionDeclaration(firstElseIfLabel))
             for (i in stat.elseIfs.indices) {
                 val nextElse: String? = if (i != stat.elseIfs.size - 1) {
@@ -386,7 +386,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                     null
                 }
                 doIf = generateElseIf(ifInstruction, stat.elseIfs[i], nextElse, endLabel)
-                if (nextElse != null && nextElse != elseLabel) {
+                if (nextElse != null && nextElse != elseLabel && nextElse != "") {
                     ifInstruction.add(FunctionDeclaration(nextElse))
                 }
                 if (doIf) {
