@@ -7,5 +7,5 @@
 # Program:
 
 begin
-  bool x = true && false
+  int x = ((3 + 2) + 1) + 10
 end

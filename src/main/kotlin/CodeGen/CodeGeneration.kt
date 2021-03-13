@@ -757,25 +757,41 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return value == "true"
     }
 
+    private fun getConstEvalNested(expr: ExprNode): ExprNode? {
+        if (expr is BinaryOpNode) {
+            val value = constantEvaluation(expr.operator, expr.expr1, expr.expr2)
+            if (value == null) return value
+            return if (expr.operator == BinOp.AND || expr.operator == BinOp.OR) {
+                BoolLiterNode(if (value == TRUE_VAL) "true" else "false")
+            } else {
+                IntLiterNode(value.toString())
+            }
+        }
+        return null
+    }
+
     private fun constantEvaluation(operator: BinOp, expr1: ExprNode, expr2: ExprNode): Int? {
-        if (expr1 is IntLiterNode && expr2 is IntLiterNode) {
-            println(operator.value)
+        val lhsExpr = getConstEvalNested(expr1) ?: expr1
+        val rhsExpr = getConstEvalNested(expr2) ?: expr2
+
+        if (lhsExpr is IntLiterNode && rhsExpr is IntLiterNode) {
             return when (operator.value) {
-                BinOp.PLUS.value -> expr1.value.toInt() + expr2.value.toInt()
-                BinOp.MINUS.value -> expr1.value.toInt() - expr2.value.toInt()
-                BinOp.MUL.value -> expr1.value.toInt() * expr2.value.toInt()
-                BinOp.BITWISEAND.value -> expr1.value.toInt() and expr2.value.toInt()
-                BinOp.BITWISEOR.value -> expr1.value.toInt() or expr2.value.toInt()
+                BinOp.PLUS.value -> lhsExpr.value.toInt() + rhsExpr.value.toInt()
+                BinOp.MINUS.value -> lhsExpr.value.toInt() - rhsExpr.value.toInt()
+                BinOp.MUL.value -> lhsExpr.value.toInt() * rhsExpr.value.toInt()
+                BinOp.BITWISEAND.value -> lhsExpr.value.toInt() and rhsExpr.value.toInt()
+                BinOp.BITWISEOR.value -> lhsExpr.value.toInt() or rhsExpr.value.toInt()
                 else -> null
             }
         }
-        if (expr1 is BoolLiterNode && expr2 is BoolLiterNode) {
+        if (lhsExpr is BoolLiterNode && rhsExpr is BoolLiterNode) {
             return when (operator.value) {
-                BinOp.AND.value -> if (literToBool(expr1.value) && literToBool(expr2.value)) TRUE_VAL else FALSE_VAL
-                BinOp.OR.value -> if (literToBool(expr1.value) || literToBool(expr2.value)) TRUE_VAL else FALSE_VAL
+                BinOp.AND.value -> if (literToBool(lhsExpr.value) && literToBool(rhsExpr.value)) TRUE_VAL else FALSE_VAL
+                BinOp.OR.value -> if (literToBool(lhsExpr.value) || literToBool(rhsExpr.value)) TRUE_VAL else FALSE_VAL
                 else -> null
             }
         }
+
         return null
     }
 
