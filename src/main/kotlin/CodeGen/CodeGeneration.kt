@@ -296,39 +296,43 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return declareInstructions
     }
 
-    private fun generateElseIf(elseIf: ElseIfNode, nextElse: String?, endLabel: String): List<Instruction> {
-        val elseIfInstructions = mutableListOf<Instruction>()
-
+    private fun generateElseIf(instructions: MutableList<Instruction>, elseIf: ElseIfNode, nextElse: String?, endLabel: String): Boolean {
         if (elseIf.expr is BoolLiterNode && elseIf.expr.value == "false") {
-            return elseIfInstructions
+            return false
         }
 
-        assign = true
-        if (elseIf.expr is LiterNode) {
-            elseIfInstructions.addAll(generateLiterNode(elseIf.expr, Register.r4))
-        } else {
-            elseIfInstructions.addAll(generateExpr(elseIf.expr))
-        }
-        assign = false
-        // Compare the conditional
-        elseIfInstructions.add(Compare(Register.r4, ImmOp(0)))
-        if (nextElse != null) {
-            elseIfInstructions.add(Branch(nextElse, false, Conditions.EQ))
-        } else {
-            elseIfInstructions.add(Branch(endLabel, false, Conditions.EQ))
+        val alwaysTrue = elseIf.expr is BoolLiterNode && elseIf.expr.value == "true"
+
+        if (!alwaysTrue) {
+            assign = true
+            if (elseIf.expr is LiterNode) {
+                instructions.addAll(generateLiterNode(elseIf.expr, Register.r4))
+            } else {
+                instructions.addAll(generateExpr(elseIf.expr))
+            }
+            assign = false
+            // Compare the conditional
+            instructions.add(Compare(Register.r4, ImmOp(0)))
+            if (nextElse != null) {
+                instructions.add(Branch(nextElse, false, Conditions.EQ))
+            } else {
+                instructions.add(Branch(endLabel, false, Conditions.EQ))
+            }
         }
 
-        enterNewScope(elseIfInstructions, elseIf.then)
-        elseIfInstructions.add(Branch(endLabel, false))
+        enterNewScope(instructions, elseIf.then)
+        if (!alwaysTrue) {
+            instructions.add(Branch(endLabel, false))
+        }
 
-        return elseIfInstructions
+        return alwaysTrue
     }
 
     private fun generateIf(stat: IfElseNode): List<Instruction> {
         val ifInstruction = mutableListOf<Instruction>()
 
         val doElse = stat.expr is BoolLiterNode && stat.expr.value == "false"
-        val doIf = stat.expr is BoolLiterNode && stat.expr.value == "true"
+        var doIf = stat.expr is BoolLiterNode && stat.expr.value == "true"
 
         var elseLabel = ""
         var firstElseIfLabel = ""
@@ -372,8 +376,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
 
         if (!doIf) {
+            ifInstruction.add(FunctionDeclaration(firstElseIfLabel))
             for (i in stat.elseIfs.indices) {
-                ifInstruction.add(FunctionDeclaration(firstElseIfLabel))
                 val nextElse: String? = if (i != stat.elseIfs.size - 1) {
                     nextLabel()
                 } else if (stat.else_ != null) {
@@ -381,7 +385,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 } else {
                     null
                 }
-                ifInstruction.addAll(generateElseIf(stat.elseIfs[i], nextElse, endLabel))
+                doIf = generateElseIf(ifInstruction, stat.elseIfs[i], nextElse, endLabel)
+                if (nextElse != null && nextElse != elseLabel) {
+                    ifInstruction.add(FunctionDeclaration(nextElse))
+                }
+                if (doIf) {
+                    break
+                }
             }
         }
 
