@@ -1,7 +1,7 @@
 package compiler.CodeGen.Instructions.ARM
 
 import compiler.Instructions.Conditions
-import compiler.Instructions.Instruction
+import CodeGen.Instructions.Instruction
 import compiler.Instructions.Operand2
 import compiler.Instructions.Register
 import java.lang.StringBuilder

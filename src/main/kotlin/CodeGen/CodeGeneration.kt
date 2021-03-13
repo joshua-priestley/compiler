@@ -9,6 +9,7 @@ import compiler.Instructions.*
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 
+
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     // Global Variable to know which symbol table to step into
     private val currentSymbolID = AtomicInteger()
@@ -192,7 +193,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         assign = false
         printing = false
         val funcName: String = when (getType(stat.expr)) {
-            Type(WACCParser.INT) -> predefined.addFunc(PrintInt())
+            BaseType(WACCParser.INT) -> predefined.addFunc(PrintInt())
             Type(WACCParser.STRING) -> predefined.addFunc(PrintString())
             Type(WACCParser.BOOL) -> predefined.addFunc(PrintBool())
             Type(WACCParser.CHAR) -> "putchar"

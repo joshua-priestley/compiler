@@ -1,6 +1,6 @@
 package compiler.CodeGen.Instructions.External
 
-import compiler.CodeGen.Instructions.ARM.*
+import CodeGen.Instructions.Instruction
 import compiler.CodeGen.Instructions.Operators.Add
 import compiler.Instructions.*
 

@@ -1,6 +1,6 @@
 package compiler.CodeGen.Instructions.Operators
 
-import compiler.Instructions.Instruction
+import CodeGen.Instructions.Instruction
 import compiler.Instructions.Operand2
 import compiler.Instructions.Register
 //Class to generate AND and ORR instructions
