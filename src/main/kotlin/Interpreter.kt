@@ -20,11 +20,14 @@ class InterpreterFrontend : FrontendUtils() {
 
 data class PairObject<T, S>(var fst: T?, var snd: S?)
 
+
 class InterpreterBackend (
     private var globalSymbolTable: SymbolTable,
-    private var varStore: VarStore
+    private var varStore: VarStore,
+    private val funcList: MutableList<FunctionNode> = mutableListOf()
 ) {
     private var exitCode = 0
+    private var funcReturn: Any? = null
 
 
     fun displayVarStore(varStore: VarStore) {
@@ -32,7 +35,7 @@ class InterpreterBackend (
         varStore.varStore.forEach{
             println("${it.key} = ${it.value}")
         }
-        println("\n\n")
+        println("\n")
     }
 
     fun executeProgram(root: ProgramNode): Int {
@@ -43,6 +46,7 @@ class InterpreterBackend (
     }
 
     private fun visitProgram(program: ProgramNode) {
+        program.funcs.forEach { funcList.add(it) }
         visitStat(program.stat)
     }
 
@@ -121,7 +125,8 @@ class InterpreterBackend (
     }
 
     private fun visitReturn(stat: ReturnNode) {
-        TODO("Not yet implemented")
+        val returnVal = visitExpr(stat.expr)
+        funcReturn = returnVal
     }
 
     private fun visitFree(stat: FreeNode) {
@@ -190,9 +195,34 @@ class InterpreterBackend (
             is RHSArrayLitNode -> visitRHSArrayLit(stat)
             is RHSNewPairNode -> visitRHSNewPair(stat)
             is RHSPairElemNode -> visitRHSPairElem(stat)
-            is RHSCallNode -> TODO("Not yet implemented")
+            is RHSCallNode -> visitRHSCallNode(stat)
             else -> throw Error("Should not get here")
         }
+    }
+
+    private fun getFuncNode(id: Ident): FunctionNode? {
+        for (func in funcList) {
+            if (func.ident == id) {
+                return func
+            }
+        }
+        return null
+    }
+
+    private fun visitRHSCallNode(expr: RHSCallNode): Any {
+        val func = getFuncNode(expr.ident)!!
+        if (expr.argList != null) {
+            val args = expr.argList.map { visitExpr(it) }
+            val params = func.params.map { it.ident.name }
+            varStore = varStore.enterFunction(args, params)
+        } else {
+            varStore = varStore.newScope()
+        }
+        visitStat(func.stat)
+        varStore.exitScope()
+        val returnVal = funcReturn!!
+        funcReturn = null
+        return returnVal
     }
 
     // TODO remove non null assertions with runtime errors
