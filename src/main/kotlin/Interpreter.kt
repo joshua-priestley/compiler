@@ -28,7 +28,7 @@ class InterpreterBackend (
 ) {
     private var exitCode = 0
     private var funcReturn: Any? = null
-
+    private var isRetruning = false
 
     fun displayVarStore(varStore: VarStore) {
         println("All vars:")
@@ -51,6 +51,9 @@ class InterpreterBackend (
     }
 
     fun visitStat(stat: StatementNode) {
+        if (isRetruning) {
+            return
+        }
         when (stat) {
             is SkipNode -> return
             is DeclarationNode -> visitDeclaration(stat)
@@ -89,6 +92,7 @@ class InterpreterBackend (
     private fun visitIf(stat: IfElseNode) {
         if (visitExpr(stat.expr) as Boolean) {
             varStore = varStore.newScope()
+            println(stat)
             visitStat(stat.then)
             varStore = varStore.exitScope()
         } else {
@@ -125,8 +129,10 @@ class InterpreterBackend (
     }
 
     private fun visitReturn(stat: ReturnNode) {
+        println(stat)
         val returnVal = visitExpr(stat.expr)
         funcReturn = returnVal
+        isRetruning = true
     }
 
     private fun visitFree(stat: FreeNode) {
@@ -211,17 +217,22 @@ class InterpreterBackend (
 
     private fun visitRHSCallNode(expr: RHSCallNode): Any {
         val func = getFuncNode(expr.ident)!!
-        if (expr.argList != null) {
+        println("calling ${func.ident.name}")
+        varStore = if (expr.argList != null) {
             val args = expr.argList.map { visitExpr(it) }
+            args.forEach { println(it) }
             val params = func.params.map { it.ident.name }
-            varStore = varStore.enterFunction(args, params)
+            varStore.enterFunction(args, params)
         } else {
-            varStore = varStore.newScope()
+            varStore.newScope()
         }
         visitStat(func.stat)
         varStore.exitScope()
         val returnVal = funcReturn!!
+        println(returnVal)
+        // Clear the return value and s
         funcReturn = null
+        isRetruning = false
         return returnVal
     }
 
