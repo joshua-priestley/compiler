@@ -7,9 +7,9 @@
 # Program:
 
 begin
-  bool hello(bool x) is
+  bool hello(bool x, int y, int z) is
     return true
   end
   bool[] x = [true, false] ;
-  map (hello) x
+  map (hello) (1, 2) x
 end

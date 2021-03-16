@@ -183,6 +183,8 @@ class ASTBuilder(
         val functionIdent = visit(ctx.ident(0)) as Ident
         val arrayIdent = visit(ctx.ident(1)) as Ident
 
+        var args = if (ctx.arg_list() != null) ctx.arg_list().expr().map { visit(it) as ExprNode } as MutableList<ExprNode> else null
+
         // Check the array exists
         if (!globalSymbolTable.containsNodeGlobal(arrayIdent.toString())) {
             semanticListener.undefinedVar(arrayIdent.toString(), ctx)
@@ -201,7 +203,12 @@ class ASTBuilder(
         val counter = DeclarationNode(Int(), counterVar, RHSExprNode(IntLiterNode("0")))
         val lhsAssign = LHSArrayElemNode(ArrayElem(arrayIdent, listOf(counterVar)))
         // Make a call node and check the parameters
-        val rhsCall = RHSCallNode(functionIdent, listOf(ArrayElem(arrayIdent, listOf(counterVar))))
+        if (args == null) {
+            args = mutableListOf(ArrayElem(arrayIdent, listOf(counterVar)))
+        } else {
+            args.add(0, ArrayElem(arrayIdent, listOf(counterVar)))
+        }
+        val rhsCall = RHSCallNode(functionIdent, args)
         // Check the function exists
         if (!globalSymbolTable.containsNodeGlobal(functionIdent.toString())) {
             semanticListener.funRefBeforeAss(functionIdent.name, ctx)
