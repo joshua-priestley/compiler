@@ -143,20 +143,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is SideExpressionNode -> generateSideExpression(stat)
             is BreakNode -> generateBreak()
             is ContinueNode -> generateContinue()
-            is MapNode -> generateMap(stat)
             else -> throw Error("Should not get here")
         }
-    }
-
-    private fun generateMap(stat: MapNode): List<Instruction> {
-        val mapInstructions = mutableListOf<Instruction>()
-
-        mapInstructions.addAll(generateDeclaration(DeclarationNode(Int(), Ident("_____i"), RHSExprNode(IntLiterNode("0")))))
-        val do_ = mutableListOf<StatementNode>(AssignNode(LHSArrayElemNode(ArrayElem(stat.array, listOf(Ident("_____i")))), RHSCallNode(stat.functionIdent, listOf(ArrayElem(stat.array, listOf(Ident("_____i")))))))
-        do_.add(SideExpressionNode(AssignLHSIdentNode(Ident("_____i")), AddOneNode()))
-        mapInstructions.addAll(generateWhile(WhileNode(BinaryOpNode(BinOp.LT, Ident("_____1"), UnaryOpNode(UnOp.LEN, stat.array)), SequenceNode(do_))))
-
-        return mapInstructions
     }
 
     private fun generateBreak(): List<Instruction> {

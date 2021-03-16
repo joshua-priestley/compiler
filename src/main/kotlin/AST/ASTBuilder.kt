@@ -103,7 +103,7 @@ class ASTBuilder(
         // Assign the current scope to the scope of the function when building its statement node
         globalSymbolTable = functionSymbolTable
         val stat = visit(ctx.stat()) as StatementNode
-        if (!stat.valid() && type !is VoidType)  {
+        if (!stat.valid() && type !is VoidType) {
             syntaxHandler.addSyntaxError(ctx, "return type of function invalid")
         }
 
@@ -180,35 +180,43 @@ class ASTBuilder(
     }
 
     override fun visitMap(ctx: MapContext): Node {
-        globalSymbolTable.addNode(Ident("_____i").toString(), Type(INT))
-        val funcName = visit(ctx.ident(0)) as Ident
-        if (!globalSymbolTable.containsNodeGlobal(funcName.toString())) {
-            semanticListener.funRefBeforeAss(funcName.name, ctx)
+        val functionIdent = visit(ctx.ident(0)) as Ident
+        val arrayIdent = visit(ctx.ident(1)) as Ident
+
+        // Check the function exists
+        if (!globalSymbolTable.containsNodeGlobal(functionIdent.toString())) {
+            semanticListener.funRefBeforeAss(functionIdent.name, ctx)
         }
-        val arrayName = visit(ctx.ident(1)) as Ident
-        if (!globalSymbolTable.containsNodeGlobal(arrayName.toString())) {
-            semanticListener.undefinedVar(arrayName.toString(), ctx)
-        }
-        val array = globalSymbolTable.getNodeGlobal(arrayName.toString())
-        if (array != null) {
-            if (!array.getArray()) {
-                semanticListener.mapOperatesOnArray(ctx)
-            }
-            val function = globalSymbolTable.getNodeGlobal(funcName.toString())
-            if (function != null && function != array.getBaseType()) {
-                semanticListener.incompatibleTypeAss(array.getBaseType().toString(), function.toString(), ctx)
-            }
-            val params = functionParameters[funcName.toString()]
-            if (params == null || params.size != 1) {
-                semanticListener.mapArgumentSizeError(ctx)
-            } else {
-                if (params[0] != array.getBaseType()) {
-                    semanticListener.mismatchedParamTypes(params[0].toString(), array.getBaseType().toString(), ctx)
-                }
-            }
+        // Check the array exists
+        if (!globalSymbolTable.containsNodeGlobal(arrayIdent.toString())) {
+            semanticListener.undefinedVar(arrayIdent.toString(), ctx)
+        } else if (!globalSymbolTable.getNodeGlobal(arrayIdent.toString())!!.getArray()) {
+            semanticListener.mapOperatesOnArray(ctx)
         }
 
-        return MapNode(funcName, arrayName)
+        // Create a counter
+        val counterVar = Ident("&map_counter")
+        globalSymbolTable.addNode(counterVar.toString(), Type(INT))
+
+        // Create the symbol table for the while node
+        val mapSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
+        globalSymbolTable = mapSymbolTable
+
+        val counter = DeclarationNode(Int(), counterVar, RHSExprNode(IntLiterNode("0")))
+        val lhsAssign = LHSArrayElemNode(ArrayElem(arrayIdent, listOf(counterVar)))
+        // Make a call node and check the parameters
+        val rhsCall = RHSCallNode(functionIdent, listOf(ArrayElem(arrayIdent, listOf(counterVar))))
+        checkParameters(rhsCall, ctx)
+        val body1 = AssignNode(lhsAssign, rhsCall)
+        val body2 = SideExpressionNode(AssignLHSIdentNode(counterVar), AddOneNode())
+        val whileSeq = SequenceNode(mutableListOf(body1, body2))
+        val whileLoop = WhileNode(BinaryOpNode(BinOp.LT, counterVar, UnaryOpNode(UnOp.LEN, arrayIdent)), whileSeq)
+
+        globalSymbolTable = globalSymbolTable.parentT!!
+
+        val sequence = mutableListOf(counter, whileLoop)
+
+        return SequenceNode(sequence)
     }
 
     private fun sequenceList(ctx: SequenceContext): MutableList<StatementNode> {

@@ -1,0 +1,19 @@
+# a simple increment function definition and usage
+
+# Output:
+# 1
+# 4
+
+# Program:
+
+begin
+  bool hello(bool x) is
+    return true
+  end
+  bool[] x = [true, false] ;
+  int counter = 0 ;
+  while counter < len x do
+    x[counter] = call hello(x[counter]);
+    counter++
+  done
+end
