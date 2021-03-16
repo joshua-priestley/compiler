@@ -9,6 +9,7 @@ import AST.Type.Companion.unaryOpsProduces
 import AST.Type.Companion.unaryOpsRequires
 import ErrorHandler.SemanticErrorHandler
 import ErrorHandler.SyntaxErrorHandler
+import org.antlr.v4.runtime.Parser
 import java.util.concurrent.atomic.AtomicInteger
 
 
@@ -79,47 +80,7 @@ class ASTBuilder(
     }
 
     override fun visitMacro(ctx: MacroContext): Node {
-        // Create a new scope for the function
-        val macroSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
-
-        val ident = visit(ctx.ident()) as Ident // Function name
-        val type = visit(ctx.type()) as TypeNode // Return type
-
-        // Add each parameter to the function's symbol table
-        val parameterNodes = mutableListOf<Param>()
-        val parameterTypes = mutableListOf<Type>()
-        if (ctx.param_list() != null) {
-            for (i in 0..ctx.param_list().childCount step 2) {
-                val p = visit(ctx.param_list().getChild(i)) as Param
-                parameterNodes.add(p)
-                macroSymbolTable.addNode(p.ident.toString(), p.type.type.setParameter(true))
-                parameterTypes.add(p.type.type)
-            }
-        }
-
-        // Add the function's return type to the table too
-        macroSymbolTable.addNode("\$RET", type.type.setFunction(true))
-
-        functionParameters[ident.toString()] = parameterTypes
-
-        // Assign the current scope to the scope of the function when building its statement node
-        globalSymbolTable = macroSymbolTable
-
-        // Check the expression
-        val expr = visit(ctx.expr()) as ExprNode
-        val exprType = getExprType(expr, ctx)
-        if (exprType != type.type) {
-            semanticListener.incompatibleTypeReturn(type.type.toString(), exprType.toString(), ctx)
-        }
-
-        // Revert back to the global scope
-        globalSymbolTable = globalSymbolTable.parentT!!
-
-        if (!globalSymbolTable.containsNodeLocal(ident.name)) {
-            globalSymbolTable.addChildTable(macroSymbolTable.ID, macroSymbolTable)
-        }
-
-        return FunctionNode(type, ident, parameterNodes.toList(), ReturnNode(expr))
+        return addSingleFunction(ctx.type(), ctx.ident(), ctx.param_list(), null, ctx.expr(), ctx)
     }
 
 
@@ -136,21 +97,25 @@ class ASTBuilder(
 
     // Visit a function for the AST
     override fun visitFunc(ctx: FuncContext): Node {
+        return addSingleFunction(ctx.type(), ctx.ident(), ctx.param_list(), ctx.stat(), null, ctx)
+    }
+
+    private fun addSingleFunction(t: TypeContext, id: IdentContext, p: Param_listContext?, s: StatContext?, e: ExprContext?, ctx:ParserRuleContext): FunctionNode {
         // Create a new scope for the function
         val functionSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
 
-        val ident = visit(ctx.ident()) as Ident // Function name
-        val type = visit(ctx.type()) as TypeNode // Return type
+        val ident = visit(id) as Ident // Function name
+        val type = visit(t) as TypeNode // Return type
 
         // Add each parameter to the function's symbol table
         val parameterNodes = mutableListOf<Param>()
         val parameterTypes = mutableListOf<Type>()
-        if (ctx.param_list() != null) {
-            for (i in 0..ctx.param_list().childCount step 2) {
-                val p = visit(ctx.param_list().getChild(i)) as Param
-                parameterNodes.add(p)
-                functionSymbolTable.addNode(p.ident.toString(), p.type.type.setParameter(true))
-                parameterTypes.add(p.type.type)
+        if (p != null) {
+            for (i in 0..p.childCount step 2) {
+                val param = visit(p.getChild(i)) as Param
+                parameterNodes.add(param)
+                functionSymbolTable.addNode(param.ident.toString(), param.type.type.setParameter(true))
+                parameterTypes.add(param.type.type)
             }
         }
 
@@ -160,10 +125,20 @@ class ASTBuilder(
         functionParameters[ident.toString()] = parameterTypes
 
         // Assign the current scope to the scope of the function when building its statement node
+        val stat: StatementNode
         globalSymbolTable = functionSymbolTable
-        val stat = visit(ctx.stat()) as StatementNode
-        if (!stat.valid() && type !is VoidType) {
-            syntaxHandler.addSyntaxError(ctx, "return type of function invalid")
+        if (s != null) {
+            stat = visit(s) as StatementNode
+            if (!stat.valid() && type !is VoidType) {
+                syntaxHandler.addSyntaxError(ctx, "return type of function invalid")
+            }
+        }else {
+            val expr = visit(e) as ExprNode
+            val exprType = getExprType(expr, ctx)
+            if (exprType != type.type) {
+                semanticListener.incompatibleTypeReturn(type.type.toString(), exprType.toString(), ctx)
+            }
+            stat = ReturnNode(expr)
         }
 
         // Revert back to the global scope
