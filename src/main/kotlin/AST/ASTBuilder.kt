@@ -103,7 +103,7 @@ class ASTBuilder(
         // Assign the current scope to the scope of the function when building its statement node
         globalSymbolTable = functionSymbolTable
         val stat = visit(ctx.stat()) as StatementNode
-        if (!stat.valid() && type !is VoidType)  {
+        if (!stat.valid() && type !is VoidType) {
             syntaxHandler.addSyntaxError(ctx, "return type of function invalid")
         }
 
@@ -174,6 +174,19 @@ class ASTBuilder(
                               STATEMENTS
     =================================================================
      */
+
+    override fun visitCall(ctx: CallContext): Node {
+        val ident = visit(ctx.ident()) as Ident
+        val params = when {
+            ctx.arg_list() != null -> ctx.arg_list().expr().map { visit(it) as ExprNode }
+            else -> null
+        }
+        checkParameters(RHSCallNode(ident, params), ctx)
+        if (!globalSymbolTable.containsNodeGlobal(ident.toString())) {
+            semanticListener.funRefBeforeAss(ident.name, ctx)
+        }
+        return CallNode(ident, params)
+    }
 
     override fun visitSequence(ctx: SequenceContext): Node {
         return SequenceNode(sequenceList(ctx))

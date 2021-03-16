@@ -28,6 +28,7 @@ stat: SKP                                           # skip
   | assign_lhs sideExpr                             # sideExpression
   | CONTINUE                                        # continue
   | BREAK                                           # break
+  | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES # call
   ;
 
 assign_lhs: ident                                   # assignLhsId
