@@ -4,7 +4,7 @@ options {
   tokenVocab=WACCLexer;
 }
 
-program: BEGIN (func)* stat END EOF;
+program: BEGIN (macro)* (func)* stat END EOF;
 
 func: type ident OPEN_PARENTHESES (param_list)? CLOSE_PARENTHESES IS stat END;
 
@@ -108,3 +108,6 @@ sideExpr: nunOp           # sideOperator
 nunOp: (PLUS PLUS) | (MINUS MINUS);
 
 opN: (ADDN | SUBN | MULN | DIVN) expr;
+
+macro: MACRO type ident OPEN_PARENTHESES param_list CLOSE_PARENTHESES
+                        OPEN_PARENTHESES expr CLOSE_PARENTHESES;

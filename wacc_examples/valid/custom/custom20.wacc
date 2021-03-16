@@ -1,0 +1,12 @@
+# a simple increment function definition and usage
+
+# Output:
+# 1
+# 4
+
+# Program:
+
+begin
+  define int macro(int x) (x + 1)
+  int y = call macro(3)
+end
