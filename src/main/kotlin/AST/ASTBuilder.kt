@@ -209,6 +209,19 @@ class ASTBuilder(
     =================================================================
      */
 
+    override fun visitCall(ctx: CallContext): Node {
+        val ident = visit(ctx.ident()) as Ident
+        val params = when {
+            ctx.arg_list() != null -> ctx.arg_list().expr().map { visit(it) as ExprNode }
+            else -> null
+        }
+        checkParameters(RHSCallNode(ident, params), ctx)
+        if (!globalSymbolTable.containsNodeGlobal(ident.toString())) {
+            semanticListener.funRefBeforeAss(ident.name, ctx)
+        }
+        return CallNode(ident, params)
+    }
+
     override fun visitSequence(ctx: SequenceContext): Node {
         return SequenceNode(sequenceList(ctx))
     }

@@ -143,6 +143,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is SideExpressionNode -> generateSideExpression(stat)
             is BreakNode -> generateBreak()
             is ContinueNode -> generateContinue()
+            is CallNode -> generateCallNode(RHSCallNode(stat.ident, stat.argList), true)
             else -> throw Error("Should not get here")
         }
     }
@@ -238,7 +239,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return readInstructions
     }
 
-    private fun generateCallNode(call: RHSCallNode): List<Instruction> {
+    private fun generateCallNode(call: RHSCallNode, voidReturn: Boolean = false): List<Instruction> {
         val callInstructions = mutableListOf<Instruction>()
         var totalOffset = 0
         if (!call.argList.isNullOrEmpty()) {
@@ -260,7 +261,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         callInstructions.add(Branch(functionName, true))
         if (totalOffset != 0) callInstructions.add(Add(Register.sp, Register.sp, ImmOp(totalOffset)))
 
-        callInstructions.add(Move(Register.r4, Register.r0))
+        if (!voidReturn) callInstructions.add(Move(Register.r4, Register.r0))
 
         return callInstructions
     }
