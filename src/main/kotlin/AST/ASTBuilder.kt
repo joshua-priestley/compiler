@@ -226,6 +226,56 @@ class ASTBuilder(
         return SequenceNode(sequenceList(ctx))
     }
 
+    override fun visitMap(ctx: MapContext): Node {
+        val functionIdent = visit(ctx.ident(0)) as Ident
+        val arrayIdent = visit(ctx.ident(1)) as Ident
+
+        var args = if (ctx.arg_list() != null) ctx.arg_list().expr().map { visit(it) as ExprNode } as MutableList<ExprNode> else null
+
+        // Check the array exists
+        if (!globalSymbolTable.containsNodeGlobal(arrayIdent.toString())) {
+            semanticListener.undefinedVar(arrayIdent.toString(), ctx)
+        } else if (!globalSymbolTable.getNodeGlobal(arrayIdent.toString())!!.getArray()) {
+            semanticListener.mapOperatesOnArray(ctx)
+        }
+
+        // Create a counter
+        val counterVar = Ident("&map_counter")
+        globalSymbolTable.addNode(counterVar.toString(), Type(INT))
+
+        // Create the symbol table for the while node
+        val mapSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
+        globalSymbolTable = mapSymbolTable
+
+        val counter = DeclarationNode(Int(), counterVar, RHSExprNode(IntLiterNode("0")))
+        val lhsAssign = LHSArrayElemNode(ArrayElem(arrayIdent, listOf(counterVar)))
+        // Make a call node and check the parameters
+        if (args == null) {
+            args = mutableListOf(ArrayElem(arrayIdent, listOf(counterVar)))
+        } else {
+            args.add(0, ArrayElem(arrayIdent, listOf(counterVar)))
+        }
+        val rhsCall = RHSCallNode(functionIdent, args)
+        // Check the function exists
+        if (!globalSymbolTable.containsNodeGlobal(functionIdent.toString())) {
+            semanticListener.funRefBeforeAss(functionIdent.name, ctx)
+        } else if (globalSymbolTable.getNodeGlobal(functionIdent.toString()) != getExprType(arrayIdent, ctx)!!.getBaseType()) {
+            semanticListener.mapReturnTypeIncorrect(getExprType(arrayIdent, ctx)!!.getBaseType().toString(), globalSymbolTable.getNodeGlobal(functionIdent.toString()).toString(), ctx)
+        } else {
+            checkParameters(rhsCall, ctx)
+        }
+        val body1 = AssignNode(lhsAssign, rhsCall)
+        val body2 = SideExpressionNode(AssignLHSIdentNode(counterVar), AddOneNode())
+        val whileSeq = SequenceNode(mutableListOf(body1, body2))
+        val whileLoop = WhileNode(BinaryOpNode(BinOp.LT, counterVar, UnaryOpNode(UnOp.LEN, arrayIdent)), whileSeq)
+
+        globalSymbolTable = globalSymbolTable.parentT!!
+
+        val sequence = mutableListOf(counter, whileLoop)
+
+        return SequenceNode(sequence)
+    }
+
     private fun sequenceList(ctx: SequenceContext): MutableList<StatementNode> {
         //visit head first so any variables will be added to the symbol table
         val head = visit(ctx.stat(0)) as StatementNode

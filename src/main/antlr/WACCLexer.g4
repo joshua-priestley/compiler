@@ -85,6 +85,7 @@ FI: 'fi';
 WHILE: 'while';
 DO: 'do';
 DONE: 'done';
+MAP: 'map';
 
 //for
 FOR: 'for'; //rest follows from WHILE
