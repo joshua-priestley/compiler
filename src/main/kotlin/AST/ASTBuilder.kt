@@ -9,6 +9,7 @@ import AST.Type.Companion.unaryOpsProduces
 import AST.Type.Companion.unaryOpsRequires
 import ErrorHandler.SemanticErrorHandler
 import ErrorHandler.SyntaxErrorHandler
+import org.antlr.v4.runtime.Parser
 import java.util.concurrent.atomic.AtomicInteger
 
 
@@ -35,15 +36,53 @@ class ASTBuilder(
     // Visits the main program to build the AST
     override fun visitProgram(ctx: ProgramContext): Node {
         // First add all the functions to the map
+        addAllMacros(ctx.macro())
         addAllFunctions(ctx.func())
 
-        // Visit each function and the global stat
+        // Visit each macro, function and the global stat
         val functionNodes = mutableListOf<FunctionNode>()
+        ctx.macro().map { functionNodes.add(visit(it) as FunctionNode)}
         ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
         val stat = visit(ctx.stat()) as StatementNode
 
         return ProgramNode(functionNodes, stat)
     }
+
+    private fun addIndividual(id: IdentContext, t: TypeContext, p: Param_listContext?, ctx: ParserRuleContext) {
+        val ident = visit(id) as Ident // Function name
+        val type = visit(t) as TypeNode // Function return type
+        // Check if the function already exists
+        if (globalSymbolTable.containsNodeLocal(ident.toString())) {
+            semanticListener.redefinedVariable(ident.name + "()", ctx)
+        } else {
+            globalSymbolTable.addNode(ident.toString(), type.type.setFunction(true))
+        }
+
+        // Add each parameter to the function's parameter list in the map
+        val parameterTypes = mutableListOf<Type>()
+        if (p != null) {
+            for (i in 0..p.childCount step 2) {
+                val param = visit(p.getChild(i)) as Param
+                parameterTypes.add(param.type.type)
+            }
+        }
+        functionParameters[ident.toString()] = parameterTypes
+    }
+
+    /*
+    =================================================================
+                                MACROS
+    =================================================================
+     */
+
+    private fun addAllMacros(macroCTXs: MutableList<MacroContext>) {
+        macroCTXs.forEach { addIndividual(it.ident(), it.type(), it.param_list(), it) }
+    }
+
+    override fun visitMacro(ctx: MacroContext): Node {
+        return addSingleFunction(ctx.type(), ctx.ident(), ctx.param_list(), null, ctx.expr(), ctx)
+    }
+
 
     /*
     =================================================================
@@ -53,45 +92,30 @@ class ASTBuilder(
 
     // Visits each function and adds it to the global symbol table
     private fun addAllFunctions(funcCTXs: MutableList<FuncContext>) {
-        for (func in funcCTXs) {
-            val ident = visit(func.ident()) as Ident // Function name
-            val type = visit(func.type()) as TypeNode // Function return type
-            // Check if the function already exists
-            if (globalSymbolTable.containsNodeLocal(ident.toString())) {
-                semanticListener.redefinedVariable(ident.name + "()", func)
-            } else {
-                globalSymbolTable.addNode(ident.toString(), type.type.setFunction(true))
-            }
-
-            // Add each parameter to the function's parameter list in the map
-            val parameterTypes = mutableListOf<Type>()
-            if (func.param_list() != null) {
-                for (i in 0..func.param_list().childCount step 2) {
-                    val p = visit(func.param_list().getChild(i)) as Param
-                    parameterTypes.add(p.type.type)
-                }
-            }
-            functionParameters[ident.toString()] = parameterTypes
-        }
+        funcCTXs.forEach { addIndividual(it.ident(), it.type(), it.param_list(), it) }
     }
 
     // Visit a function for the AST
     override fun visitFunc(ctx: FuncContext): Node {
+        return addSingleFunction(ctx.type(), ctx.ident(), ctx.param_list(), ctx.stat(), null, ctx)
+    }
+
+    private fun addSingleFunction(t: TypeContext, id: IdentContext, p: Param_listContext?, s: StatContext?, e: ExprContext?, ctx:ParserRuleContext): FunctionNode {
         // Create a new scope for the function
         val functionSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
 
-        val ident = visit(ctx.ident()) as Ident // Function name
-        val type = visit(ctx.type()) as TypeNode // Return type
+        val ident = visit(id) as Ident // Function name
+        val type = visit(t) as TypeNode // Return type
 
         // Add each parameter to the function's symbol table
         val parameterNodes = mutableListOf<Param>()
         val parameterTypes = mutableListOf<Type>()
-        if (ctx.param_list() != null) {
-            for (i in 0..ctx.param_list().childCount step 2) {
-                val p = visit(ctx.param_list().getChild(i)) as Param
-                parameterNodes.add(p)
-                functionSymbolTable.addNode(p.ident.toString(), p.type.type.setParameter(true))
-                parameterTypes.add(p.type.type)
+        if (p != null) {
+            for (i in 0..p.childCount step 2) {
+                val param = visit(p.getChild(i)) as Param
+                parameterNodes.add(param)
+                functionSymbolTable.addNode(param.ident.toString(), param.type.type.setParameter(true))
+                parameterTypes.add(param.type.type)
             }
         }
 
@@ -101,10 +125,20 @@ class ASTBuilder(
         functionParameters[ident.toString()] = parameterTypes
 
         // Assign the current scope to the scope of the function when building its statement node
+        val stat: StatementNode
         globalSymbolTable = functionSymbolTable
-        val stat = visit(ctx.stat()) as StatementNode
-        if (!stat.valid() && type !is VoidType) {
-            syntaxHandler.addSyntaxError(ctx, "return type of function invalid")
+        if (s != null) {
+            stat = visit(s) as StatementNode
+            if (!stat.valid() && type !is VoidType) {
+                syntaxHandler.addSyntaxError(ctx, "return type of function invalid")
+            }
+        }else {
+            val expr = visit(e) as ExprNode
+            val exprType = getExprType(expr, ctx)
+            if (exprType != type.type) {
+                semanticListener.incompatibleTypeReturn(type.type.toString(), exprType.toString(), ctx)
+            }
+            stat = ReturnNode(expr)
         }
 
         // Revert back to the global scope
@@ -389,6 +423,11 @@ class ASTBuilder(
         val stat1 = visit(ctx.stat(0)) as StatementNode
         globalSymbolTable = globalSymbolTable.parentT!!
 
+        val elseIfs = mutableListOf<ElseIfNode>()
+        if (!ctx.else_if().isEmpty()) {
+            ctx.else_if().map { elseIfs.add(visit(it) as ElseIfNode) }
+        }
+
         var stat2: StatementNode? = null
         if (ctx.stat(1) != null) {
             val elseSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
@@ -397,7 +436,18 @@ class ASTBuilder(
             globalSymbolTable = globalSymbolTable.parentT!!
         }
 
-        return IfElseNode(condExpr, stat1, stat2)
+        return IfElseNode(condExpr, stat1, elseIfs, stat2)
+    }
+
+    override fun visitElse_if(ctx: Else_ifContext): Node {
+        val condExpr = getConditionExpression(ctx.expr(), ctx)
+        val elseIfST = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
+        globalSymbolTable = elseIfST
+        val stat = visit(ctx.stat()) as StatementNode
+        globalSymbolTable = globalSymbolTable.parentT!!
+
+        return ElseIfNode(condExpr, stat)
+
     }
 
     override fun visitWhile(ctx: WhileContext): Node {
@@ -412,6 +462,20 @@ class ASTBuilder(
 
         inWhile = false
         return WhileNode(condExpr, stat)
+    }
+
+    override fun visitDo_while(ctx: Do_whileContext): Node {
+        inWhile = true
+        // Create a new scope for the loop
+        val loopSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
+        globalSymbolTable = loopSymbolTable
+        val stat = visit(ctx.stat()) as StatementNode
+        globalSymbolTable = globalSymbolTable.parentT!!
+
+        val condExpr = getConditionExpression((ctx.expr()), ctx)
+
+        inWhile = false
+        return DoWhileNode(stat, condExpr)
     }
 
     override fun visitBegin(ctx: BeginContext): Node {
@@ -500,7 +564,6 @@ class ASTBuilder(
         }
         return PairElemTypeNode(type as TypeNode)
     }
-
 
     private fun getPairElemType(pairElem: PairElemNode, ctx: ParserRuleContext): Type? {
         // Checks that the variable used is valid and defined, otherwise a semantic error is thrown
@@ -791,6 +854,7 @@ class ASTBuilder(
             ctx.LEN() != null -> UnOp.LEN
             ctx.ORD() != null -> UnOp.ORD
             ctx.CHR() != null -> UnOp.CHR
+            ctx.BITWISENOT() != null -> UnOp.BITWISENOT
             else -> UnOp.NOT_SUPPORTED
         }
         return UnaryOpNode(op, visit(ctx.expr()) as ExprNode)
@@ -811,6 +875,8 @@ class ASTBuilder(
             ctx.NEQ() != null -> BinOp.NEQ
             ctx.AND() != null -> BinOp.AND
             ctx.OR() != null -> BinOp.OR
+            ctx.BITWISEAND() != null -> BinOp.BITWISEAND
+            ctx.BITWISEOR() != null -> BinOp.BITWISEOR
             else -> BinOp.NOT_SUPPORTED
         }
 

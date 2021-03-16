@@ -25,6 +25,11 @@ SUBN: '-=';
 MULN: '*=';
 DIVN: '/=';
 
+//extension
+BITWISEAND: '&';
+BITWISEOR: '|';
+BITWISENOT: '~';
+
 //program
 BEGIN: 'begin';
 END: 'end';
@@ -126,3 +131,5 @@ WS: [ \t\n\r]+ -> skip;
 COMMENT: '#' ~[\n]* '\n' -> skip;
 
 ID: ('_' | [a-zA-Z]) ('_' | [a-zA-Z0-9])* ;
+
+MACRO: 'define ';

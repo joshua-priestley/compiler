@@ -137,6 +137,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is PrintlnNode -> generatePrintln(stat)
             is IfElseNode -> generateIf(stat)
             is WhileNode -> generateWhile(stat)
+            is DoWhileNode -> generateDoWhile(stat)
             is BeginEndNode -> generateBegin(stat)
             is SequenceNode -> generateSeq(stat)
             is SideExpressionNode -> generateSideExpression(stat)
@@ -297,17 +298,54 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return declareInstructions
     }
 
+    private fun generateElseIf(instructions: MutableList<Instruction>, elseIf: ElseIfNode, nextElse: String?, endLabel: String): Boolean {
+        if (elseIf.expr is BoolLiterNode && elseIf.expr.value == "false") {
+            return false
+        }
+
+        val alwaysTrue = elseIf.expr is BoolLiterNode && elseIf.expr.value == "true"
+
+        if (!alwaysTrue) {
+            assign = true
+            if (elseIf.expr is LiterNode) {
+                instructions.addAll(generateLiterNode(elseIf.expr, Register.r4))
+            } else {
+                instructions.addAll(generateExpr(elseIf.expr))
+            }
+            assign = false
+            // Compare the conditional
+            instructions.add(Compare(Register.r4, ImmOp(0)))
+            if (nextElse != null) {
+                instructions.add(Branch(nextElse, false, Conditions.EQ))
+            } else {
+                instructions.add(Branch(endLabel, false, Conditions.EQ))
+            }
+        }
+
+        enterNewScope(instructions, elseIf.then)
+        if (!alwaysTrue) {
+            instructions.add(Branch(endLabel, false))
+        }
+
+        return alwaysTrue
+    }
+
     private fun generateIf(stat: IfElseNode): List<Instruction> {
         val ifInstruction = mutableListOf<Instruction>()
 
-        val doElse = stat.expr is BoolLiterNode && stat.expr.value == "false"
-        val doIf = stat.expr is BoolLiterNode && stat.expr.value == "true"
+        val doElse = stat.expr is BoolLiterNode && stat.expr.value == "false" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == FALSE_VAL
+        var doIf = stat.expr is BoolLiterNode && stat.expr.value == "true" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == TRUE_VAL
 
         var elseLabel = ""
+        var firstElseIfLabel = ""
         val endLabel = nextLabel()
 
         if (stat.else_ != null) {
             elseLabel = nextLabel()
+        }
+
+        if (stat.elseIfs.isNotEmpty()) {
+            firstElseIfLabel = nextLabel()
         }
 
         if (!doElse && !doIf) {
@@ -321,7 +359,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             assign = false
             // Compare the conditional
             ifInstruction.add(Compare(Register.r4, ImmOp(0)))
-            if (stat.else_ != null) {
+            if (stat.elseIfs.isNotEmpty()) {
+                ifInstruction.add(Branch(firstElseIfLabel, false, Conditions.EQ))
+            } else if (stat.else_ != null) {
                 ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
             } else {
                 ifInstruction.add(Branch(endLabel, false, Conditions.EQ))
@@ -334,6 +374,26 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             enterNewScope(ifInstruction, stat.then)
             if (stat.else_ != null) {
                 ifInstruction.add(Branch(endLabel, false))
+            }
+        }
+
+        if (!doIf && firstElseIfLabel != "") {
+            ifInstruction.add(FunctionDeclaration(firstElseIfLabel))
+            for (i in stat.elseIfs.indices) {
+                val nextElse: String? = if (i != stat.elseIfs.size - 1) {
+                    nextLabel()
+                } else if (stat.else_ != null) {
+                    elseLabel
+                } else {
+                    null
+                }
+                doIf = generateElseIf(ifInstruction, stat.elseIfs[i], nextElse, endLabel)
+                if (nextElse != null && nextElse != elseLabel && nextElse != "") {
+                    ifInstruction.add(FunctionDeclaration(nextElse))
+                }
+                if (doIf) {
+                    break
+                }
             }
         }
 
@@ -353,13 +413,51 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return ifInstruction
     }
 
+    private fun generateDoWhile(stat: DoWhileNode): List<Instruction> {
+        val doWhileInstruction = mutableListOf<Instruction>()
+
+        val bodyLabel = nextLabel()
+        endLabel.push(nextLabel())
+
+        // Loop body
+        doWhileInstruction.add(FunctionDeclaration(bodyLabel))
+        if (!inElseStatement) stackToAdd += globalSymbolTable.localStackSize()
+        enterNewScope(doWhileInstruction, stat.do_)
+        if (!inElseStatement) stackToAdd -= globalSymbolTable.localStackSize()
+
+        if (stat.expr is BoolLiterNode && stat.expr.value == "false" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == FALSE_VAL) {
+            return doWhileInstruction
+        }
+        val forever = stat.expr is BoolLiterNode && stat.expr.value == "true" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == TRUE_VAL
+
+
+        // Conditional
+        if (forever) {
+            doWhileInstruction.add(Branch(bodyLabel, false))
+        } else {
+            assign = true
+            if (stat.expr is LiterNode) {
+                doWhileInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
+            } else {
+                doWhileInstruction.addAll(generateExpr(stat.expr))
+            }
+            doWhileInstruction.add(Compare(Register.r4, ImmOp(1)))
+            doWhileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
+            assign = false
+        }
+        doWhileInstruction.add(FunctionDeclaration(endLabel.peek()))
+
+        endLabel.pop()
+        return doWhileInstruction
+    }
+
     private fun generateWhile(stat: WhileNode): List<Instruction> {
         val whileInstruction = mutableListOf<Instruction>()
 
-        if (stat.expr is BoolLiterNode && stat.expr.value == "false") {
+        if (stat.expr is BoolLiterNode && stat.expr.value == "false" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == FALSE_VAL) {
             return whileInstruction
         }
-        val forever = stat.expr is BoolLiterNode && stat.expr.value == "true"
+        val forever = stat.expr is BoolLiterNode && stat.expr.value == "true" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == TRUE_VAL
 
         conditionLabel.push(nextLabel())
         val bodyLabel = nextLabel()
@@ -687,20 +785,53 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             UnOp.LEN -> {
                 unOpInstructs.add(Load(Register.r4, reg))
             }
+            UnOp.BITWISENOT -> {
+                unOpInstructs.add(Not(reg, reg))
+            }
             else -> emptyList<Instruction>()
         }
         return unOpInstructs
     }
 
-    private fun constantEvaluation(operator: BinOp, expr1: ExprNode, expr2: ExprNode): Int? {
-        if (expr1 is IntLiterNode && expr2 is IntLiterNode) {
-            return when (operator.value) {
-                1 -> expr1.value.toInt() + expr2.value.toInt()
-                2 -> expr1.value.toInt() - expr2.value.toInt()
-                3 -> expr1.value.toInt() * expr2.value.toInt()
+    private fun literToBool(value: String): Boolean {
+        return value == "true"
+    }
+
+    private fun getConstEvalNested(expr: ExprNode): ExprNode? {
+        if (expr is BinaryOpNode) {
+            val value = constantEvaluation(expr)
+            if (value == null) return value
+            return if (expr.operator == BinOp.AND || expr.operator == BinOp.OR) {
+                BoolLiterNode(if (value == TRUE_VAL) "true" else "false")
+            } else {
+                IntLiterNode(value.toString())
+            }
+        }
+        return null
+    }
+
+    private fun constantEvaluation(binOp: BinaryOpNode): Int? {
+        val lhsExpr = getConstEvalNested(binOp.expr1) ?: binOp.expr1
+        val rhsExpr = getConstEvalNested(binOp.expr2) ?: binOp.expr2
+
+        if (lhsExpr is IntLiterNode && rhsExpr is IntLiterNode) {
+            return when (binOp.operator.value) {
+                BinOp.PLUS.value -> lhsExpr.value.toInt() + rhsExpr.value.toInt()
+                BinOp.MINUS.value -> lhsExpr.value.toInt() - rhsExpr.value.toInt()
+                BinOp.MUL.value -> lhsExpr.value.toInt() * rhsExpr.value.toInt()
+                BinOp.BITWISEAND.value -> lhsExpr.value.toInt() and rhsExpr.value.toInt()
+                BinOp.BITWISEOR.value -> lhsExpr.value.toInt() or rhsExpr.value.toInt()
                 else -> null
             }
         }
+        if (lhsExpr is BoolLiterNode && rhsExpr is BoolLiterNode) {
+            return when (binOp.operator.value) {
+                BinOp.AND.value -> if (literToBool(lhsExpr.value) && literToBool(rhsExpr.value)) TRUE_VAL else FALSE_VAL
+                BinOp.OR.value -> if (literToBool(lhsExpr.value) || literToBool(rhsExpr.value)) TRUE_VAL else FALSE_VAL
+                else -> null
+            }
+        }
+
         return null
     }
 
@@ -709,7 +840,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         var operand1 = reg
         var pop = false
 
-        val const = constantEvaluation(binOp.operator, binOp.expr1, binOp.expr2)
+        val const = constantEvaluation(binOp)
         if (const != null) {
             return listOf(Load(reg, const))
         }
@@ -808,6 +939,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 binOpInstructs.add(Branch(funcName, true))
                 binOpInstructs.add(Branch("__aeabi_idiv", true))
                 binOpInstructs.add(Move(dstRegister, Register.r0))
+            }
+            BinOp.BITWISEAND -> {
+                binOpInstructs.add(And(dstRegister, operand1, operand2))
+            }
+            BinOp.BITWISEOR -> {
+                binOpInstructs.add(Or(dstRegister, operand1, operand2))
             }
             else -> {
                 throw Error("Should not get here")

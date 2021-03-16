@@ -4,7 +4,7 @@ options {
   tokenVocab=WACCLexer;
 }
 
-program: BEGIN (func)* stat END EOF;
+program: BEGIN (macro)* (func)* stat END EOF;
 
 func: type ident OPEN_PARENTHESES (param_list)? CLOSE_PARENTHESES IS stat END;
 
@@ -21,8 +21,9 @@ stat: SKP                                           # skip
   | EXIT expr                                       # exit
   | PRINT expr                                      # print
   | PRINTLN expr                                    # println
-  | IF expr THEN stat (ELSE stat)? FI               # if
+  | IF expr THEN stat (else_if)* (ELSE stat)? FI    # if
   | WHILE expr DO stat DONE                         # while
+  | DO stat WHILE expr DONE                         # do_while
   | BEGIN stat END                                  # begin
   | <assoc=right> stat SEMICOLON stat               # sequence
   | assign_lhs sideExpr                             # sideExpression
@@ -30,6 +31,8 @@ stat: SKP                                           # skip
   | BREAK                                           # break
   | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES # call
   ;
+
+else_if: ELSE IF expr THEN stat;
 
 assign_lhs: ident                                   # assignLhsId
   | array_elem                                      # assignLhsArray
@@ -79,13 +82,15 @@ expr: (PLUS | MINUS)? INT_LITER                 # liter
   | pair_liter                                  # pairLiter
   | ident                                       # id
   | array_elem                                  # arrayElem
-  | (NOT | MINUS | LEN | ORD | CHR) expr        # unaryOp
+  | (NOT | MINUS | LEN | ORD
+   | CHR | BITWISENOT) expr                     # unaryOp
   | expr (MUL | DIV | MOD) expr                 # binaryOp
   | expr (PLUS | MINUS) expr                    # binaryOp
   | expr (GT | GTE | LT | LTE) expr             # binaryOp
   | expr (EQ | NEQ) expr                        # binaryOp
   | expr (AND) expr                             # binaryOp
   | expr (OR) expr                              # binaryOp
+  | expr (BITWISEAND | BITWISEOR) expr          # binaryOp
   | OPEN_PARENTHESES expr CLOSE_PARENTHESES     # parentheses
   ;
 
@@ -104,3 +109,6 @@ sideExpr: nunOp           # sideOperator
 nunOp: (PLUS PLUS) | (MINUS MINUS);
 
 opN: (ADDN | SUBN | MULN | DIVN) expr;
+
+macro: MACRO type ident OPEN_PARENTHESES param_list CLOSE_PARENTHESES
+                        OPEN_PARENTHESES expr CLOSE_PARENTHESES;

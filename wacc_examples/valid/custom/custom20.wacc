@@ -7,8 +7,6 @@
 # Program:
 
 begin
-  int a = 3 ;
-  do
-    int x = 5
-  while true done
+  define int macro(int x) (x + 1)
+  int y = call macro(3)
 end
