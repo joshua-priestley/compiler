@@ -12,6 +12,9 @@ fun main() {
 
 class Shell : FrontendUtils() {
 
+    private val symbolTable = SymbolTable(null, 0)
+    private val varStore = VarStore()
+
     private val history = mutableListOf<String>()
     private val scanner = Scanner(System.`in`)
     private val terminal = TerminalBuilder.builder()
@@ -50,37 +53,59 @@ class Shell : FrontendUtils() {
         println("-----WACC Shell-----")
         println(" - type *quit to exit")
         println(" - you don't need the global begin/end statements")
-        println(" - the number of '>'s at the start of the line represents the level of nesting")
+        println(" - press ")
         println()
 
-        val symbolTable = SymbolTable(null, 0)
-        val varStore = VarStore()
-        var indentLevel = 0
+        //
+        var inMultiLineStatement = false
+        var buffer = ""
 
         while (true) {
-            print(">".repeat(indentLevel + 1) + "  ")
-            val line = readLine()
 
-            // if can parse properly, then executea
-            // else set moreinput, wait until
-            if (line == "*tog") {
-                indentLevel++
-            } else if (line == "*togg") {
-                indentLevel--
+            if (inMultiLineStatement) {
+                print("... ")
+            } else {
+                print(">>> ")
             }
+
+            val line = readLine()!!
 
             if (line == "*quit") {
                 break
+            } else if (inMultiLineStatement) {
+                //println(buffer)
+                if (buffer[buffer.length - 1] == '\n' && line == "") {
+                    execute(buffer)
+                    buffer = ""
+                    inMultiLineStatement = false
+                } else {
+                    buffer += "\n$line"
+                }
+            } else if (enteringMultiLineStatement(line)) {
+                buffer += "\n$line"
+                inMultiLineStatement = true
+            } else {
+                execute(line)
             }
+        }
+    }
 
-            val toRun = makeProgram(line)
-            val result = lexAndParse(toRun, symbolTable)
+    //TODO change to use the lexer definitions somehow
+    private fun enteringMultiLineStatement(line: String): Boolean {
+        val stripped = line.replace("\\s".toRegex(), "")
+        return stripped.substring(0, 2) == "if" ||
+                stripped.substring(0, 5) == "while" ||
+                stripped.substring(0, 3)  == "for" ||
+                stripped[stripped.length - 1] == ';'
+    }
 
+    private fun execute(statement: String) {
+        val toRun = makeProgram(statement)
+        val result = lexAndParse(toRun, symbolTable)
 
-            if (result !is FailedParse && indentLevel == 0) {
-                val backend = InterpreterBackend(symbolTable, varStore)
-                backend.executeProgram((result as SuccessfulParse).root)
-            }
+        if (result !is FailedParse) {
+            val backend = InterpreterBackend(symbolTable, varStore)
+            backend.executeProgram((result as SuccessfulParse).root)
         }
     }
 }
