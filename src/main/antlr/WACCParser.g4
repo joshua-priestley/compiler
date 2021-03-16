@@ -29,6 +29,7 @@ stat: SKP                                           # skip
   | assign_lhs sideExpr                             # sideExpression
   | CONTINUE                                        # continue
   | BREAK                                           # break
+  | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES # call
   | MAP OPEN_PARENTHESES ident  CLOSE_PARENTHESES
         (OPEN_PARENTHESES arg_list  CLOSE_PARENTHESES)?
         ident                                       # map

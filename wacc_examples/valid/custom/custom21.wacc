@@ -1,0 +1,14 @@
+# a simple increment function definition and usage
+
+# Output:
+# 1
+# 4
+
+# Program:
+
+begin
+  void fun() is
+    println(2)
+  end
+  call fun()
+end
