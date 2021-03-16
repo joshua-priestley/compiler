@@ -7,13 +7,6 @@
 # Program:
 
 begin
-  bool hello(bool x) is
-    return true
-  end
-  bool[] x = [true, false] ;
-  int counter = 0 ;
-  while counter < len x do
-    x[counter] = call hello(x[counter]);
-    counter++
-  done
+  define int macro(int x) (x + 1)
+  int y = call macro(3)
 end
