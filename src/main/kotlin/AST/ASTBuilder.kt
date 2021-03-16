@@ -183,10 +183,6 @@ class ASTBuilder(
         val functionIdent = visit(ctx.ident(0)) as Ident
         val arrayIdent = visit(ctx.ident(1)) as Ident
 
-        // Check the function exists
-        if (!globalSymbolTable.containsNodeGlobal(functionIdent.toString())) {
-            semanticListener.funRefBeforeAss(functionIdent.name, ctx)
-        }
         // Check the array exists
         if (!globalSymbolTable.containsNodeGlobal(arrayIdent.toString())) {
             semanticListener.undefinedVar(arrayIdent.toString(), ctx)
@@ -206,7 +202,14 @@ class ASTBuilder(
         val lhsAssign = LHSArrayElemNode(ArrayElem(arrayIdent, listOf(counterVar)))
         // Make a call node and check the parameters
         val rhsCall = RHSCallNode(functionIdent, listOf(ArrayElem(arrayIdent, listOf(counterVar))))
-        checkParameters(rhsCall, ctx)
+        // Check the function exists
+        if (!globalSymbolTable.containsNodeGlobal(functionIdent.toString())) {
+            semanticListener.funRefBeforeAss(functionIdent.name, ctx)
+        } else if (globalSymbolTable.getNodeGlobal(functionIdent.toString()) != getExprType(arrayIdent, ctx)!!.getBaseType()) {
+            semanticListener.mapReturnTypeIncorrect(getExprType(arrayIdent, ctx)!!.getBaseType().toString(), globalSymbolTable.getNodeGlobal(functionIdent.toString()).toString(), ctx)
+        } else {
+            checkParameters(rhsCall, ctx)
+        }
         val body1 = AssignNode(lhsAssign, rhsCall)
         val body2 = SideExpressionNode(AssignLHSIdentNode(counterVar), AddOneNode())
         val whileSeq = SequenceNode(mutableListOf(body1, body2))

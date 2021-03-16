@@ -12,6 +12,11 @@ class SemanticErrorHandler {
         addErrorMessage(msg, errorPosition(ctx))
     }
 
+    fun mapReturnTypeIncorrect(expected: String, actual: String, ctx: ParserRuleContext) {
+        val msg = "function returns $actual but array stores $expected"
+        addErrorMessage(msg, errorPosition(ctx))
+    }
+
     fun mapArgumentSizeError(ctx: ParserRuleContext) {
         val msg = "map function must have only one parameter"
         addErrorMessage(msg, errorPosition(ctx))
