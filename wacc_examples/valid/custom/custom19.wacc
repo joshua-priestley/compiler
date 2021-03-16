@@ -7,9 +7,6 @@
 # Program:
 
 begin
-  bool hello(bool x, int y, int z) is
-    return true
-  end
-  bool[] x = [true, false] ;
-  map (hello) (1, 2) x
+  int[] x = [1, 2, 3];
+  int y = foldl (+) 1000 x
 end

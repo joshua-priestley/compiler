@@ -579,10 +579,18 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is RHSArrayLitNode -> rhsInstruction.addAll(generateArrayLitNode(rhs.exprs, reg))
             is RHSNewPairNode -> rhsInstruction.addAll(generateNewPair(rhs))
             is RHSPairElemNode -> rhsInstruction.addAll(generatePairAccess(rhs.pairElem, false))
+            is RHSFoldNode -> rhsInstruction.addAll(generateFold(rhs))
             else -> throw Error("Does not exist")
         }
 
         return rhsInstruction
+    }
+
+    private fun generateFold(rhs: RHSFoldNode): List<Instruction> {
+        val foldInstructions = mutableListOf<Instruction>()
+        foldInstructions.addAll(generateStat(rhs.sequenceNode))
+        foldInstructions.addAll(generateExpr(Ident("&fold_total")))
+        return foldInstructions
     }
 
     private fun generatePairAccess(pairElem: PairElemNode, assign: Boolean, reg: Register = Register.r4): List<Instruction> {

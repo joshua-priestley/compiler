@@ -9,6 +9,7 @@ import AST.Type.Companion.unaryOpsProduces
 import AST.Type.Companion.unaryOpsRequires
 import ErrorHandler.SemanticErrorHandler
 import ErrorHandler.SyntaxErrorHandler
+import org.antlr.v4.codegen.model.decl.Decl
 import org.antlr.v4.runtime.Parser
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -290,13 +291,23 @@ class ASTBuilder(
         }
     }
 
-    private fun visitFold(ident: IdentContext, bin_op: Bin_opContext, ctx: ParserRuleContext, left: Boolean = false): Node {
+    private fun typeToNode(type: Type): TypeNode {
+        return when (type) {
+            Type(INT) -> Int()
+            Type(BOOL) -> Bool()
+            Type(CHAR) -> Chr()
+            else -> Str()
+        }
+    }
+
+    private fun visitFold(ident: IdentContext, bin_op: Bin_opContext, expr: ExprContext, ctx: ParserRuleContext, left: Boolean = false): Node {
         val arrayIdent = visit(ident) as Ident
         val operator = visit(bin_op) as BinOp
+        val startValue = visit(expr) as ExprNode
         val array = globalSymbolTable.getNodeGlobal(arrayIdent.toString())
         if (!globalSymbolTable.containsNodeGlobal(arrayIdent.toString())) {
             semanticListener.undefinedVar(arrayIdent.toString(), ctx)
-        } else if (binaryOpsRequires(operator.value).contains(array!!.getBaseType())) {
+        } else if (!binaryOpsRequires(operator.value).contains(array!!.getBaseType())) {
             semanticListener.binaryOpType(ctx)
         }
 
@@ -304,7 +315,7 @@ class ASTBuilder(
         val counterVar = Ident("&fold_counter")
         globalSymbolTable.addNode(counterVar.toString(), Type(INT))
         val totalVar = Ident("&fold_total")
-        globalSymbolTable.addNode(counterVar.toString(), array!!.getBaseType())
+        globalSymbolTable.addNode(totalVar.toString(), array!!.getBaseType())
 
         // Create the symbol table for the while node
         val mapSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
@@ -316,6 +327,10 @@ class ASTBuilder(
             val counterInit = BinaryOpNode(BinOp.MINUS, UnaryOpNode(UnOp.LEN, arrayIdent), IntLiterNode("1"))
             DeclarationNode(Int(), counterVar, RHSExprNode(counterInit))
         }
+
+        val type = getExprType(startValue, ctx)
+        val total = DeclarationNode(typeToNode(type!!), totalVar, RHSExprNode(startValue))
+
         val lhsAssign = AssignLHSIdentNode(totalVar)
         val rhsOp = if (left) {
             RHSExprNode(BinaryOpNode(operator, totalVar, ArrayElem(arrayIdent, listOf(counterVar))))
@@ -334,17 +349,17 @@ class ASTBuilder(
 
         globalSymbolTable = globalSymbolTable.parentT!!
 
-        val sequence = mutableListOf(counter, whileLoop)
+        val sequence = mutableListOf(counter, total, whileLoop)
 
-        return SequenceNode(sequence)
+        return RHSFoldNode(SequenceNode(sequence))
     }
 
     override fun visitAssignRhsFoldl(ctx: AssignRhsFoldlContext): Node {
-        return visitFold(ctx.ident(), ctx.bin_op(), ctx, true)
+        return visitFold(ctx.ident(), ctx.bin_op(), ctx.expr(), ctx, true)
     }
 
     override fun visitAssignRhsFoldr(ctx: AssignRhsFoldrContext): Node {
-        return visitFold(ctx.ident(), ctx.bin_op(), ctx)
+        return visitFold(ctx.ident(), ctx.bin_op(), ctx.expr(), ctx)
     }
 
     private fun sequenceList(ctx: SequenceContext): MutableList<StatementNode> {
@@ -800,6 +815,9 @@ class ASTBuilder(
                         Type(type)
                     }
                 }
+            }
+            is RHSFoldNode -> {
+                globalSymbolTable.getNodeGlobal(Ident("&fold_total").toString())
             }
             else -> {
                 // RHSNewPairElemNode
