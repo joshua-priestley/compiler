@@ -29,6 +29,7 @@ stat: SKP                                           # skip
   | assign_lhs sideExpr                             # sideExpression
   | CONTINUE                                        # continue
   | BREAK                                           # break
+  | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES # call
   | MAP OPEN_PARENTHESES ident  CLOSE_PARENTHESES
         (OPEN_PARENTHESES arg_list  CLOSE_PARENTHESES)?
         ident                                       # map
@@ -46,6 +47,8 @@ assign_rhs: expr                                                  # assignRhsExp
   | NEWPAIR OPEN_PARENTHESES expr COMMA expr CLOSE_PARENTHESES    # assignRhsNewpair
   | pair_elem                                                     # assignRhsPairElem
   | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES     # assignRhsCall
+  | FOLDL OPEN_PARENTHESES bin_op CLOSE_PARENTHESES expr ident    # assignRhsFoldl
+  | FOLDR OPEN_PARENTHESES bin_op CLOSE_PARENTHESES expr ident    # assignRhsFoldr
   ;
 
 arg_list: expr (COMMA expr)*;
@@ -73,7 +76,6 @@ pair_type: PAIR OPEN_PARENTHESES pair_elem_type COMMA pair_elem_type CLOSE_PAREN
 
 pair_elem_type: base_type | array_type| PAIR;
 
-
 expr: (PLUS | MINUS)? INT_LITER                 # liter
   | HEX_LITER                                   # liter
   | OCT_LITER                                   # liter
@@ -95,6 +97,8 @@ expr: (PLUS | MINUS)? INT_LITER                 # liter
   | expr (BITWISEAND | BITWISEOR) expr          # binaryOp
   | OPEN_PARENTHESES expr CLOSE_PARENTHESES     # parentheses
   ;
+
+bin_op: MUL | DIV | PLUS | MINUS | AND | OR | BITWISEAND | BITWISEOR;
 
 pair_liter: NULL;
 
