@@ -643,8 +643,23 @@ class ASTBuilder(
     }
 
     private fun checkForCondSemantics(cond: ExprNode, ctx: ParserRuleContext) {
-        if (cond !is BinaryOpNode) {
+        if (cond !is BinaryOpNode || binaryOpsProduces(cond.operator.value) != Type(BOOL)) {
             semanticListener.forLoopCond(ctx)
+        } else {
+            val expr1Type = getExprType(cond.expr1, ctx)
+            if (!binaryOpsRequires(cond.operator.value).contains(expr1Type)) {
+                semanticListener.binaryOpType(ctx)
+            }
+            val expr2Type = getExprType(cond.expr2, ctx)
+            if (!binaryOpsRequires(cond.operator.value).contains(expr2Type)) {
+                semanticListener.binaryOpType(ctx)
+            }
+        }
+    }
+
+    private fun checkUpdateSemantics(update: StatementNode, ctx: ParserRuleContext) {
+        if (update !is SideExpressionNode && update !is AssignNode) {
+            semanticListener.forLoopUpdate(ctx)
         }
     }
 
@@ -655,6 +670,8 @@ class ASTBuilder(
         val terminator = visit(ctx.for_cond().expr()) as ExprNode
         val update = visit(ctx.for_cond().stat()) as StatementNode
         val do_ = visit(ctx.stat()) as StatementNode
+        checkForCondSemantics(terminator, ctx)
+        checkUpdateSemantics(update, ctx)
 
         globalSymbolTable = globalSymbolTable.parentT!!
         return ForNode(counter, update, terminator, do_)

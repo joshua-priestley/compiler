@@ -119,6 +119,11 @@ class SemanticErrorHandler {
         addErrorMessage(msg, errorPosition(ctx))
     }
 
+    fun forLoopUpdate(ctx: ParserRuleContext) {
+        val msg = "for loop updating statement must be an assignment or a side effecting expression"
+        addErrorMessage(msg, errorPosition(ctx))
+    }
+
     fun binaryOpType(ctx: ParserRuleContext) {
         val msg = "incompatible types for binary operator"
         addErrorMessage(msg, errorPosition(ctx))

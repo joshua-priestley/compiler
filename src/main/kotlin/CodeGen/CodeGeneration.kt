@@ -710,7 +710,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun loadIdentValue(ident: Ident): List<Instruction> {
         val loadInstructions = mutableListOf<Instruction>()
-        println(ident.toString())
         val type = globalSymbolTable.getNodeGlobal(ident.toString())!!
         val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
         val offset = getStackOffsetValue(ident.toString())
