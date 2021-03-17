@@ -139,6 +139,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is IfElseNode -> generateIf(stat)
             is WhileNode -> generateWhile(stat)
             is DoWhileNode -> generateDoWhile(stat)
+            is ForNode -> generateForLoop(stat)
             is BeginEndNode -> generateBegin(stat)
             is SequenceNode -> generateSeq(stat)
             is SideExpressionNode -> generateSideExpression(stat)
@@ -497,6 +498,41 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return whileInstruction
     }
 
+    private fun generateForLoop(stat: ForNode): List<Instruction> {
+        val forLoopInstructions = mutableListOf<Instruction>()
+
+        conditionLabel.push(nextLabel())
+        val bodyLabel = nextLabel()
+        endLabel.push(nextLabel())
+
+        forLoopInstructions.addAll(generateDeclaration(stat.counter))
+        forLoopInstructions.add(Branch(conditionLabel.peek(), false))
+
+        forLoopInstructions.add(FunctionDeclaration(bodyLabel))
+        if (!inElseStatement) stackToAdd += globalSymbolTable.localStackSize()
+        enterNewScope(forLoopInstructions, stat.do_)
+        if (!inElseStatement) stackToAdd -= globalSymbolTable.localStackSize()
+        forLoopInstructions.addAll(generateStat(stat.update))
+
+        forLoopInstructions.add(FunctionDeclaration(conditionLabel.peek()))
+        assign = true
+        if (stat.terminator is LiterNode) {
+            forLoopInstructions.addAll(generateLiterNode(stat.terminator, Register.r4))
+        } else {
+            forLoopInstructions.addAll(generateExpr(stat.terminator))
+        }
+        forLoopInstructions.add(Compare(Register.r4, ImmOp(1)))
+        forLoopInstructions.add(Branch(bodyLabel, false, Conditions.EQ))
+        assign = false
+
+        forLoopInstructions.add(FunctionDeclaration(endLabel.peek()))
+
+        endLabel.pop()
+        conditionLabel.pop()
+
+        return forLoopInstructions
+    }
+
     private fun generateReturn(stat: ReturnNode): List<Instruction> {
         val returnInstruction = mutableListOf<Instruction>()
         assign = true
@@ -682,6 +718,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun loadIdentValue(ident: Ident): List<Instruction> {
         val loadInstructions = mutableListOf<Instruction>()
+        println(ident.toString())
         val type = globalSymbolTable.getNodeGlobal(ident.toString())!!
         val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
         val offset = getStackOffsetValue(ident.toString())

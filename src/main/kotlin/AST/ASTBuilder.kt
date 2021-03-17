@@ -650,9 +650,8 @@ class ASTBuilder(
 
     override fun visitFor_loop(ctx: For_loopContext): Node {
         val loopSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
-        globalSymbolTable = loopSymbolTable
-
         val counter = visit(ctx.for_cond().declare_var()) as DeclarationNode
+        globalSymbolTable = loopSymbolTable
         val terminator = visit(ctx.for_cond().expr()) as ExprNode
         val update = visit(ctx.for_cond().stat()) as StatementNode
         val do_ = visit(ctx.stat()) as StatementNode
