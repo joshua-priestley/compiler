@@ -363,7 +363,7 @@ class ASTBuilder(
 
         globalSymbolTable = globalSymbolTable.parentT!!
 
-        val sequence = mutableListOf(counter, size, total, whileLoop)
+        val sequence = mutableListOf(size, counter, total, whileLoop)
 
         return RHSFoldNode(SequenceNode(sequence))
     }
