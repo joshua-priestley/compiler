@@ -347,7 +347,12 @@ class ASTBuilder(
             SideExpressionNode(AssignLHSIdentNode(counterVar), SubOneNode())
         }
         val whileSeq = SequenceNode(mutableListOf(body1, body2))
-        val whileLoop = WhileNode(BinaryOpNode(BinOp.LT, counterVar, UnaryOpNode(UnOp.LEN, arrayIdent)), whileSeq)
+        val cond = if (left) {
+            BinaryOpNode(BinOp.LT, counterVar, UnaryOpNode(UnOp.LEN, arrayIdent))
+        } else {
+            BinaryOpNode(BinOp.GTE, counterVar, IntLiterNode("0"))
+        }
+        val whileLoop = WhileNode(cond, whileSeq)
 
         globalSymbolTable = globalSymbolTable.parentT!!
 
