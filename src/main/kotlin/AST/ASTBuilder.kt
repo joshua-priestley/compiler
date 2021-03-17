@@ -108,7 +108,8 @@ class ASTBuilder(
 
         // Add the function's return type to the table too
         functionSymbolTable.addNode("\$RET", type.type.setReturn(true))
-
+        val funcType = TypeFunction(type.type, parameterTypes)
+        ident.name = ident.toString() + funcType.toString()
         functionParameters[ident.toString()] = parameterTypes
 
         // Assign the current scope to the scope of the function when building its statement node

@@ -21,11 +21,10 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
     }
 
     fun filterFuncs(name : String) : Map<String,Type>{
-        println(table.entries)
         val funcs : LinkedHashMap<String, Type> = linkedMapOf()
         var currTable: SymbolTable? = this
         while (currTable != null) {
-            funcs.putAll(currTable.table.filterKeys { K -> K.contains(name) && table[K] is TypeFunction})
+            funcs.putAll(currTable.table.filterKeys { K -> K.contains(name)})
             currTable = currTable.parentT
         }
         return funcs
