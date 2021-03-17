@@ -88,7 +88,6 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
         // Same as getting a node but just returning true or false
         var currTable: SymbolTable? = this
         while (currTable != null) {
-            println(currTable.table.entries)
             val type = currTable.table[name]
             if (type != null) {
                 return true
