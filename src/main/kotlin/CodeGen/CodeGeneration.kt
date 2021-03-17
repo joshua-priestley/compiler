@@ -439,15 +439,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         if (forever) {
             doWhileInstruction.add(Branch(bodyLabel, false))
         } else {
-            assign = true
-            if (stat.expr is LiterNode) {
-                doWhileInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
-            } else {
-                doWhileInstruction.addAll(generateExpr(stat.expr))
-            }
-            doWhileInstruction.add(Compare(Register.r4, ImmOp(1)))
-            doWhileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
-            assign = false
+            doWhileInstruction.addAll(generateConditionInstructions(stat.expr, bodyLabel))
         }
         doWhileInstruction.add(FunctionDeclaration(endLabel.peek()))
 
@@ -480,15 +472,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         if (forever) {
             whileInstruction.add(Branch(bodyLabel, false))
         } else {
-            assign = true
-            if (stat.expr is LiterNode) {
-                whileInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
-            } else {
-                whileInstruction.addAll(generateExpr(stat.expr))
-            }
-            whileInstruction.add(Compare(Register.r4, ImmOp(1)))
-            whileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
-            assign = false
+            whileInstruction.addAll(generateConditionInstructions(stat.expr, bodyLabel))
         }
         whileInstruction.add(FunctionDeclaration(endLabel.peek()))
 
@@ -515,15 +499,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         forLoopInstructions.addAll(generateStat(stat.update))
 
         forLoopInstructions.add(FunctionDeclaration(conditionLabel.peek()))
-        assign = true
-        if (stat.terminator is LiterNode) {
-            forLoopInstructions.addAll(generateLiterNode(stat.terminator, Register.r4))
-        } else {
-            forLoopInstructions.addAll(generateExpr(stat.terminator))
-        }
-        forLoopInstructions.add(Compare(Register.r4, ImmOp(1)))
-        forLoopInstructions.add(Branch(bodyLabel, false, Conditions.EQ))
-        assign = false
+        forLoopInstructions.addAll(generateConditionInstructions(stat.terminator, bodyLabel))
 
         forLoopInstructions.add(FunctionDeclaration(endLabel.peek()))
 
@@ -531,6 +507,22 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         conditionLabel.pop()
 
         return forLoopInstructions
+    }
+
+    private fun generateConditionInstructions(expr: ExprNode, bodyLabel: String): List<Instruction> {
+        val condInstructions = mutableListOf<Instruction>()
+
+        assign = true
+        if (expr is LiterNode) {
+            condInstructions.addAll(generateLiterNode(expr, Register.r4))
+        } else {
+            condInstructions.addAll(generateExpr(expr))
+        }
+        condInstructions.add(Compare(Register.r4, ImmOp(1)))
+        condInstructions.add(Branch(bodyLabel, false, Conditions.EQ))
+        assign = false
+
+        return condInstructions
     }
 
     private fun generateReturn(stat: ReturnNode): List<Instruction> {
