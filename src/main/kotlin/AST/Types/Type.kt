@@ -1,26 +1,40 @@
 package AST.Types
 
 import antlr.WACCParser.*
-import compiler.AST.Types.ArrayType
-import compiler.AST.Types.BaseType
-import compiler.AST.Types.PairType
+import compiler.AST.Types.TypeArray
+import compiler.AST.Types.TypeBase
+import compiler.AST.Types.TypePair
 import kotlin.Int
 
 const val INVALID = -1
 const val ARRAY = -2
 const val ANY = -3
 const val PAIR_LITER = -5
+const val FUNCTION = -6
+const val EMPTY_ARR = -7
 
 abstract class Type {
-    open val typeInt : Int = ANY
+    open val typeInt: Int = ANY
     open var offsetInTable: Int = 0
     open var isParam: Boolean = false
+    private var isReturn: Boolean = false
+
     fun isParameter(): Boolean {
         return isParam
     }
 
-    fun setParameter(bool: Boolean) {
+    fun setReturn(bool: Boolean): Type {
+        this.isReturn = bool
+        return this
+    }
+
+    fun isReturn(): Boolean {
+        return this.isReturn
+    }
+
+    fun setParameter(bool: Boolean): Type {
         this.isParam = bool
+        return this
     }
 
     fun getType(): Int {
@@ -61,11 +75,11 @@ abstract class Type {
     //Get the type of the snd of a pair
 
     open fun getArray(): Boolean {
-        return (this is ArrayType)
+        return (this is TypeArray)
     }
 
     fun getPair(): Boolean {
-        return this is PairType
+        return this is TypePair
     }
 
     fun getTypeSize(): Int {
@@ -85,43 +99,43 @@ abstract class Type {
         fun binaryOpsProduces(operator: Int): Type {
             return when {
                 //Tokens 1-5 are int operators
-                operator <= 5 -> BaseType(INT)
+                operator <= 5 -> TypeBase(INT)
                 //Tokens 6-13 are bool operators
-                operator in 6..13 -> BaseType(BOOL)
-                else -> BaseType(INVALID)
+                operator in 6..13 -> TypeBase(BOOL)
+                else -> TypeBase(INVALID)
             }
         }
 
         // Get the type a binary operator requires
         fun binaryOpsRequires(operator: Int): List<Type> {
             return when {
-                operator < 6 -> mutableListOf(BaseType(INT))
-                operator in 6..9 -> mutableListOf(BaseType(INT), BaseType(CHAR))
-                operator in 10..11 -> mutableListOf(BaseType(ANY)) // EQ and NEQ can take any type
-                operator in 12..14 -> mutableListOf(BaseType(BOOL))
-                operator in 12..14 -> mutableListOf(BaseType(BOOL))
-                else -> mutableListOf(BaseType(INVALID))
+                operator < 6 -> mutableListOf(TypeBase(INT))
+                operator in 6..9 -> mutableListOf(TypeBase(INT), TypeBase(CHAR))
+                operator in 10..11 -> mutableListOf(TypeBase(ANY)) // EQ and NEQ can take any type
+                operator in 12..14 -> mutableListOf(TypeBase(BOOL))
+                operator in 12..14 -> mutableListOf(TypeBase(BOOL))
+                else -> mutableListOf(TypeBase(INVALID))
             }
         }
 
         // Get the type a unary operator produces
         fun unaryOpsProduces(operator: Int): Type {
             return when (operator) {
-                NOT -> BaseType(BOOL)
-                LEN, ORD, MINUS -> BaseType(INT)
-                CHR -> BaseType(CHAR)
-                else -> BaseType(INVALID)
+                NOT -> TypeBase(BOOL)
+                LEN, ORD, MINUS -> TypeBase(INT)
+                CHR -> TypeBase(CHAR)
+                else -> TypeBase(INVALID)
             }
         }
 
         // Get the type a unary operator requires
         fun unaryOpsRequires(operator: Int): Type {
             return when (operator) {
-                NOT -> BaseType(BOOL)
-                ORD -> BaseType(CHAR)
-                MINUS, CHR -> BaseType(INT)
-                LEN -> BaseType(ARRAY)
-                else -> BaseType(INVALID)
+                NOT -> TypeBase(BOOL)
+                ORD -> TypeBase(CHAR)
+                MINUS, CHR -> TypeBase(INT)
+                LEN -> TypeBase(ARRAY)
+                else -> TypeBase(INVALID)
             }
         }
     }

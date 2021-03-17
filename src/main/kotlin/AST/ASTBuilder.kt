@@ -3,12 +3,18 @@ package AST
 import antlr.WACCParser.*
 import antlr.WACCParserBaseVisitor
 import org.antlr.v4.runtime.ParserRuleContext
-import AST.Type.Companion.binaryOpsProduces
-import AST.Type.Companion.binaryOpsRequires
-import AST.Type.Companion.unaryOpsProduces
-import AST.Type.Companion.unaryOpsRequires
+import AST.Types.*
+import AST.Types.Type
+import AST.Types.Type.Companion.binaryOpsProduces
+import AST.Types.Type.Companion.binaryOpsRequires
+import AST.Types.Type.Companion.unaryOpsProduces
+import AST.Types.Type.Companion.unaryOpsRequires
 import ErrorHandler.SemanticErrorHandler
 import ErrorHandler.SyntaxErrorHandler
+import compiler.AST.Types.TypeArray
+import compiler.AST.Types.TypeBase
+import compiler.AST.Types.TypeFunction
+import compiler.AST.Types.TypePair
 import java.util.concurrent.atomic.AtomicInteger
 
 
@@ -57,11 +63,8 @@ class ASTBuilder(
             val ident = visit(func.ident()) as Ident // Function name
             val type = visit(func.type()) as TypeNode // Function return type
             // Check if the function already exists
-            if (globalSymbolTable.containsNodeLocal(ident.toString())) {
-                semanticListener.redefinedVariable(ident.name + "()", func)
-            } else {
-                globalSymbolTable.addNode(ident.toString(), type.type.setFunction(true))
-            }
+
+
 
             // Add each parameter to the function's parameter list in the map
             val parameterTypes = mutableListOf<Type>()
@@ -71,7 +74,15 @@ class ASTBuilder(
                     parameterTypes.add(p.type.type)
                 }
             }
+            val funcType = TypeFunction(type.type, parameterTypes)
+
             functionParameters[ident.toString()] = parameterTypes
+
+            if (globalSymbolTable.containsNodeLocal(ident.toString() + funcType.toString())) {
+                semanticListener.redefinedVariable(ident.name + "()", func)
+            } else {
+                globalSymbolTable.addNode(ident.toString() + funcType.toString(), funcType)
+            }
         }
     }
 
@@ -96,7 +107,7 @@ class ASTBuilder(
         }
 
         // Add the function's return type to the table too
-        functionSymbolTable.addNode("\$RET", type.type.setFunction(true))
+        functionSymbolTable.addNode("\$RET", type.type.setReturn(true))
 
         functionParameters[ident.toString()] = parameterTypes
 
@@ -159,8 +170,8 @@ class ASTBuilder(
         for (i in argTypes.indices) {
             if (argTypes[i].getType() != parameterTypes[i].getType()) {
                 semanticListener.mismatchedParamTypes(
-                        Type(argTypes[i].getType()).toString(),
-                        Type(parameterTypes[i].getType()).toString(),
+                        argTypes[i].toString(),
+                        parameterTypes[i].toString(),
                         ctx
                 )
                 return false
@@ -201,8 +212,9 @@ class ASTBuilder(
         boolTypeResult = false
         if (lhsType != null) {
             // Check that the types are equal for all different cases (variable, array or pair)
-            if (lhsType.getType() != rhsType!!.getType() && !(lhsType.getArray() && rhsType.getType() == Type(EMPTY_ARR).getType())
-                    && !(lhsType.getPair() && rhsType.getType() == Type(PAIR_LITER).getType())
+            println(rhs.toString())
+            if (lhsType.getType() != rhsType!!.getType() && !(lhsType.getArray() && rhsType.getType() == TypeBase(EMPTY_ARR).getType())
+                    && !(lhsType.getPair() && rhsType.getType() == TypePair(null,null).getType())
             ) {
                 semanticListener.incompatibleTypeAss(lhsType.toString(), rhsType.toString(), ctx)
             }
@@ -228,7 +240,7 @@ class ASTBuilder(
     override fun visitSideExpression(ctx: SideExpressionContext): Node {
         val ident = visit(ctx.assign_lhs()) as AssignLHSIdentNode
         val lhsType = getLHSType(ident, ctx.assign_lhs())
-        if (lhsType != Type(INT)) {
+        if (lhsType != TypeBase(INT)) {
             semanticListener.incompatibleTypeSideExpr(lhsType.toString(), ctx)
         }
 
@@ -253,7 +265,7 @@ class ASTBuilder(
     override fun visitOpN(ctx: OpNContext): Node {
         val expr = visit(ctx.expr()) as ExprNode
         val type = getExprType(expr, ctx)
-        if (type != Type(INT)) {
+        if (type != TypeBase(INT)) {
             semanticListener.incompatibleTypeSideExpr(type.toString(), ctx)
         }
         return when {
@@ -284,7 +296,7 @@ class ASTBuilder(
         }
 
         // Read can only be int or char
-        if (!(type == Type(INT) || type == Type(CHAR))) {
+        if (!(type == TypeBase(INT) || type == TypeBase(CHAR))) {
             semanticListener.readTypeError(type.toString(), ctx)
 
         }
@@ -294,7 +306,7 @@ class ASTBuilder(
     override fun visitExit(ctx: ExitContext): Node {
         // An exit value must be an integer
         val expr = visit(ctx.expr()) as ExprNode
-        if (getExprType(expr, ctx.expr()) != Type(INT)) {
+        if (getExprType(expr, ctx.expr()) != TypeBase(INT)) {
             semanticListener.incompatibleExitCode(ctx.expr().text, getExprType(expr, ctx.expr()).toString(), ctx)
         }
         return ExitNode(expr)
@@ -323,7 +335,7 @@ class ASTBuilder(
         boolTypeResult = false
         val expected = globalSymbolTable.getNodeGlobal("\$RET")
 
-        if (expected != returnType || expected == Type(VOID)) {
+        if (expected != returnType || expected == TypeBase(VOID)) {
             semanticListener.incompatibleTypeReturn(expected.toString(), returnType.toString(), ctx)
         }
         return ReturnNode(exprType)
@@ -358,7 +370,7 @@ class ASTBuilder(
         boolTypeResult = true
         val condExpr = visit(expr) as ExprNode
         // Checks that it is of type bool
-        if ((condExpr is Ident && !globalSymbolTable.containsNodeGlobal(condExpr.toString())) || getExprType(condExpr, expr) != Type(BOOL)) {
+        if ((condExpr is Ident && !globalSymbolTable.containsNodeGlobal(condExpr.toString())) || getExprType(condExpr, expr) != TypeBase(BOOL)) {
             semanticListener.conditionalBoolean(getExprType(condExpr, expr).toString(), ctx)
         }
 
@@ -429,8 +441,8 @@ class ASTBuilder(
         // Check each side's type is equal
         if (rhsType != null) {
             if (lhsType.getType() != rhsType.getType()
-                    && !(lhsType.getArray() && rhsType.getType() == Type(EMPTY_ARR).getType())
-                    && !(lhsType.getPair() && rhsType.getType() == Type(PAIR_LITER).getType())
+                    && !(lhsType.getArray() && rhsType.getType() == TypeBase(EMPTY_ARR).getType())
+                    && !(lhsType.getPair() && rhsType.getType() == PAIR_LITER)
             ) {
                 semanticListener.incompatibleTypeDecl(ident.name, lhsType.toString(), rhsType.toString(), ctx)
             }
@@ -531,7 +543,7 @@ class ASTBuilder(
                 // Check the array exists, the type is valid and the index is an integer
                 if (!globalSymbolTable.containsNodeGlobal(lhs.arrayElem.ident.toString())) {
                     semanticListener.undefinedVar(lhs.arrayElem.ident.name, ctx)
-                } else if (getExprType(lhs.arrayElem.expr[0], ctx) != Type(INT)) {
+                } else if (getExprType(lhs.arrayElem.expr[0], ctx) != TypeBase(INT)) {
                     semanticListener.arrayIndex("0", "INT", getExprType(lhs.arrayElem.expr[0], ctx).toString(), ctx)
                 } else if (globalSymbolTable.getNodeGlobal(lhs.arrayElem.ident.toString())!!.getType() == STRING) {
                     semanticListener.indexStrings(ctx)
@@ -574,14 +586,22 @@ class ASTBuilder(
             }
             is RHSCallNode -> {
                 // Check the function exists and that the parameters are correct
-                if (!globalSymbolTable.containsNodeGlobal(rhs.ident.toString())) {
+                val args : List<Type>
+                args = if (rhs.argList == null){
+                    mutableListOf()
+                } else {
+                    rhs.argList.map { x -> getExprType(x,ctx)!!}
+                }
+                //val args = rhs.argList!!.map { x -> getExprType(x,ctx) }
+                val string = rhs.ident.toString() + "(" + args.toString() + ")"
+                if (!globalSymbolTable.containsNodeGlobal(string)) {
                     semanticListener.funRefBeforeAss(rhs.ident.name, ctx)
                     null
                 } else if (!checkParameters(rhs, ctx)) {
                     null
                 } else {
                     // Return the type of the function's return
-                    globalSymbolTable.getNodeGlobal(rhs.ident.toString())
+                    (globalSymbolTable.getNodeGlobal(string) as TypeFunction).getReturn()
                 }
             }
             is RHSPairElemNode -> {
@@ -590,14 +610,14 @@ class ASTBuilder(
             is RHSArrayLitNode -> {
                 checkElemsSameType(rhs.toString(), rhs.exprs, ctx)
                 if (rhs.exprs.isEmpty()) {
-                    Type(EMPTY_ARR)
+                    TypeBase(EMPTY_ARR)
                 } else {
                     // Check the index is not null
                     val type = getExprType(rhs.exprs[0], ctx)
                     if (type == null) {
                         null
                     } else {
-                        Type(type)
+                        TypeArray(type)
                     }
                 }
             }
@@ -609,12 +629,12 @@ class ASTBuilder(
 
                 if (expr1 != null) {
                     if (expr1.getType() == PAIR_LITER) {
-                        expr1 = Type(PAIR_LITER)
+                        expr1 = TypePair(null,null)
                     }
                 }
                 if (expr2 != null) {
                     if (expr2.getType() == PAIR_LITER) {
-                        expr2 = Type(PAIR_LITER)
+                        expr2 = TypePair(null,null)
                     }
                 }
 
@@ -627,7 +647,7 @@ class ASTBuilder(
                         semanticListener.newPairFalse("2", ctx)
                         null
                     }
-                    else -> Type(expr1, expr2)
+                    else -> TypePair(expr1, expr2)
                 }
             }
         }
@@ -642,10 +662,10 @@ class ASTBuilder(
     // Check is possible version of an expression and return its type
     private fun getExprType(expr: ExprNode, ctx: ParserRuleContext): Type? {
         return when (expr) {
-            is IntLiterNode -> Type(INT)
-            is StrLiterNode -> Type(STRING)
-            is BoolLiterNode -> Type(BOOL)
-            is CharLiterNode -> Type(CHAR)
+            is IntLiterNode -> TypeBase(INT)
+            is StrLiterNode -> TypeBase(STRING)
+            is BoolLiterNode -> TypeBase(BOOL)
+            is CharLiterNode -> TypeBase(CHAR)
             is Ident -> {
                 // Check the variable exists
                 if (!globalSymbolTable.containsNodeGlobal(expr.toString())) {
@@ -658,7 +678,7 @@ class ASTBuilder(
 
             is ArrayElem -> {
                 // Check the index is correct and the types match
-                if (getExprType(expr.expr[0], ctx) != Type(INT)) {
+                if (getExprType(expr.expr[0], ctx) != TypeBase(INT)) {
                     semanticListener.arrayIndex("0", getExprType(expr.expr[0], ctx).toString(), "INT", ctx)
                 } else if (!globalSymbolTable.containsNodeGlobal(expr.ident.toString())) {
                     semanticListener.undefinedVar(expr.ident.name, ctx)
@@ -681,7 +701,7 @@ class ASTBuilder(
                     binaryOpsProduces(expr.operator.value)
                 } else {
                     val requires = binaryOpsRequires(expr.operator.value)
-                    if (requires.contains(getExprType(expr.expr1, ctx)) || requires.contains(Type(ANY))) {
+                    if (requires.contains(getExprType(expr.expr1, ctx)) || requires.contains(TypeBase(ANY))) {
                         binaryOpsProduces(expr.operator.value)
                     } else {
                         semanticListener.binaryOpType(ctx)
@@ -691,7 +711,7 @@ class ASTBuilder(
             }
             else -> {
                 // AST.PairLiterNode
-                Type(PAIR_LITER)
+                TypePair(null,null)
             }
         }
     }
@@ -778,7 +798,7 @@ class ASTBuilder(
                         expr2,
                         ctx.expr(1)
                 )!!.getType())
-                || (!binaryOpsRequires(op.value).contains(exprType) && !binaryOpsRequires(op.value).contains(Type(ANY)))
+                || (!binaryOpsRequires(op.value).contains(exprType) && !binaryOpsRequires(op.value).contains(TypeBase(ANY)))
         ) {
             semanticListener.binaryOpType(ctx)
         }

@@ -1,20 +1,26 @@
 package compiler.AST.Types
 
-import AST.Types.Type
+import AST.Types.*
+import java.lang.StringBuilder
 
-class FunctionType(override var offsetInTable: Int, override val typeInt: Int, val params : List<Type>) : Type {
-
+class TypeFunction(private val retType: Type?, val params: MutableCollection<Type>) : Type() {
+    override val typeInt: Int = FUNCTION
+    override var offsetInTable: Int = 0
     override var isParam = false
+
+    fun getReturn(): Type? {
+        return this.retType
+    }
+
     override fun equals(other: Any?): Boolean {
-        return if (other is FunctionType){
+        return if (other is TypeFunction) {
             val equal = true
             if (params.size != other.params.size || typeInt != other.typeInt) return false
-            this.params.zip(other.params).all {(x,y) -> x == y}
+            this.params.zip(other.params).all { (x, y) -> x == y }
         } else {
             false
         }
     }
-
 
 
     override fun hashCode(): Int {
@@ -24,8 +30,12 @@ class FunctionType(override var offsetInTable: Int, override val typeInt: Int, v
         return result
     }
 
+    override fun toString(): String {
+        return "($params)"
+    }
+
     init {
-        for (parameter in params){
+        for (parameter in params) {
             parameter.setParameter(true)
         }
     }

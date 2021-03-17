@@ -4,7 +4,7 @@ import AST.Types.Type
 import antlr.WACCParser.*
 import java.lang.StringBuilder
 
-class PairType(val type1: Type?, val type2: Type?) : Type() {
+class TypePair(type1: Type?, type2: Type?) : Type() {
 
 
     private val pairFst: Type? = type1
@@ -46,7 +46,7 @@ class PairType(val type1: Type?, val type2: Type?) : Type() {
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other !is PairType) return false
+        if (other !is TypePair) return false
         return when {
             other.getPair() && getPair() -> (other.getPairFst() == getPairFst() && other.getPairSnd() == getPairSnd()) ||
                     ((other.getPairFst() == null && other.getPairSnd() == null) || (getPairFst() == null && getPairSnd() == null))

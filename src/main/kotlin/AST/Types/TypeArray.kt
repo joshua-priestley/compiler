@@ -4,7 +4,7 @@ import antlr.WACCParser.*
 import AST.Types.Type
 import java.lang.StringBuilder
 const val ARRAY = -2
-open class ArrayType(var arrType: Type, override val typeInt: Int = ARRAY) : Type() {
+class TypeArray(private var arrType: Type, override val typeInt: Int = ARRAY) : Type() {
 
     override var isParam = false
     override var offsetInTable: Int = 0

@@ -1,6 +1,8 @@
 package AST
 
+import AST.Types.*
 import antlr.WACCParser.*
+import compiler.AST.Types.*
 import kotlin.Int
 
 interface Node
@@ -121,28 +123,28 @@ interface TypeNode : Node {
     val type: Type
 }
 
-class VoidType(override val type: Type = Type(VOID)): TypeNode
+class VoidType(override val type: Type = TypeBase(VOID)): TypeNode
 
 // Base Types
 interface BaseType : TypeNode
 
-class Str(override val type: Type = Type(STRING)) : BaseType
-class Bool(override val type: Type = Type(BOOL)) : BaseType
-class Chr(override val type: Type = Type(CHAR)) : BaseType
-class Int(override val type: Type = Type(INT)) : BaseType
+class Str(override val type: Type = TypeBase(STRING)) : BaseType
+class Bool(override val type: Type = TypeBase(BOOL)) : BaseType
+class Chr(override val type: Type = TypeBase(CHAR)) : BaseType
+class Int(override val type: Type = TypeBase(INT)) : BaseType
 
 // Nested pair type
-class Pair(override val type: Type = Type(PAIR_LITER)) : BaseType
+class Pair(override val type: Type = TypePair(null,null)) : BaseType
 
 // Array Types
 interface ArrayType : TypeNode
-class ArrayNode(private val typeNode: TypeNode, override val type: Type = Type(typeNode.type)) : ArrayType
+class ArrayNode(private val typeNode: TypeNode, override val type: Type = TypeArray(typeNode.type)) : ArrayType
 
 //Pair Types
 data class PairTypeNode(
         val type1: PairElemTypeNode,
         val type2: PairElemTypeNode,
-        override val type: Type = Type(type1.type, type2.type)
+        override val type: Type = TypePair(type1.type,type2.type)
 ) : TypeNode
 
 data class PairElemTypeNode(val typeNode: TypeNode, override val type: Type = typeNode.type) : TypeNode

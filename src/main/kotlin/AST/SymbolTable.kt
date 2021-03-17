@@ -29,7 +29,7 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
 
     //Add a node to the symbol table
     fun addNode(name: String, type: Type) {
-        if (!type.isFunction() && !type.isParameter()) {
+        if (!type.isFunction() && !type.isParameter() && !type.isReturn()) {
             tableOffset += type.getTypeSize()
             table[name] = type.setOffset(tableOffset)
         } else if (type.isParameter()) {
@@ -100,7 +100,7 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
     //Return the offset of the variable within the symbol table
     private fun offsetInTable(name: String): Int {
         val entry = getNodeGlobal(name)
-        assert(entry != null && !entry.isFunction())
+        assert(entry != null && !entry.isFunction() && !entry.isReturn())
         return entry!!.getOffset() + (if (entry.getTypeSize() == 1 && entry.isParameter()) 3 else 0)
     }
 
@@ -117,20 +117,6 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
 
         // Now in the scope that has the variable we want
         return offset + offsetInTable(name)
-    }
-
-    fun printEntries() {
-        for (entry in table.keys) {
-            println("Key: $entry     Value: ${table[entry]}      Offset: ${table[entry]!!.getOffset()}")
-        }
-    }
-
-    fun printChildTables() {
-        println(childrenTables)
-        println("Total Size: ${localStackSize()}")
-        for (key in childrenTables.keys) {
-            childrenTables[key]?.printChildTables()
-        }
     }
 
 }

@@ -1,8 +1,12 @@
 package compiler.CodeGen.Instructions.External
 
-import CodeGen.Instructions.Instruction
-import compiler.CodeGen.Instructions.Operators.Add
+import compiler.CodeGen.Instructions.*
+import compiler.CodeGen.Instructions.Operators.*
+import compiler.CodeGen.Instructions.ARM.*
+import compiler.Instructions.Conditions
 import compiler.Instructions.*
+import compiler.Instructions.ImmOp
+import compiler.Instructions.Register
 
 // Keeps track of external functions that should be added to the assembly code
 class PredefinedFuncs(private val data: DataSegment) {

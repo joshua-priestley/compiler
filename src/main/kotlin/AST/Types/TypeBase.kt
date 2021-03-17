@@ -2,7 +2,7 @@ package compiler.AST.Types
 
 import AST.Types.Type
 import antlr.WACCParser.*
-class BaseType(override val typeInt: Int) :  Type() {
+open class TypeBase(override val typeInt: Int) :  Type() {
 
 
     override var isParam = false
@@ -21,7 +21,8 @@ class BaseType(override val typeInt: Int) :  Type() {
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other !is BaseType) return false
+        if (other is TypeArray && other.getBaseType() == TypeBase(CHAR)) return true
+        if (other !is TypeBase) return false
         return other.getType() == getType()
     }
 }
