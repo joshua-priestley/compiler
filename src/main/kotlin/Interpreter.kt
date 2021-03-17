@@ -20,7 +20,14 @@ class InterpreterFrontend : FrontendUtils() {
 }
 
 
-data class PairObject<T, S>(var fst: T?, var snd: S?)
+data class PairObject<T, S>(var fst: T?, var snd: S?) {
+    fun isNull(): Boolean = fst == null && snd == null
+
+    fun setNull() {
+        fst = null
+        snd = null
+    }
+}
 
 
 class InterpreterBackend (
@@ -138,7 +145,18 @@ class InterpreterBackend (
     }
 
     private fun visitFree(stat: FreeNode) {
-        TODO("Not yet implemented")
+        val toFree = visitExpr(stat.expr)
+        val ident = stat.expr
+        when (toFree) {
+            is PairObject<*, *> -> {
+                if (!toFree.isNull()) {
+                    toFree.setNull()
+                } else {
+                    TODO("Throw runtime error")
+                }
+            }
+            else -> TODO("Throw runtime error")
+        }
     }
 
     private fun visitRead(stat: ReadNode) {
