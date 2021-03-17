@@ -86,6 +86,8 @@ WHILE: 'while';
 DO: 'do';
 DONE: 'done';
 MAP: 'map';
+FOLDL: 'foldl';
+FOLDR: 'foldr';
 
 //for
 FOR: 'for'; //rest follows from WHILE

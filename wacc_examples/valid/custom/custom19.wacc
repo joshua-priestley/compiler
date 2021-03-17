@@ -7,9 +7,12 @@
 # Program:
 
 begin
-  bool hello(bool x, int y, int z) is
-    return true
-  end
-  bool[] x = [true, false] ;
-  map (hello) (1, 2) x
+  int[] x = [1, 2, 3];
+  int counter = 0;
+  int total = 0;
+  int size = len x ;
+  while counter < size do
+    total = total + x[counter]
+  done ;
+  println(total)
 end

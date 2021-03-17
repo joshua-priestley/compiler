@@ -9,6 +9,7 @@ import AST.Type.Companion.unaryOpsProduces
 import AST.Type.Companion.unaryOpsRequires
 import ErrorHandler.SemanticErrorHandler
 import ErrorHandler.SyntaxErrorHandler
+import org.antlr.v4.codegen.model.decl.Decl
 import org.antlr.v4.runtime.Parser
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -41,7 +42,7 @@ class ASTBuilder(
 
         // Visit each macro, function and the global stat
         val functionNodes = mutableListOf<FunctionNode>()
-        ctx.macro().map { functionNodes.add(visit(it) as FunctionNode)}
+        ctx.macro().map { functionNodes.add(visit(it) as FunctionNode) }
         ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
         val stat = visit(ctx.stat()) as StatementNode
 
@@ -100,7 +101,7 @@ class ASTBuilder(
         return addSingleFunction(ctx.type(), ctx.ident(), ctx.param_list(), ctx.stat(), null, ctx)
     }
 
-    private fun addSingleFunction(t: TypeContext, id: IdentContext, p: Param_listContext?, s: StatContext?, e: ExprContext?, ctx:ParserRuleContext): FunctionNode {
+    private fun addSingleFunction(t: TypeContext, id: IdentContext, p: Param_listContext?, s: StatContext?, e: ExprContext?, ctx: ParserRuleContext): FunctionNode {
         // Create a new scope for the function
         val functionSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
 
@@ -132,7 +133,7 @@ class ASTBuilder(
             if (!stat.valid() && type !is VoidType) {
                 syntaxHandler.addSyntaxError(ctx, "return type of function invalid")
             }
-        }else {
+        } else {
             val expr = visit(e) as ExprNode
             val exprType = getExprType(expr, ctx)
             if (exprType != type.type) {
@@ -242,11 +243,14 @@ class ASTBuilder(
         // Create a counter
         val counterVar = Ident("&map_counter")
         globalSymbolTable.addNode(counterVar.toString(), Type(INT))
+        val arraySizeVar = Ident("&map_length")
+        globalSymbolTable.addNode(arraySizeVar.toString(), Type(INT))
 
         // Create the symbol table for the while node
         val mapSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
         globalSymbolTable = mapSymbolTable
 
+        val size = DeclarationNode(Int(), arraySizeVar, RHSExprNode(UnaryOpNode(UnOp.LEN, arrayIdent)))
         val counter = DeclarationNode(Int(), counterVar, RHSExprNode(IntLiterNode("0")))
         val lhsAssign = LHSArrayElemNode(ArrayElem(arrayIdent, listOf(counterVar)))
         // Make a call node and check the parameters
@@ -267,13 +271,109 @@ class ASTBuilder(
         val body1 = AssignNode(lhsAssign, rhsCall)
         val body2 = SideExpressionNode(AssignLHSIdentNode(counterVar), AddOneNode())
         val whileSeq = SequenceNode(mutableListOf(body1, body2))
-        val whileLoop = WhileNode(BinaryOpNode(BinOp.LT, counterVar, UnaryOpNode(UnOp.LEN, arrayIdent)), whileSeq)
+        val whileLoop = WhileNode(BinaryOpNode(BinOp.LT, counterVar, arraySizeVar), whileSeq)
 
         globalSymbolTable = globalSymbolTable.parentT!!
 
-        val sequence = mutableListOf(counter, whileLoop)
+        val sequence = mutableListOf(counter, size, whileLoop)
 
         return SequenceNode(sequence)
+    }
+
+    override fun visitBin_op(ctx: Bin_opContext): Node {
+        return when {
+            ctx.MUL() != null -> BinOp.MUL
+            ctx.DIV() != null -> BinOp.DIV
+            ctx.PLUS() != null -> BinOp.PLUS
+            ctx.MINUS() != null -> BinOp.MINUS
+            ctx.AND() != null -> BinOp.AND
+            ctx.OR() != null -> BinOp.OR
+            ctx.BITWISEAND() != null -> BinOp.BITWISEAND
+            ctx.BITWISEOR() != null -> BinOp.BITWISEOR
+            else -> BinOp.NOT_SUPPORTED
+        }
+    }
+
+    private fun typeToNode(type: Type): TypeNode {
+        return when (type) {
+            Type(INT) -> Int()
+            Type(BOOL) -> Bool()
+            Type(CHAR) -> Chr()
+            else -> Str()
+        }
+    }
+
+    private fun visitFold(ident: IdentContext, bin_op: Bin_opContext, expr: ExprContext, ctx: ParserRuleContext, left: Boolean = false): Node {
+        val arrayIdent = visit(ident) as Ident
+        val operator = visit(bin_op) as BinOp
+        val startValue = visit(expr) as ExprNode
+        val array = globalSymbolTable.getNodeGlobal(arrayIdent.toString())
+        if (!globalSymbolTable.containsNodeGlobal(arrayIdent.toString())) {
+            semanticListener.undefinedVar(arrayIdent.toString(), ctx)
+        } else if (!binaryOpsRequires(operator.value).contains(array!!.getBaseType())) {
+            semanticListener.binaryOpType(ctx)
+        } else if (!binaryOpsRequires(operator.value).contains(getExprType(startValue, ctx))) {
+            semanticListener.binaryOpType(ctx)
+        }
+
+        // Create a counter
+        val counterVar = Ident("&fold_counter")
+        globalSymbolTable.addNode(counterVar.toString(), Type(INT))
+        val totalVar = Ident("&fold_total")
+        globalSymbolTable.addNode(totalVar.toString(), array!!.getBaseType())
+        val arraySizeVar = Ident("&fold_length")
+        globalSymbolTable.addNode(arraySizeVar.toString(), Type(INT))
+
+        // Create the symbol table for the while node
+        val mapSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
+        globalSymbolTable = mapSymbolTable
+
+        val size = DeclarationNode(Int(), arraySizeVar, RHSExprNode(UnaryOpNode(UnOp.LEN, arrayIdent)))
+
+        val counter = if (left) {
+            DeclarationNode(Int(), counterVar, RHSExprNode(IntLiterNode("0")))
+        } else {
+            val counterInit = BinaryOpNode(BinOp.MINUS, arraySizeVar, IntLiterNode("1"))
+            DeclarationNode(Int(), counterVar, RHSExprNode(counterInit))
+        }
+
+        val type = getExprType(startValue, ctx)
+        val total = DeclarationNode(typeToNode(type!!), totalVar, RHSExprNode(startValue))
+
+        val lhsAssign = AssignLHSIdentNode(totalVar)
+        val rhsOp = if (left) {
+            RHSExprNode(BinaryOpNode(operator, totalVar, ArrayElem(arrayIdent, listOf(counterVar))))
+        } else {
+            RHSExprNode(BinaryOpNode(operator, ArrayElem(arrayIdent, listOf(counterVar)), totalVar))
+        }
+
+        val body1 = AssignNode(lhsAssign, rhsOp)
+        val body2 = if (left) {
+            SideExpressionNode(AssignLHSIdentNode(counterVar), AddOneNode())
+        } else {
+            SideExpressionNode(AssignLHSIdentNode(counterVar), SubOneNode())
+        }
+        val whileSeq = SequenceNode(mutableListOf(body1, body2))
+        val cond = if (left) {
+            BinaryOpNode(BinOp.LT, counterVar, arraySizeVar)
+        } else {
+            BinaryOpNode(BinOp.GTE, counterVar, IntLiterNode("0"))
+        }
+        val whileLoop = WhileNode(cond, whileSeq)
+
+        globalSymbolTable = globalSymbolTable.parentT!!
+
+        val sequence = mutableListOf(size, counter, total, whileLoop)
+
+        return RHSFoldNode(SequenceNode(sequence))
+    }
+
+    override fun visitAssignRhsFoldl(ctx: AssignRhsFoldlContext): Node {
+        return visitFold(ctx.ident(), ctx.bin_op(), ctx.expr(), ctx, true)
+    }
+
+    override fun visitAssignRhsFoldr(ctx: AssignRhsFoldrContext): Node {
+        return visitFold(ctx.ident(), ctx.bin_op(), ctx.expr(), ctx)
     }
 
     private fun sequenceList(ctx: SequenceContext): MutableList<StatementNode> {
@@ -730,9 +830,12 @@ class ASTBuilder(
                     }
                 }
             }
-            else -> {
+            is RHSFoldNode -> {
+                globalSymbolTable.getNodeGlobal(Ident("&fold_total").toString())
+            }
+            is RHSNewPairNode -> {
                 // RHSNewPairElemNode
-                val pair = rhs as RHSNewPairNode
+                val pair = rhs
                 var expr1 = getExprType(pair.expr1, ctx)
                 var expr2 = getExprType(rhs.expr2, ctx)
 
@@ -759,6 +862,7 @@ class ASTBuilder(
                     else -> Type(expr1, expr2)
                 }
             }
+            else -> throw Error("RHS not implemented")
         }
     }
 

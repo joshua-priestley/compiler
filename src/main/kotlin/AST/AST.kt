@@ -111,6 +111,7 @@ data class RHSArrayLitNode(val exprs: List<ExprNode>) : AssignRHSNode
 data class RHSNewPairNode(val expr1: ExprNode, val expr2: ExprNode) : AssignRHSNode
 data class RHSPairElemNode(val pairElem: PairElemNode) : AssignRHSNode
 data class RHSCallNode(val ident: Ident, val argList: List<ExprNode>?) : AssignRHSNode
+data class RHSFoldNode(val sequenceNode: SequenceNode): AssignRHSNode
 
 /*
  * Pair Elem

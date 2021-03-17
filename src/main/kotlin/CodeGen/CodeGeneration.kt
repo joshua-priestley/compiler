@@ -17,6 +17,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private var inElseStatement = false
     private var assign = false
     private var printing = false
+    private var parameter = false
 
     private var endLabel = Stack<String>()
     private var conditionLabel = Stack<String>()
@@ -144,7 +145,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is BreakNode -> generateBreak()
             is ContinueNode -> generateContinue()
             is CallNode -> generateCallNode(RHSCallNode(stat.ident, stat.argList), true)
-            else -> throw Error("Should not get here")
+            else -> throw Error("Stat not implemented")
         }
     }
 
@@ -164,7 +165,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is SubNNode -> RHSExprNode(BinaryOpNode(BinOp.MINUS, stat.ident.ident, stat.sideExpr.value))
             is MulNNode -> RHSExprNode(BinaryOpNode(BinOp.MUL, stat.ident.ident, stat.sideExpr.value))
             is DivNNode -> RHSExprNode(BinaryOpNode(BinOp.DIV, stat.ident.ident, stat.sideExpr.value))
-            else -> throw Error("Should not get here")
+            else -> throw Error("Side expression not implemented")
         }
         val assignConversion = AssignNode(stat.ident, rhsConversion)
         return generateAssign(assignConversion)
@@ -224,7 +225,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 readInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
                 stat.lhs.arrayElem
             }
-            else -> throw Error("Does not exist")
+            else -> throw Error("LHS not implemented")
         }
         assign = false
 
@@ -246,7 +247,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             val parameters = call.argList.reversed()
 
             for (param in parameters) {
+                parameter = true
                 callInstructions.addAll(generateExpr(param))
+                parameter = false
                 val offset = getExprOffset(param)
                 totalOffset += offset
                 assert(offset != 0)
@@ -579,10 +582,18 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is RHSArrayLitNode -> rhsInstruction.addAll(generateArrayLitNode(rhs.exprs, reg))
             is RHSNewPairNode -> rhsInstruction.addAll(generateNewPair(rhs))
             is RHSPairElemNode -> rhsInstruction.addAll(generatePairAccess(rhs.pairElem, false))
-            else -> throw Error("Does not exist")
+            is RHSFoldNode -> rhsInstruction.addAll(generateFold(rhs))
+            else -> throw Error("RHS not implemented")
         }
 
         return rhsInstruction
+    }
+
+    private fun generateFold(rhs: RHSFoldNode): List<Instruction> {
+        val foldInstructions = mutableListOf<Instruction>()
+        foldInstructions.addAll(generateStat(rhs.sequenceNode))
+        foldInstructions.addAll(generateExpr(Ident("&fold_total")))
+        return foldInstructions
     }
 
     private fun generatePairAccess(pairElem: PairElemNode, assign: Boolean, reg: Register = Register.r4): List<Instruction> {
@@ -717,8 +728,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
         }
         if (type != null) {
-            if (!assign || printing) {
-                arrayElemInstructions.add(Load(Register.r4, reg, sb = type.getTypeSize() == 1))
+            if (!assign || printing || parameter) {
+                if (parameter) {
+                    arrayElemInstructions.add(Load(reg, reg, sb = type.getTypeSize() == 1))
+
+                } else {
+                    arrayElemInstructions.add(Load(Register.r4, reg, sb = type.getTypeSize() == 1))
+                }
             } else {
                 arrayElemInstructions.add(Store(Register.r4, reg, byte = type.getTypeSize() == 1))
             }
@@ -846,6 +862,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
 
         //If there are no registers left, use r10 and push onto the stack
+        parameter = true
         if (operand1 >= Register.r10) {
             pop = true
             operand1 = Register.r10
@@ -854,9 +871,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         } else {
             binOpInstructs.addAll(generateExpr(binOp.expr1, operand1))
         }
+
         var operand2 = operand1.nextAvailable()
         if (operand2 >= Register.r10) operand2 = Register.r10
         val expr2 = generateExpr(binOp.expr2, operand2)
+        parameter = false
         binOpInstructs.addAll(expr2)
 
         var dstRegister = operand1
@@ -947,7 +966,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 binOpInstructs.add(Or(dstRegister, operand1, operand2))
             }
             else -> {
-                throw Error("Should not get here")
+                throw Error("Binary Operator not implemented")
             }
         }
         return binOpInstructs
@@ -1039,7 +1058,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is PairLiterNode -> Type(PAIR_LITER)
             is PairElemNode -> getType(expr.expr)
             else -> {
-                throw Error("Should not get here")
+                throw Error("Expr not implemented")
             }
         }
     }
