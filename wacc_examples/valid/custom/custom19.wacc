@@ -7,12 +7,11 @@
 # Program:
 
 begin
-  int f(int x) is
-    return x + 1
-  end
   int[] x = [1, 2, 3];
   int counter = 0;
-  while counter < len x do
-    x[counter] = call f(x[counter])
-  done
+  int total = 0;
+  while counter < 3 do
+    total = total + x[counter]
+  done ;
+  println(total)
 end

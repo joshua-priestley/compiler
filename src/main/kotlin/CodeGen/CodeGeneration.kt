@@ -729,7 +729,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
         if (type != null) {
             if (!assign || printing || parameter) {
-                arrayElemInstructions.add(Load(Register.r4, reg, sb = type.getTypeSize() == 1))
+                if (parameter) {
+                    arrayElemInstructions.add(Load(reg, reg, sb = type.getTypeSize() == 1))
+
+                } else {
+                    arrayElemInstructions.add(Load(Register.r4, reg, sb = type.getTypeSize() == 1))
+                }
             } else {
                 arrayElemInstructions.add(Store(Register.r4, reg, byte = type.getTypeSize() == 1))
             }
@@ -857,6 +862,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         }
 
         //If there are no registers left, use r10 and push onto the stack
+        parameter = true
         if (operand1 >= Register.r10) {
             pop = true
             operand1 = Register.r10
@@ -865,9 +871,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         } else {
             binOpInstructs.addAll(generateExpr(binOp.expr1, operand1))
         }
+
         var operand2 = operand1.nextAvailable()
         if (operand2 >= Register.r10) operand2 = Register.r10
         val expr2 = generateExpr(binOp.expr2, operand2)
+        parameter = false
         binOpInstructs.addAll(expr2)
 
         var dstRegister = operand1
