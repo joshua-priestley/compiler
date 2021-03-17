@@ -1,14 +1,14 @@
 package AST
 
-import antlr.WACCParser.*
-import antlr.WACCParserBaseVisitor
-import org.antlr.v4.runtime.ParserRuleContext
 import AST.Type.Companion.binaryOpsProduces
 import AST.Type.Companion.binaryOpsRequires
 import AST.Type.Companion.unaryOpsProduces
 import AST.Type.Companion.unaryOpsRequires
 import ErrorHandler.SemanticErrorHandler
 import ErrorHandler.SyntaxErrorHandler
+import antlr.WACCParser.*
+import antlr.WACCParserBaseVisitor
+import org.antlr.v4.runtime.ParserRuleContext
 import java.util.concurrent.atomic.AtomicInteger
 
 
@@ -134,6 +134,7 @@ class ASTBuilder(
 
     private fun checkParameters(rhs: RHSCallNode, ctx: ParserRuleContext): Boolean {
         // Checks all the arguments being passed into a function so that all the types match up
+        println(rhs)
         val parameterTypes = functionParameters[rhs.ident.toString()]
         if (rhs.argList == null && parameterTypes!!.isEmpty()) {
             // Check if there are parameters

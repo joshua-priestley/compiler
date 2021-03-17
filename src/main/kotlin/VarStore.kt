@@ -32,7 +32,7 @@ class VarStore {
     fun enterFunction(arguments: List<Any>, params: List<String>): VarStore{
         val newStore = VarStore(this)
         for (i in arguments.indices) {
-
+            println("param: ${params[i]} arg: ${arguments[i]}")
             newStore.declareBaseValue(params[i], arguments[i])
         }
         return newStore
