@@ -25,8 +25,7 @@ class TypePair(type1: Type?, type2: Type?) : Type() {
         } else {
             val sb = StringBuilder()
             //Return PAIR(<FstType>,<SndType>)
-            val symbolName = VOCABULARY.getSymbolicName(getType())
-            sb.append(symbolName)
+            sb.append("PAIR")
             if (!(getPairFst() == null && getPairSnd() == null)) {
                 sb.append('(')
                 sb.append(getPairFst().toString())

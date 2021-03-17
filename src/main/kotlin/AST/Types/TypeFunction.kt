@@ -14,7 +14,6 @@ class TypeFunction(private val retType: Type?, val params: MutableCollection<Typ
 
     override fun equals(other: Any?): Boolean {
         return if (other is TypeFunction) {
-            val equal = true
             if (params.size != other.params.size || typeInt != other.typeInt) return false
             this.params.zip(other.params).all { (x, y) -> x == y }
         } else {
