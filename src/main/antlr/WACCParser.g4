@@ -4,7 +4,7 @@ options {
   tokenVocab=WACCLexer;
 }
 
-program: BEGIN (func)* stat END EOF;
+program: BEGIN (macro)* (func)* stat END EOF;
 
 func: type ident OPEN_PARENTHESES (param_list)? CLOSE_PARENTHESES IS stat END;
 
@@ -21,14 +21,21 @@ stat: SKP                                           # skip
   | EXIT expr                                       # exit
   | PRINT expr                                      # print
   | PRINTLN expr                                    # println
-  | IF expr THEN stat ELSE stat FI                  # if
+  | IF expr THEN stat (else_if)* (ELSE stat)? FI    # if
   | WHILE expr DO stat DONE                         # while
+  | DO stat WHILE expr DONE                         # do_while
   | BEGIN stat END                                  # begin
   | <assoc=right> stat SEMICOLON stat               # sequence
   | assign_lhs sideExpr                             # sideExpression
   | CONTINUE                                        # continue
   | BREAK                                           # break
+  | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES # call
+  | MAP OPEN_PARENTHESES ident  CLOSE_PARENTHESES
+        (OPEN_PARENTHESES arg_list  CLOSE_PARENTHESES)?
+        ident                                       # map
   ;
+
+else_if: ELSE IF expr THEN stat;
 
 assign_lhs: ident                                   # assignLhsId
   | array_elem                                      # assignLhsArray
@@ -40,6 +47,8 @@ assign_rhs: expr                                                  # assignRhsExp
   | NEWPAIR OPEN_PARENTHESES expr COMMA expr CLOSE_PARENTHESES    # assignRhsNewpair
   | pair_elem                                                     # assignRhsPairElem
   | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES     # assignRhsCall
+  | FOLDL OPEN_PARENTHESES bin_op CLOSE_PARENTHESES expr ident    # assignRhsFoldl
+  | FOLDR OPEN_PARENTHESES bin_op CLOSE_PARENTHESES expr ident    # assignRhsFoldr
   ;
 
 arg_list: expr (COMMA expr)*;
@@ -67,23 +76,29 @@ pair_type: PAIR OPEN_PARENTHESES pair_elem_type COMMA pair_elem_type CLOSE_PAREN
 
 pair_elem_type: base_type | array_type| PAIR;
 
-
 expr: (PLUS | MINUS)? INT_LITER                 # liter
+  | HEX_LITER                                   # liter
+  | OCT_LITER                                   # liter
+  | BIN_LITER                                   # liter
   | BOOL_LITER                                  # liter
   | CHAR_LITER                                  # liter
   | STR_LITER                                   # liter
   | pair_liter                                  # pairLiter
   | ident                                       # id
   | array_elem                                  # arrayElem
-  | (NOT | MINUS | LEN | ORD | CHR) expr        # unaryOp
+  | (NOT | MINUS | LEN | ORD
+   | CHR | BITWISENOT) expr                     # unaryOp
   | expr (MUL | DIV | MOD) expr                 # binaryOp
   | expr (PLUS | MINUS) expr                    # binaryOp
   | expr (GT | GTE | LT | LTE) expr             # binaryOp
   | expr (EQ | NEQ) expr                        # binaryOp
   | expr (AND) expr                             # binaryOp
   | expr (OR) expr                              # binaryOp
+  | expr (BITWISEAND | BITWISEOR) expr          # binaryOp
   | OPEN_PARENTHESES expr CLOSE_PARENTHESES     # parentheses
   ;
+
+bin_op: MUL | DIV | PLUS | MINUS | AND | OR | BITWISEAND | BITWISEOR;
 
 pair_liter: NULL;
 
@@ -100,3 +115,6 @@ sideExpr: nunOp           # sideOperator
 nunOp: (PLUS PLUS) | (MINUS MINUS);
 
 opN: (ADDN | SUBN | MULN | DIVN) expr;
+
+macro: MACRO type ident OPEN_PARENTHESES param_list CLOSE_PARENTHESES
+                        OPEN_PARENTHESES expr CLOSE_PARENTHESES;

@@ -7,8 +7,7 @@
 # Program:
 
 begin
-  void fun() is
-    println(2)
-  end
-  call fun()
+  while true do
+    int x = 3
+  done
 end

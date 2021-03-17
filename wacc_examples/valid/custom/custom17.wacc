@@ -7,8 +7,5 @@
 # Program:
 
 begin
-  void fun() is
-    println(2)
-  end
-  call fun()
+  int x = 0b1101
 end

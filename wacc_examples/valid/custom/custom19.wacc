@@ -1,0 +1,18 @@
+# a simple increment function definition and usage
+
+# Output:
+# 1
+# 4
+
+# Program:
+
+begin
+  int[] x = [1, 2, 3];
+  int counter = 0;
+  int total = 0;
+  int size = len x ;
+  while counter < size do
+    total = total + x[counter]
+  done ;
+  println(total)
+end

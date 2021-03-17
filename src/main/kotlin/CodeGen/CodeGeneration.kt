@@ -23,6 +23,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private var inElseStatement = false
     private var assign = false
     private var printing = false
+    private var parameter = false
 
     private var endLabel = Stack<String>()
     private var conditionLabel = Stack<String>()
@@ -143,12 +144,14 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is PrintlnNode -> generatePrintln(stat)
             is IfElseNode -> generateIf(stat)
             is WhileNode -> generateWhile(stat)
+            is DoWhileNode -> generateDoWhile(stat)
             is BeginEndNode -> generateBegin(stat)
             is SequenceNode -> generateSeq(stat)
             is SideExpressionNode -> generateSideExpression(stat)
             is BreakNode -> generateBreak()
             is ContinueNode -> generateContinue()
-            else -> throw Error("Should not get here")
+            is CallNode -> generateCallNode(RHSCallNode(stat.ident, stat.argList), true)
+            else -> throw Error("Stat not implemented")
         }
     }
 
@@ -168,7 +171,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is SubNNode -> RHSExprNode(BinaryOpNode(BinOp.MINUS, stat.ident.ident, stat.sideExpr.value))
             is MulNNode -> RHSExprNode(BinaryOpNode(BinOp.MUL, stat.ident.ident, stat.sideExpr.value))
             is DivNNode -> RHSExprNode(BinaryOpNode(BinOp.DIV, stat.ident.ident, stat.sideExpr.value))
-            else -> throw Error("Should not get here")
+            else -> throw Error("Side expression not implemented")
         }
         val assignConversion = AssignNode(stat.ident, rhsConversion)
         return generateAssign(assignConversion)
@@ -229,7 +232,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 readInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
                 stat.lhs.arrayElem
             }
-            else -> throw Error("Does not exist")
+            else -> throw Error("LHS not implemented")
         }
         assign = false
 
@@ -244,14 +247,16 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return readInstructions
     }
 
-    private fun generateCallNode(call: RHSCallNode): List<Instruction> {
+    private fun generateCallNode(call: RHSCallNode, voidReturn: Boolean = false): List<Instruction> {
         val callInstructions = mutableListOf<Instruction>()
         var totalOffset = 0
         if (!call.argList.isNullOrEmpty()) {
             val parameters = call.argList.reversed()
 
             for (param in parameters) {
+                parameter = true
                 callInstructions.addAll(generateExpr(param))
+                parameter = false
                 val offset = getExprOffset(param)
                 totalOffset += offset
                 assert(offset != 0)
@@ -266,7 +271,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         callInstructions.add(Branch(functionName, true))
         if (totalOffset != 0) callInstructions.add(Add(Register.sp, Register.sp, ImmOp(totalOffset)))
 
-        callInstructions.add(Move(Register.r4, Register.r0))
+        if (!voidReturn) callInstructions.add(Move(Register.r4, Register.r0))
 
         return callInstructions
     }
@@ -303,35 +308,114 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return declareInstructions
     }
 
+    private fun generateElseIf(instructions: MutableList<Instruction>, elseIf: ElseIfNode, nextElse: String?, endLabel: String): Boolean {
+        if (elseIf.expr is BoolLiterNode && elseIf.expr.value == "false") {
+            return false
+        }
+
+        val alwaysTrue = elseIf.expr is BoolLiterNode && elseIf.expr.value == "true"
+
+        if (!alwaysTrue) {
+            assign = true
+            if (elseIf.expr is LiterNode) {
+                instructions.addAll(generateLiterNode(elseIf.expr, Register.r4))
+            } else {
+                instructions.addAll(generateExpr(elseIf.expr))
+            }
+            assign = false
+            // Compare the conditional
+            instructions.add(Compare(Register.r4, ImmOp(0)))
+            if (nextElse != null) {
+                instructions.add(Branch(nextElse, false, Conditions.EQ))
+            } else {
+                instructions.add(Branch(endLabel, false, Conditions.EQ))
+            }
+        }
+
+        enterNewScope(instructions, elseIf.then)
+        if (!alwaysTrue) {
+            instructions.add(Branch(endLabel, false))
+        }
+
+        return alwaysTrue
+    }
+
     private fun generateIf(stat: IfElseNode): List<Instruction> {
         val ifInstruction = mutableListOf<Instruction>()
 
-        val elseLabel = nextLabel()
+        val doElse = stat.expr is BoolLiterNode && stat.expr.value == "false" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == FALSE_VAL
+        var doIf = stat.expr is BoolLiterNode && stat.expr.value == "true" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == TRUE_VAL
+
+        var elseLabel = ""
+        var firstElseIfLabel = ""
         val endLabel = nextLabel()
 
-        // Load up the conditional
-        assign = true
-        if (stat.expr is LiterNode) {
-            ifInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
-        } else {
-            ifInstruction.addAll(generateExpr(stat.expr))
+        if (stat.else_ != null) {
+            elseLabel = nextLabel()
         }
-        assign = false
 
-        // Compare the conditional
-        ifInstruction.add(Compare(Register.r4, ImmOp(0)))
-        ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
+        if (stat.elseIfs.isNotEmpty()) {
+            firstElseIfLabel = nextLabel()
+        }
 
-        // Then Branch
-        stackToAdd += globalSymbolTable.localStackSize()
-        enterNewScope(ifInstruction, stat.then)
-        ifInstruction.add(Branch(endLabel, false))
+        if (!doElse && !doIf) {
+            // Load up the conditional
+            assign = true
+            if (stat.expr is LiterNode) {
+                ifInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
+            } else {
+                ifInstruction.addAll(generateExpr(stat.expr))
+            }
+            assign = false
+            // Compare the conditional
+            ifInstruction.add(Compare(Register.r4, ImmOp(0)))
+            if (stat.elseIfs.isNotEmpty()) {
+                ifInstruction.add(Branch(firstElseIfLabel, false, Conditions.EQ))
+            } else if (stat.else_ != null) {
+                ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
+            } else {
+                ifInstruction.add(Branch(endLabel, false, Conditions.EQ))
+            }
+        }
 
-        inElseStatement = true
-        // Else Branch
-        ifInstruction.add(FunctionDeclaration(elseLabel))
-        enterNewScope(ifInstruction, stat.else_)
-        stackToAdd -= globalSymbolTable.localStackSize()
+        if (!doElse) {
+            // Then Branch
+            stackToAdd += globalSymbolTable.localStackSize()
+            enterNewScope(ifInstruction, stat.then)
+            if (stat.else_ != null) {
+                ifInstruction.add(Branch(endLabel, false))
+            }
+        }
+
+        if (!doIf && firstElseIfLabel != "") {
+            ifInstruction.add(FunctionDeclaration(firstElseIfLabel))
+            for (i in stat.elseIfs.indices) {
+                val nextElse: String? = if (i != stat.elseIfs.size - 1) {
+                    nextLabel()
+                } else if (stat.else_ != null) {
+                    elseLabel
+                } else {
+                    null
+                }
+                doIf = generateElseIf(ifInstruction, stat.elseIfs[i], nextElse, endLabel)
+                if (nextElse != null && nextElse != elseLabel && nextElse != "") {
+                    ifInstruction.add(FunctionDeclaration(nextElse))
+                }
+                if (doIf) {
+                    break
+                }
+            }
+        }
+
+        if (stat.else_ != null && !doIf) {
+            inElseStatement = true
+            // Else Branch
+            if (elseLabel != "") {
+                ifInstruction.add(FunctionDeclaration(elseLabel))
+            }
+            enterNewScope(ifInstruction, stat.else_)
+            stackToAdd -= globalSymbolTable.localStackSize()
+        }
 
         ifInstruction.add(FunctionDeclaration(endLabel))
 
@@ -339,8 +423,51 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return ifInstruction
     }
 
+    private fun generateDoWhile(stat: DoWhileNode): List<Instruction> {
+        val doWhileInstruction = mutableListOf<Instruction>()
+
+        val bodyLabel = nextLabel()
+        endLabel.push(nextLabel())
+
+        // Loop body
+        doWhileInstruction.add(FunctionDeclaration(bodyLabel))
+        if (!inElseStatement) stackToAdd += globalSymbolTable.localStackSize()
+        enterNewScope(doWhileInstruction, stat.do_)
+        if (!inElseStatement) stackToAdd -= globalSymbolTable.localStackSize()
+
+        if (stat.expr is BoolLiterNode && stat.expr.value == "false" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == FALSE_VAL) {
+            return doWhileInstruction
+        }
+        val forever = stat.expr is BoolLiterNode && stat.expr.value == "true" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == TRUE_VAL
+
+
+        // Conditional
+        if (forever) {
+            doWhileInstruction.add(Branch(bodyLabel, false))
+        } else {
+            assign = true
+            if (stat.expr is LiterNode) {
+                doWhileInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
+            } else {
+                doWhileInstruction.addAll(generateExpr(stat.expr))
+            }
+            doWhileInstruction.add(Compare(Register.r4, ImmOp(1)))
+            doWhileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
+            assign = false
+        }
+        doWhileInstruction.add(FunctionDeclaration(endLabel.peek()))
+
+        endLabel.pop()
+        return doWhileInstruction
+    }
+
     private fun generateWhile(stat: WhileNode): List<Instruction> {
         val whileInstruction = mutableListOf<Instruction>()
+
+        if (stat.expr is BoolLiterNode && stat.expr.value == "false" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == FALSE_VAL) {
+            return whileInstruction
+        }
+        val forever = stat.expr is BoolLiterNode && stat.expr.value == "true" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == TRUE_VAL
 
         conditionLabel.push(nextLabel())
         val bodyLabel = nextLabel()
@@ -355,17 +482,21 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         if (!inElseStatement) stackToAdd -= globalSymbolTable.localStackSize()
 
         // Conditional
-        assign = true
         whileInstruction.add(FunctionDeclaration(conditionLabel.peek()))
-        if (stat.expr is LiterNode) {
-            whileInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
+        if (forever) {
+            whileInstruction.add(Branch(bodyLabel, false))
         } else {
-            whileInstruction.addAll(generateExpr(stat.expr))
+            assign = true
+            if (stat.expr is LiterNode) {
+                whileInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
+            } else {
+                whileInstruction.addAll(generateExpr(stat.expr))
+            }
+            whileInstruction.add(Compare(Register.r4, ImmOp(1)))
+            whileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
+            assign = false
         }
-        whileInstruction.add(Compare(Register.r4, ImmOp(1)))
-        whileInstruction.add(Branch(bodyLabel, false, Conditions.EQ))
         whileInstruction.add(FunctionDeclaration(endLabel.peek()))
-        assign = false
 
         endLabel.pop()
         conditionLabel.pop()
@@ -458,10 +589,18 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is RHSArrayLitNode -> rhsInstruction.addAll(generateArrayLitNode(rhs.exprs, reg))
             is RHSNewPairNode -> rhsInstruction.addAll(generateNewPair(rhs))
             is RHSPairElemNode -> rhsInstruction.addAll(generatePairAccess(rhs.pairElem, false))
-            else -> throw Error("Does not exist")
+            is RHSFoldNode -> rhsInstruction.addAll(generateFold(rhs))
+            else -> throw Error("RHS not implemented")
         }
 
         return rhsInstruction
+    }
+
+    private fun generateFold(rhs: RHSFoldNode): List<Instruction> {
+        val foldInstructions = mutableListOf<Instruction>()
+        foldInstructions.addAll(generateStat(rhs.sequenceNode))
+        foldInstructions.addAll(generateExpr(Ident("&fold_total")))
+        return foldInstructions
     }
 
     private fun generatePairAccess(pairElem: PairElemNode, assign: Boolean, reg: Register = Register.r4): List<Instruction> {
@@ -596,8 +735,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
         }
         if (type != null) {
-            if (!assign || printing) {
-                arrayElemInstructions.add(Load(Register.r4, reg, sb = type.getTypeSize() == 1))
+            if (!assign || printing || parameter) {
+                if (parameter) {
+                    arrayElemInstructions.add(Load(reg, reg, sb = type.getTypeSize() == 1))
+
+                } else {
+                    arrayElemInstructions.add(Load(Register.r4, reg, sb = type.getTypeSize() == 1))
+                }
             } else {
                 arrayElemInstructions.add(Store(Register.r4, reg, byte = type.getTypeSize() == 1))
             }
@@ -610,6 +754,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         when (exprNode) {
             is IntLiterNode -> {
                 loadInstruction.add(Load(dstRegister, exprNode.value.toInt()))
+            }
+            is HexLiterNode -> {
+                loadInstruction.add(Load(dstRegister, exprNode.value.replace("0X", "0x")))
+            }
+            is BinLiterNode -> {
+                loadInstruction.add(Load(dstRegister, exprNode.value.replace("0b", "2_").replace("0B", "2_")))
+            }
+            is OctLiterNode -> {
+                loadInstruction.add(Load(dstRegister, exprNode.value))
             }
             is StrLiterNode -> {
                 data.addMessage(Message(exprNode.value))
@@ -655,9 +808,54 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             UnOp.LEN -> {
                 unOpInstructs.add(Load(Register.r4, reg))
             }
+            UnOp.BITWISENOT -> {
+                unOpInstructs.add(Not(reg, reg))
+            }
             else -> emptyList<Instruction>()
         }
         return unOpInstructs
+    }
+
+    private fun literToBool(value: String): Boolean {
+        return value == "true"
+    }
+
+    private fun getConstEvalNested(expr: ExprNode): ExprNode? {
+        if (expr is BinaryOpNode) {
+            val value = constantEvaluation(expr)
+            if (value == null) return value
+            return if (expr.operator == BinOp.AND || expr.operator == BinOp.OR) {
+                BoolLiterNode(if (value == TRUE_VAL) "true" else "false")
+            } else {
+                IntLiterNode(value.toString())
+            }
+        }
+        return null
+    }
+
+    private fun constantEvaluation(binOp: BinaryOpNode): Int? {
+        val lhsExpr = getConstEvalNested(binOp.expr1) ?: binOp.expr1
+        val rhsExpr = getConstEvalNested(binOp.expr2) ?: binOp.expr2
+
+        if (lhsExpr is IntLiterNode && rhsExpr is IntLiterNode) {
+            return when (binOp.operator.value) {
+                BinOp.PLUS.value -> lhsExpr.value.toInt() + rhsExpr.value.toInt()
+                BinOp.MINUS.value -> lhsExpr.value.toInt() - rhsExpr.value.toInt()
+                BinOp.MUL.value -> lhsExpr.value.toInt() * rhsExpr.value.toInt()
+                BinOp.BITWISEAND.value -> lhsExpr.value.toInt() and rhsExpr.value.toInt()
+                BinOp.BITWISEOR.value -> lhsExpr.value.toInt() or rhsExpr.value.toInt()
+                else -> null
+            }
+        }
+        if (lhsExpr is BoolLiterNode && rhsExpr is BoolLiterNode) {
+            return when (binOp.operator.value) {
+                BinOp.AND.value -> if (literToBool(lhsExpr.value) && literToBool(rhsExpr.value)) TRUE_VAL else FALSE_VAL
+                BinOp.OR.value -> if (literToBool(lhsExpr.value) || literToBool(rhsExpr.value)) TRUE_VAL else FALSE_VAL
+                else -> null
+            }
+        }
+
+        return null
     }
 
     private fun generateBinOp(binOp: BinaryOpNode, reg: Register = Register.r4): List<Instruction> {
@@ -665,7 +863,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         var operand1 = reg
         var pop = false
 
+        val const = constantEvaluation(binOp)
+        if (const != null) {
+            return listOf(Load(reg, const))
+        }
+
         //If there are no registers left, use r10 and push onto the stack
+        parameter = true
         if (operand1 >= Register.r10) {
             pop = true
             operand1 = Register.r10
@@ -674,9 +878,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         } else {
             binOpInstructs.addAll(generateExpr(binOp.expr1, operand1))
         }
+
         var operand2 = operand1.nextAvailable()
         if (operand2 >= Register.r10) operand2 = Register.r10
         val expr2 = generateExpr(binOp.expr2, operand2)
+        parameter = false
         binOpInstructs.addAll(expr2)
 
         var dstRegister = operand1
@@ -760,8 +966,14 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 binOpInstructs.add(Branch("__aeabi_idiv", true))
                 binOpInstructs.add(Move(dstRegister, Register.r0))
             }
+            BinOp.BITWISEAND -> {
+                binOpInstructs.add(And(dstRegister, operand1, operand2))
+            }
+            BinOp.BITWISEOR -> {
+                binOpInstructs.add(Or(dstRegister, operand1, operand2))
+            }
             else -> {
-                throw Error("Should not get here")
+                throw Error("Binary Operator not implemented")
             }
         }
         return binOpInstructs
@@ -852,7 +1064,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is PairLiterNode -> TypePair(null,null)
             is PairElemNode -> getType(expr.expr)
             else -> {
-                throw Error("Should not get here")
+                throw Error("Expr not implemented")
             }
         }
     }

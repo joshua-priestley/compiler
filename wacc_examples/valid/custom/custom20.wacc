@@ -7,8 +7,6 @@
 # Program:
 
 begin
-  void fun() is
-    println(2)
-  end
-  call fun()
+  define int macro(int x) (x + 1)
+  int y = call macro(3)
 end
