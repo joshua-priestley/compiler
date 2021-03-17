@@ -266,8 +266,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
         }
         globalSymbolTable.subFromOffset(totalOffset)
-
-        val functionName = "f_${call.ident.name}"
+        val args : List<Type>
+        args = if (call.argList == null){
+            mutableListOf()
+        } else {
+            call.argList.map { x -> getType(x)!!}
+        }
+        //val args = rhs.argList!!.map { x -> getExprType(x,ctx) }
+        val string = call.ident.toString() + "(" + args.toString() + ")"
+        val functionName = "f_$string"
         callInstructions.add(Branch(functionName, true))
         if (totalOffset != 0) callInstructions.add(Add(Register.sp, Register.sp, ImmOp(totalOffset)))
 

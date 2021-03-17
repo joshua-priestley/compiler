@@ -64,25 +64,33 @@ class ASTBuilder(
         val ident = visit(id) as Ident // Function name
         val type = visit(t) as TypeNode // Function return type
         // Check if the function already exists
-        if (globalSymbolTable.containsNodeLocal(ident.toString())) {
-            semanticListener.redefinedVariable(ident.name + "()", ctx)
+
+
+
+        // Add each parameter to the function's parameter list in the map
+        val parameterTypes = mutableListOf<Type>()
+        if (p != null) {
+            for (i in 0..p.childCount step 2) {
+                val p = visit(p.getChild(i)) as Param
+                parameterTypes.add(p.type.type)
+            }
+        }
+        val funcType = TypeFunction(type.type, parameterTypes)
+
+        functionParameters[ident.toString()] = parameterTypes
+
+        if (globalSymbolTable.containsNodeLocal(ident.toString() + funcType.toString())) {
+            semanticListener.redefinedVariable(ident.name + "()", id)
         } else {
-            globalSymbolTable.addNode(ident.toString(), type.type.setFunction(true))
+            globalSymbolTable.addNode(ident.toString() + funcType.toString(), funcType)
         }
 
         // Add each parameter to the function's parameter list in the map
-        val parameterTypes = mutableListOf<AST.Type>()
-        if (p != null) {
-            for (i in 0..p.childCount step 2) {
-                val param = visit(p.getChild(i)) as Param
-                parameterTypes.add(param.type.type)
-            }
-        }
-        functionParameters[ident.toString()] = parameterTypes
+
     }
 
     // Visits each function and adds it to the global symbol table
-    private fun addAllFunctions(funcCTXs: MutableList<FuncContext>) {
+   /* private fun addAllFunctions(funcCTXs: MutableList<FuncContext>) {
         for (func in funcCTXs) {
             val ident = visit(func.ident()) as Ident // Function name
             val type = visit(func.type()) as TypeNode // Function return type
@@ -108,7 +116,7 @@ class ASTBuilder(
                 globalSymbolTable.addNode(ident.toString() + funcType.toString(), funcType)
             }
         }
-    }
+    }*/
 
         private fun addAllMacros(macroCTXs: MutableList<MacroContext>) {
             macroCTXs.forEach { addIndividual(it.ident(), it.type(), it.param_list(), it) }
@@ -276,9 +284,9 @@ class ASTBuilder(
 
         // Create a counter
         val counterVar = Ident("&map_counter")
-        globalSymbolTable.addNode(counterVar.toString(), Type(INT))
+        globalSymbolTable.addNode(counterVar.toString(), TypeBase(INT))
         val arraySizeVar = Ident("&map_length")
-        globalSymbolTable.addNode(arraySizeVar.toString(), Type(INT))
+        globalSymbolTable.addNode(arraySizeVar.toString(), TypeBase(INT))
 
         // Create the symbol table for the while node
         val mapSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
@@ -330,9 +338,9 @@ class ASTBuilder(
 
     private fun typeToNode(type: Type): TypeNode {
         return when (type) {
-            Type(INT) -> Int()
-            Type(BOOL) -> Bool()
-            Type(CHAR) -> Chr()
+            TypeBase(INT) -> Int()
+            TypeBase(BOOL) -> Bool()
+            TypeBase(CHAR) -> Chr()
             else -> Str()
         }
     }
@@ -352,11 +360,11 @@ class ASTBuilder(
 
         // Create a counter
         val counterVar = Ident("&fold_counter")
-        globalSymbolTable.addNode(counterVar.toString(), Type(INT))
+        globalSymbolTable.addNode(counterVar.toString(), TypeBase(INT))
         val totalVar = Ident("&fold_total")
         globalSymbolTable.addNode(totalVar.toString(), array!!.getBaseType())
         val arraySizeVar = Ident("&fold_length")
-        globalSymbolTable.addNode(arraySizeVar.toString(), Type(INT))
+        globalSymbolTable.addNode(arraySizeVar.toString(), TypeBase(INT))
 
         // Create the symbol table for the while node
         val mapSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
@@ -854,6 +862,7 @@ class ASTBuilder(
                             }
                         }
                     }
+                    println(string)
                     semanticListener.funRefBeforeAss(rhs.ident.name, ctx)
                     null
                 } else if (!checkParameters(rhs, ctx)) {
