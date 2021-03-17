@@ -40,8 +40,6 @@ class InterpreterBackend (
 
     fun executeProgram(root: ProgramNode): Int {
         visitProgram(root)
-        //displayVarStore()
-        //println("Exitcode: $exitCode")
         return exitCode
     }
 
@@ -92,7 +90,7 @@ class InterpreterBackend (
     private fun visitIf(stat: IfElseNode) {
         if (visitExpr(stat.expr) as Boolean) {
             varStore = varStore.newScope()
-            println(stat)
+            //println(stat)
             visitStat(stat.then)
             varStore = varStore.exitScope()
         } else {
@@ -129,7 +127,7 @@ class InterpreterBackend (
     }
 
     private fun visitReturn(stat: ReturnNode) {
-        println(stat)
+        //println("in return: $stat")
         val returnVal = visitExpr(stat.expr)
         funcReturn = returnVal
         isRetruning = true
@@ -192,6 +190,7 @@ class InterpreterBackend (
     private fun visitDeclaration(stat: DeclarationNode) {
         val value = visitAssignRhs(stat.value)
         varStore.declareBaseValue(stat.ident.name, value)
+        //println("declaring")
         //println("${stat.ident.name} = $value")
     }
 
@@ -217,19 +216,20 @@ class InterpreterBackend (
 
     private fun visitRHSCallNode(expr: RHSCallNode): Any {
         val func = getFuncNode(expr.ident)!!
-        println("calling ${func.ident.name}")
-        varStore = if (expr.argList != null) {
+        //println("calling ${func.ident.name}")
+        if (expr.argList != null) {
             val args = expr.argList.map { visitExpr(it) }
-            args.forEach { println(it) }
+            //args.forEach { println(it) }
             val params = func.params.map { it.ident.name }
-            varStore.enterFunction(args, params)
+            varStore = varStore.enterFunction(args, params)
         } else {
-            varStore.newScope()
+            varStore = varStore.newScope()
         }
+        //println("visiting function")
         visitStat(func.stat)
-        varStore.exitScope()
+        varStore = varStore.exitScope()
         val returnVal = funcReturn!!
-        println(returnVal)
+        //println("in call visit: $returnVal")
         // Clear the return value and s
         funcReturn = null
         isRetruning = false

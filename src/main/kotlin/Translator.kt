@@ -3,6 +3,7 @@ package compiler
 import AST.ASTBuilder
 import AST.ProgramNode
 import AST.SymbolTable
+import AST.Type
 import ErrorHandler.SemanticErrorHandler
 import ErrorHandler.SyntaxErrorHandler
 import antlr.WACCLexer
@@ -10,7 +11,6 @@ import antlr.WACCParser
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import java.io.File
-import java.lang.IllegalArgumentException
 
 interface ParseResult
 
@@ -31,7 +31,11 @@ abstract class FrontendUtils {
     }
 
 
-    fun lexAndParse(program: String, st: SymbolTable = SymbolTable(null, 0)): ParseResult {
+    fun lexAndParse(
+        program: String,
+        st: SymbolTable = SymbolTable(null, 0),
+        funcParams: LinkedHashMap<String, List<Type>> = linkedMapOf()
+    ): ParseResult {
 
         val listener = SyntaxErrorHandler()
         val input = CharStreams.fromString(program)
@@ -50,7 +54,7 @@ abstract class FrontendUtils {
             return FailedParse(SYNTACTIC_ERROR)
         }
 
-        val visitor = ASTBuilder(semanticErrorHandler, listener, st)
+        val visitor = ASTBuilder(semanticErrorHandler, listener, st, funcParams)
         val root = visitor.visit(tree)
 
         if (listener.hasSyntaxErrors()) {

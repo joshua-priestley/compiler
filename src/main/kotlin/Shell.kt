@@ -2,6 +2,7 @@ package compiler
 
 import AST.FunctionNode
 import AST.SymbolTable
+import AST.Type
 import org.jline.terminal.TerminalBuilder
 import org.jline.utils.NonBlockingReader
 import java.util.*
@@ -16,6 +17,7 @@ class Shell : FrontendUtils() {
     private val symbolTable = SymbolTable(null, 0)
     private val varStore = VarStore()
     private val funcList: MutableList<FunctionNode> = mutableListOf()
+    private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
     //private val func
 
     private val history = mutableListOf<String>()
@@ -30,9 +32,7 @@ class Shell : FrontendUtils() {
     private var buffer = ""
 
     private fun makeProgram(input: String?): String {
-        val program = "begin\n$input\n" + (if (inFunction) "skip\n" else "") + "end\n"
-        inFunction = false
-        return program
+        return "begin\n$input\n" + (if (inFunction) "skip\n" else "") + "end\n"
     }
 
 
@@ -79,16 +79,14 @@ class Shell : FrontendUtils() {
             if (line == "*quit") {
                 break
             } else if (inMultiLineStatement) {
-                //println(buffer)
                 if (line == "") {
                     execute(buffer)
-                    buffer = ""
                     inMultiLineStatement = false
                 } else {
                     buffer += "\n$line"
                 }
             } else if (enteringMultiLineStatement(line)) {
-                buffer += "$line"
+                buffer += line
                 inMultiLineStatement = true
             } else {
                 execute(line)
@@ -105,21 +103,19 @@ class Shell : FrontendUtils() {
             return true
         }
         return stripped.substring(0, 2) == "if" ||
-                stripped.substring(0, 5) == "while" ||
+                stripped.length >= 5 && stripped.substring(0, 5) == "while" ||
                 stripped.substring(0, 3)  == "for" ||
                 stripped[stripped.length - 1] == ';'
     }
 
     private fun execute(statement: String) {
         val toRun = makeProgram(statement)
-        val result = lexAndParse(toRun, symbolTable)
-        println(toRun)
+        val result = lexAndParse(toRun, symbolTable, functionParameters)
         if (result !is FailedParse) {
             val backend = InterpreterBackend(symbolTable, varStore, funcList)
             backend.executeProgram((result as SuccessfulParse).root)
-            for (f in funcList) {
-                println(f)
-            }
         }
+        buffer = ""
+        inFunction = false
     }
 }

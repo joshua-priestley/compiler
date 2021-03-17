@@ -15,12 +15,12 @@ import java.util.concurrent.atomic.AtomicInteger
 class ASTBuilder(
         private val semanticListener: SemanticErrorHandler,
         private val syntaxHandler: SyntaxErrorHandler,
-        private var globalSymbolTable: SymbolTable
+        private var globalSymbolTable: SymbolTable,
+    // A map to store all the functions and their parameters for semantic checking
+        private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
 ) : WACCParserBaseVisitor<Node>() {
     private val nextSymbolID = AtomicInteger()
 
-    // A map to store all the functions and their parameters for semantic checking
-    private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
 
     // A flag to know if we want the type a boolean returns or requires
     private var boolTypeResult = false
@@ -134,7 +134,6 @@ class ASTBuilder(
 
     private fun checkParameters(rhs: RHSCallNode, ctx: ParserRuleContext): Boolean {
         // Checks all the arguments being passed into a function so that all the types match up
-        println(rhs)
         val parameterTypes = functionParameters[rhs.ident.toString()]
         if (rhs.argList == null && parameterTypes!!.isEmpty()) {
             // Check if there are parameters
