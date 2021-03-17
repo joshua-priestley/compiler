@@ -250,6 +250,7 @@ class ASTBuilder(
         val mapSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
         globalSymbolTable = mapSymbolTable
 
+        val size = DeclarationNode(Int(), arraySizeVar, RHSExprNode(UnaryOpNode(UnOp.LEN, arrayIdent)))
         val counter = DeclarationNode(Int(), counterVar, RHSExprNode(IntLiterNode("0")))
         val lhsAssign = LHSArrayElemNode(ArrayElem(arrayIdent, listOf(counterVar)))
         // Make a call node and check the parameters
@@ -274,7 +275,7 @@ class ASTBuilder(
 
         globalSymbolTable = globalSymbolTable.parentT!!
 
-        val sequence = mutableListOf(counter, whileLoop)
+        val sequence = mutableListOf(counter, size, whileLoop)
 
         return SequenceNode(sequence)
     }
@@ -327,6 +328,8 @@ class ASTBuilder(
         val mapSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
         globalSymbolTable = mapSymbolTable
 
+        val size = DeclarationNode(Int(), arraySizeVar, RHSExprNode(UnaryOpNode(UnOp.LEN, arrayIdent)))
+
         val counter = if (left) {
             DeclarationNode(Int(), counterVar, RHSExprNode(IntLiterNode("0")))
         } else {
@@ -360,7 +363,7 @@ class ASTBuilder(
 
         globalSymbolTable = globalSymbolTable.parentT!!
 
-        val sequence = mutableListOf(counter, total, whileLoop)
+        val sequence = mutableListOf(counter, size, total, whileLoop)
 
         return RHSFoldNode(SequenceNode(sequence))
     }
