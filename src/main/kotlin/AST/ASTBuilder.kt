@@ -212,7 +212,6 @@ class ASTBuilder(
         boolTypeResult = false
         if (lhsType != null) {
             // Check that the types are equal for all different cases (variable, array or pair)
-            println(rhs.toString())
             if (lhsType.getType() != rhsType!!.getType() && !(lhsType.getArray() && rhsType.getType() == TypeBase(EMPTY_ARR).getType())
                     && !(lhsType.getPair() && rhsType.getType() == TypePair(null,null).getType())
             ) {
@@ -595,6 +594,14 @@ class ASTBuilder(
                 //val args = rhs.argList!!.map { x -> getExprType(x,ctx) }
                 val string = rhs.ident.toString() + "(" + args.toString() + ")"
                 if (!globalSymbolTable.containsNodeGlobal(string)) {
+                    if (args.contains(TypePair(null, null))) {
+                        val funcKeys = globalSymbolTable.filterFuncs(rhs.ident.toString())
+                        for (value in funcKeys.values){
+                            if (value is TypeFunction && TypeFunction(value.getReturn(),(args as MutableCollection<Type>)) == value){
+                                return value.getReturn()
+                            }
+                        }
+                    }
                     semanticListener.funRefBeforeAss(rhs.ident.name, ctx)
                     null
                 } else if (!checkParameters(rhs, ctx)) {

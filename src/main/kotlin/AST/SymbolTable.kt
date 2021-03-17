@@ -1,6 +1,7 @@
 package AST
 
 import AST.Types.Type
+import compiler.AST.Types.TypeFunction
 import kotlin.Int
 
 // Class to store the symbol table with a reference to the parent symbol table
@@ -19,12 +20,27 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
         parentT?.addChildTable(ID, this)
     }
 
+    fun filterFuncs(name : String) : Map<String,Type>{
+        println(table.entries)
+        val funcs : LinkedHashMap<String, Type> = linkedMapOf()
+        var currTable: SymbolTable? = this
+        while (currTable != null) {
+            funcs.putAll(currTable.table.filterKeys { K -> K.contains(name) && table[K] is TypeFunction})
+            currTable = currTable.parentT
+        }
+        return funcs
+    }
+
     fun addChildTable(ID: Int, child: SymbolTable) {
         childrenTables[ID] = child
     }
 
     fun getChildTable(ID: Int): SymbolTable? {
         return childrenTables[ID]
+    }
+
+    fun getVals(): MutableCollection<Type>{
+        return table.values
     }
 
     //Add a node to the symbol table
@@ -72,6 +88,7 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
         // Same as getting a node but just returning true or false
         var currTable: SymbolTable? = this
         while (currTable != null) {
+            println(currTable.table.entries)
             val type = currTable.table[name]
             if (type != null) {
                 return true
