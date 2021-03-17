@@ -639,6 +639,29 @@ class ASTBuilder(
 
     // Checks that the LHS type = RHS type and creates an AST node
     override fun visitVarDeclaration(ctx: VarDeclarationContext): Node {
+        return visit(ctx.declare_var())
+    }
+
+    private fun checkForCondSemantics(cond: ExprNode, ctx: ParserRuleContext) {
+        if (cond !is BinaryOpNode) {
+            semanticListener.forLoopCond(ctx)
+        }
+    }
+
+    override fun visitFor_loop(ctx: For_loopContext): Node {
+        val loopSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
+        globalSymbolTable = loopSymbolTable
+
+        val counter = visit(ctx.for_cond().declare_var()) as DeclarationNode
+        val terminator = visit(ctx.for_cond().expr()) as ExprNode
+        val update = visit(ctx.for_cond().stat()) as StatementNode
+        val do_ = visit(ctx.stat()) as StatementNode
+
+        globalSymbolTable = globalSymbolTable.parentT!!
+        return ForNode(counter, update, terminator, do_)
+    }
+
+    override fun visitDeclare_var(ctx: Declare_varContext): Node {
         val type = visit(ctx.type()) as TypeNode
         val ident = Ident(ctx.ident().text)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode

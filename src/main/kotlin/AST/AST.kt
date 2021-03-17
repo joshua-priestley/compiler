@@ -53,6 +53,7 @@ data class PrintlnNode(val expr: ExprNode) : StatementNode
 data class IfElseNode(val expr: ExprNode, val then: StatementNode, val elseIfs: List<ElseIfNode>, val else_: StatementNode?) : StatementNode
 data class WhileNode(val expr: ExprNode, val do_: StatementNode) : StatementNode
 data class DoWhileNode(val do_: StatementNode, val expr: ExprNode): StatementNode
+data class ForNode(val counter: DeclarationNode, val update: StatementNode, val terminator: ExprNode, val do_: StatementNode): StatementNode
 data class BeginEndNode(val stat: StatementNode) : StatementNode
 data class SequenceNode(val statList: List<StatementNode>) : StatementNode
 data class SideExpressionNode(val ident: AssignLHSIdentNode, val sideExpr: SideExprOperator): StatementNode
