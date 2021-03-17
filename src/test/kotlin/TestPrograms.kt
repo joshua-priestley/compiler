@@ -52,8 +52,8 @@ class TestPrograms {
         return files.map { f -> DynamicTest.dynamicTest(f.name) { runTest(f) } }
     }
 
-    fun runBackendTests(inputFile: File) {
-        val assemblyName = inputFile.name.replace(".wacc", ".s");
+    private fun runBackendTests(inputFile: File) {
+        val assemblyName = inputFile.name.replace(".wacc", ".s")
         val executableName = inputFile.nameWithoutExtension
 
         // Create the executable file
