@@ -309,6 +309,8 @@ class ASTBuilder(
             semanticListener.undefinedVar(arrayIdent.toString(), ctx)
         } else if (!binaryOpsRequires(operator.value).contains(array!!.getBaseType())) {
             semanticListener.binaryOpType(ctx)
+        } else if (!binaryOpsRequires(operator.value).contains(getExprType(startValue, ctx))) {
+            semanticListener.binaryOpType(ctx)
         }
 
         // Create a counter
@@ -819,9 +821,9 @@ class ASTBuilder(
             is RHSFoldNode -> {
                 globalSymbolTable.getNodeGlobal(Ident("&fold_total").toString())
             }
-            else -> {
+            is RHSNewPairNode -> {
                 // RHSNewPairElemNode
-                val pair = rhs as RHSNewPairNode
+                val pair = rhs
                 var expr1 = getExprType(pair.expr1, ctx)
                 var expr2 = getExprType(rhs.expr2, ctx)
 
@@ -848,6 +850,7 @@ class ASTBuilder(
                     else -> Type(expr1, expr2)
                 }
             }
+            else -> throw Error("RHS not implemented")
         }
     }
 

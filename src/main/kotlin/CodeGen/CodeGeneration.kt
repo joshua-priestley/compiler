@@ -144,7 +144,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is BreakNode -> generateBreak()
             is ContinueNode -> generateContinue()
             is CallNode -> generateCallNode(RHSCallNode(stat.ident, stat.argList), true)
-            else -> throw Error("Should not get here")
+            else -> throw Error("Stat not implemented")
         }
     }
 
@@ -164,7 +164,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is SubNNode -> RHSExprNode(BinaryOpNode(BinOp.MINUS, stat.ident.ident, stat.sideExpr.value))
             is MulNNode -> RHSExprNode(BinaryOpNode(BinOp.MUL, stat.ident.ident, stat.sideExpr.value))
             is DivNNode -> RHSExprNode(BinaryOpNode(BinOp.DIV, stat.ident.ident, stat.sideExpr.value))
-            else -> throw Error("Should not get here")
+            else -> throw Error("Side expression not implemented")
         }
         val assignConversion = AssignNode(stat.ident, rhsConversion)
         return generateAssign(assignConversion)
@@ -224,7 +224,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 readInstructions.add(Add(Register.r4, Register.sp, ImmOp(offset)))
                 stat.lhs.arrayElem
             }
-            else -> throw Error("Does not exist")
+            else -> throw Error("LHS not implemented")
         }
         assign = false
 
@@ -580,7 +580,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is RHSNewPairNode -> rhsInstruction.addAll(generateNewPair(rhs))
             is RHSPairElemNode -> rhsInstruction.addAll(generatePairAccess(rhs.pairElem, false))
             is RHSFoldNode -> rhsInstruction.addAll(generateFold(rhs))
-            else -> throw Error("Does not exist")
+            else -> throw Error("RHS not implemented")
         }
 
         return rhsInstruction
@@ -955,7 +955,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 binOpInstructs.add(Or(dstRegister, operand1, operand2))
             }
             else -> {
-                throw Error("Should not get here")
+                throw Error("Binary Operator not implemented")
             }
         }
         return binOpInstructs
@@ -1047,7 +1047,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is PairLiterNode -> Type(PAIR_LITER)
             is PairElemNode -> getType(expr.expr)
             else -> {
-                throw Error("Should not get here")
+                throw Error("Expr not implemented")
             }
         }
     }
