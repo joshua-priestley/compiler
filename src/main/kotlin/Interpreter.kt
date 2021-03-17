@@ -1,6 +1,8 @@
 package compiler
 
 import AST.*
+import antlr.WACCParser
+
 
 class InterpreterFrontend : FrontendUtils() {
     fun run(fileName: String): Int {
@@ -111,7 +113,9 @@ class InterpreterBackend (
             is PairObject<*, *> -> print("#pair_addr#")
             is Array<*> -> {
                 // Print char array as a string
-                if (expr.isArrayOf<Char>()) {
+                val type = globalSymbolTable.getNodeGlobal((stat.expr as Ident).toString())!!.getBaseType()
+                println(type)
+                if (type == Type(WACCParser.CHAR)) {
                     // TODO this doesn't work oop - printAllTypes test
                     print(expr.joinToString(""))
                 } else {
@@ -280,7 +284,7 @@ class InterpreterBackend (
             UnOp.MINUS -> (visitExpr(expr.expr) as Int).unaryMinus()
             UnOp.CHR -> (visitExpr(expr.expr) as Int).toChar()
             UnOp.ORD -> (visitExpr(expr.expr) as Char).toInt()
-            UnOp.LEN -> TODO("Arrays not yet implemented")
+            UnOp.LEN -> (visitExpr(expr.expr) as Array<*>).size
             else -> throw Error("Should not get here")
         }
     }
@@ -310,11 +314,36 @@ class InterpreterBackend (
     private fun visitLiterNode(expr: LiterNode): Any {
         return when(expr) {
             is IntLiterNode -> expr.value.toInt()
-            is StrLiterNode -> expr.value
-            is CharLiterNode -> expr.value[0] //TODO deal with escapes later
+            is StrLiterNode -> formatEscapeChars(expr.value)
+            is CharLiterNode -> formatEscapeChars(expr.value)[0]
             is BoolLiterNode -> expr.value == "true"
             is Ident -> varStore.getValue(expr.name)
             else -> throw Error("Should not get here")
         }
+    }
+
+    private fun formatEscapeChars(string: String): String {
+        val sb = StringBuilder()
+        var i = 0
+        while (i < string.length) {
+            if (string[i] == '\\') {
+                i += 1
+                when (string[i]) {
+                    '0' -> sb.append('\u0000')
+                    'b' -> sb.append('\b')
+                    't' -> sb.append('\t')
+                    'n' -> sb.append('\n')
+                    'f' -> sb.append('\u000C')
+                    'r' -> sb.append('\r')
+                    '"' -> sb.append('\"')
+                    '\'' -> sb.append('\'')
+                    '\\' -> sb.append('\\')
+                }
+            } else {
+                sb.append(string[i])
+            }
+            i += 1
+        }
+        return sb.toString()
     }
 }
