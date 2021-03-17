@@ -17,6 +17,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private var inElseStatement = false
     private var assign = false
     private var printing = false
+    private var parameter = false
 
     private var endLabel = Stack<String>()
     private var conditionLabel = Stack<String>()
@@ -246,7 +247,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             val parameters = call.argList.reversed()
 
             for (param in parameters) {
+                parameter = true
                 callInstructions.addAll(generateExpr(param))
+                parameter = false
                 val offset = getExprOffset(param)
                 totalOffset += offset
                 assert(offset != 0)
@@ -725,7 +728,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
         }
         if (type != null) {
-            if (!assign || printing) {
+            if (!assign || printing || parameter) {
                 arrayElemInstructions.add(Load(Register.r4, reg, sb = type.getTypeSize() == 1))
             } else {
                 arrayElemInstructions.add(Store(Register.r4, reg, byte = type.getTypeSize() == 1))

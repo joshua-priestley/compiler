@@ -7,6 +7,12 @@
 # Program:
 
 begin
+  int f(int x) is
+    return x + 1
+  end
   int[] x = [1, 2, 3];
-  int y = foldr (-) 0 x
+  int counter = 0;
+  while counter < len x do
+    x[counter] = call f(x[counter])
+  done
 end
