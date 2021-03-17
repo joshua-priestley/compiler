@@ -243,6 +243,8 @@ class ASTBuilder(
         // Create a counter
         val counterVar = Ident("&map_counter")
         globalSymbolTable.addNode(counterVar.toString(), Type(INT))
+        val arraySizeVar = Ident("&map_length")
+        globalSymbolTable.addNode(arraySizeVar.toString(), Type(INT))
 
         // Create the symbol table for the while node
         val mapSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
@@ -268,7 +270,7 @@ class ASTBuilder(
         val body1 = AssignNode(lhsAssign, rhsCall)
         val body2 = SideExpressionNode(AssignLHSIdentNode(counterVar), AddOneNode())
         val whileSeq = SequenceNode(mutableListOf(body1, body2))
-        val whileLoop = WhileNode(BinaryOpNode(BinOp.LT, counterVar, UnaryOpNode(UnOp.LEN, arrayIdent)), whileSeq)
+        val whileLoop = WhileNode(BinaryOpNode(BinOp.LT, counterVar, arraySizeVar), whileSeq)
 
         globalSymbolTable = globalSymbolTable.parentT!!
 
@@ -318,6 +320,8 @@ class ASTBuilder(
         globalSymbolTable.addNode(counterVar.toString(), Type(INT))
         val totalVar = Ident("&fold_total")
         globalSymbolTable.addNode(totalVar.toString(), array!!.getBaseType())
+        val arraySizeVar = Ident("&fold_length")
+        globalSymbolTable.addNode(arraySizeVar.toString(), Type(INT))
 
         // Create the symbol table for the while node
         val mapSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
@@ -326,7 +330,7 @@ class ASTBuilder(
         val counter = if (left) {
             DeclarationNode(Int(), counterVar, RHSExprNode(IntLiterNode("0")))
         } else {
-            val counterInit = BinaryOpNode(BinOp.MINUS, UnaryOpNode(UnOp.LEN, arrayIdent), IntLiterNode("1"))
+            val counterInit = BinaryOpNode(BinOp.MINUS, arraySizeVar, IntLiterNode("1"))
             DeclarationNode(Int(), counterVar, RHSExprNode(counterInit))
         }
 
@@ -348,7 +352,7 @@ class ASTBuilder(
         }
         val whileSeq = SequenceNode(mutableListOf(body1, body2))
         val cond = if (left) {
-            BinaryOpNode(BinOp.LT, counterVar, UnaryOpNode(UnOp.LEN, arrayIdent))
+            BinaryOpNode(BinOp.LT, counterVar, arraySizeVar)
         } else {
             BinaryOpNode(BinOp.GTE, counterVar, IntLiterNode("0"))
         }

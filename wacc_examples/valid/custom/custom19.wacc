@@ -10,7 +10,8 @@ begin
   int[] x = [1, 2, 3];
   int counter = 0;
   int total = 0;
-  while counter < 3 do
+  int size = len x ;
+  while counter < size do
     total = total + x[counter]
   done ;
   println(total)
