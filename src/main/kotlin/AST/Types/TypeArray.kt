@@ -14,7 +14,7 @@ class TypeArray(private var arrType: Type, override val typeInt: Int = ARRAY) : 
     }
 
     override fun getBaseType(): Type {
-        return arrType
+        return arrType.getBaseType()
     }
 
     override fun toString(): String {
