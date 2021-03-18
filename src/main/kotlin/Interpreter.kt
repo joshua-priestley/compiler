@@ -2,6 +2,7 @@ package compiler
 
 import AST.*
 import antlr.WACCParser
+import kotlin.system.exitProcess
 
 
 class InterpreterFrontend : FrontendUtils() {
@@ -29,6 +30,13 @@ data class PairObject<T, S>(var fst: T?, var snd: S?) {
     }
 }
 
+enum class Error(val msg: String) {
+    ARRAY_NEGATIVE_INDEX("ArrayIndexOutOfBoundsError: negative index"),
+    ARRAY_INDEX_TOO_LARGE("ArrayIndexOutOfBoundsError: index too large"),
+    DIVIDE_BY_ZERO("DivideByZeroError: divide or modulo by zero"),
+    INTEGER_OVERFLOW("OverflowError: the result is too small/large to store in a 4-byte signed-integer."),
+    NULL_DEFERENCE("NullReferenceError: dereference a null reference.")
+}
 
 class InterpreterBackend (
     private var globalSymbolTable: SymbolTable,
@@ -56,6 +64,13 @@ class InterpreterBackend (
         program.funcs.forEach { funcList.add(it) }
         visitStat(program.stat)
     }
+
+
+    private fun runtimeErr(error: Error) {
+        println(error.msg)
+        exitProcess(255)
+    }
+
 
     fun visitStat(stat: StatementNode) {
         if (isRetruning) {
@@ -152,10 +167,10 @@ class InterpreterBackend (
                 if (!toFree.isNull()) {
                     toFree.setNull()
                 } else {
-                    TODO("Throw runtime error")
+                    runtimeErr(Error.NULL_DEFERENCE)
                 }
             }
-            else -> TODO("Throw runtime error")
+            else -> runtimeErr(Error.NULL_DEFERENCE)
         }
     }
 
@@ -190,10 +205,15 @@ class InterpreterBackend (
     }
 
     private fun <T> assignPairElem(value: T, stat: LHSPairElemNode) {
-        when (val pairElem = stat.pairElem) {
+        val pairElem = stat.pairElem
+        val pair = visitExpr(pairElem.expr) as PairObject<*, *>
+        if (pair.isNull()) {
+            runtimeErr(Error.NULL_DEFERENCE)
+        }
+        when (pairElem) {
             // These unchecked casts are safe as any errors would be caught during semantic checks
-            is FstExpr -> ((visitExpr(pairElem.expr)) as PairObject<T, *>).fst = value
-            is SndExpr -> ((visitExpr(pairElem.expr)) as PairObject<*, T>).snd = value
+            is FstExpr -> (pair as PairObject<T, *>).fst = value
+            is SndExpr -> (pair as PairObject<*, T>).snd = value
             else -> throw Error("Should not get here")
         }
     }
@@ -203,17 +223,29 @@ class InterpreterBackend (
         var current: Any = varStore.getValue(expr.ident.name)
         // Keep indexing into subarrays for each index expression there is
         for (i in 0 .. expr.expr.size - 2) {
-            current = (current as Array<*>)[(visitExpr(expr.expr[i]) as Int)]!!
+            val index = (visitExpr(expr.expr[i]) as Int)
+            val length = (current as Array<*>).size
+            if (index >= length) {
+                runtimeErr(Error.ARRAY_INDEX_TOO_LARGE)
+            } else if (index < 0) {
+                runtimeErr(Error.ARRAY_NEGATIVE_INDEX)
+            }
+            current = current[index]!!
         }
+        val index = (visitExpr(expr.expr[expr.expr.size - 1]) as Int)
         // This unchecked cast is safe as any errors would be caught during semantic analysis
-        (current as Array<T>)[(visitExpr(expr.expr[expr.expr.size - 1]) as Int)] = value
+        val length = (current as Array<T>).size
+        if (index >= length) {
+            runtimeErr(Error.ARRAY_INDEX_TOO_LARGE)
+        } else if (index < 0) {
+            runtimeErr(Error.ARRAY_NEGATIVE_INDEX)
+        }
+        current[index] = value
     }
 
     private fun visitDeclaration(stat: DeclarationNode) {
         val value = visitAssignRhs(stat.value)
         varStore.declareBaseValue(stat.ident.name, value)
-        //println("declaring")
-        //println("${stat.ident.name} = $value")
     }
 
     private fun visitAssignRhs(stat: AssignRHSNode): Any {
@@ -260,9 +292,13 @@ class InterpreterBackend (
 
     // TODO remove non null assertions with runtime errors
     private fun visitRHSPairElem(expr: RHSPairElemNode): Any {
+        val pair = ((visitExpr(expr.pairElem.expr)) as PairObject<*, *>)
+        if (pair.isNull()) {
+            runtimeErr(Error.NULL_DEFERENCE)
+        }
         return when (expr.pairElem) {
-            is FstExpr -> ((visitExpr(expr.pairElem.expr)) as PairObject<*, *>).fst!!
-            is SndExpr -> ((visitExpr(expr.pairElem.expr)) as PairObject<*, *>).snd!!
+            is FstExpr -> pair.fst!!
+            is SndExpr -> pair.snd!!
             else -> throw Error("Should not get here")
         }
     }
@@ -283,15 +319,22 @@ class InterpreterBackend (
             is UnaryOpNode -> visitUnOp(expr)
             is ArrayElem -> visitArrayElem(expr)
             is PairLiterNode -> PairObject(null, null)
-            else -> TODO("Not yet implemented")
+            else -> throw Error("should not get here")
         }
     }
 
     private fun visitArrayElem(expr: ArrayElem): Any {
         var current: Any = varStore.getValue(expr.ident.name)
         // Keep indexing into subarrays for each index expression there is
-        for (index in expr.expr) {
-            current = (current as Array<*>)[(visitExpr(index) as Int)]!!
+        for (indexExp in expr.expr) {
+            val index = (visitExpr(indexExp) as Int)
+            val length = (current as Array<*>).size
+            if (index >= length) {
+                runtimeErr(Error.ARRAY_INDEX_TOO_LARGE)
+            } else if (index < 0) {
+                runtimeErr(Error.ARRAY_NEGATIVE_INDEX)
+            }
+            current = current[index]!!
         }
         return current
     }
@@ -299,7 +342,14 @@ class InterpreterBackend (
     private fun visitUnOp(expr: UnaryOpNode): Any {
         return when (expr.operator) {
             UnOp.NOT -> !(visitExpr(expr.expr) as Boolean)
-            UnOp.MINUS -> (visitExpr(expr.expr) as Int).unaryMinus()
+            UnOp.MINUS -> {
+                val result = (visitExpr(expr.expr) as Int).toLong().unaryMinus()
+                val asInt = result.toInt()
+                if (result != asInt.toLong()) {
+                    runtimeErr(Error.INTEGER_OVERFLOW)
+                }
+                result
+            }
             UnOp.CHR -> (visitExpr(expr.expr) as Int).toChar()
             UnOp.ORD -> (visitExpr(expr.expr) as Char).toInt()
             UnOp.LEN -> (visitExpr(expr.expr) as Array<*>).size
@@ -311,11 +361,42 @@ class InterpreterBackend (
         val expr1 = visitExpr(expr.expr1)
         val expr2 = visitExpr(expr.expr2)
         return when (expr.operator) {
-            BinOp.PLUS -> (expr1 as Int) + (expr2 as Int)
-            BinOp.MINUS -> (expr1 as Int) - (expr2 as Int)
-            BinOp.MUL -> (expr1 as Int) * (expr2 as Int)
-            BinOp.MOD -> (expr1 as Int) % (expr2 as Int)
-            BinOp.DIV -> (expr1 as Int) % (expr2 as Int)
+            BinOp.PLUS -> {
+                val result: Long = ((expr1 as Int).toLong()) + ((expr2 as Int).toLong())
+                val asInt = result.toInt()
+                if (result != asInt.toLong()) {
+                    runtimeErr(Error.INTEGER_OVERFLOW)
+                }
+                asInt
+            }
+            BinOp.MINUS -> {
+                val result: Long = ((expr1 as Int).toLong()) - ((expr2 as Int).toLong())
+                val asInt = result.toInt()
+                if (result != asInt.toLong()) {
+                    runtimeErr(Error.INTEGER_OVERFLOW)
+                }
+                asInt
+            }
+            BinOp.MUL -> {
+                val result: Long = ((expr1 as Int).toLong()) * ((expr2 as Int).toLong())
+                val asInt = result.toInt()
+                if (result != asInt.toLong()) {
+                    runtimeErr(Error.INTEGER_OVERFLOW)
+                }
+                asInt
+            }
+            BinOp.MOD -> {
+                if (expr2 as Int == 0) {
+                    runtimeErr(Error.DIVIDE_BY_ZERO)
+                }
+                (expr1 as Int) % (expr2)
+            }
+            BinOp.DIV -> {
+                if (expr2 as Int == 0) {
+                    runtimeErr(Error.DIVIDE_BY_ZERO)
+                }
+                (expr1 as Int) % (expr2)
+            }
             BinOp.AND -> (expr1 as Boolean) && (expr2 as Boolean)
             BinOp.OR -> (expr1 as Boolean) || (expr2 as Boolean)
             BinOp.EQ -> expr1 == expr2
