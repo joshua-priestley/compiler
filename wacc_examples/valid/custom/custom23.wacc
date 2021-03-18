@@ -18,6 +18,6 @@ begin
     return 4
   end
   thing ting = new thing();
-  int x = call g() ;
-  int x = call ting.f()
+  int x = call g();
+  int y = call ting.f()
 end

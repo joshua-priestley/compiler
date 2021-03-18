@@ -76,14 +76,13 @@ class ASTBuilder(
         val ident = visit(ctx.ident()) as Ident
         val classType = TypeClass(ident)
         val membersList = mutableListOf<ClassMember>()
+        ctx.func().forEach { addIndividual(it.ident(), it.type(), it.param_list(), it) }
         ctx.class_member().map { membersList.add(visit(it) as ClassMember) }
         val functionList = mutableListOf<FunctionNode>()
         ctx.func().map { functionList.add(visit(it) as FunctionNode) }
 
         classType.setST(globalSymbolTable)
         classLists[ident] = classType
-
-        globalSymbolTable.printEntries()
 
         globalSymbolTable = prevST
 
@@ -1039,7 +1038,6 @@ class ASTBuilder(
             }
             is RHSClassCallNode -> {
                 val prev = globalSymbolTable
-                println("ting: $rhs")
                 globalSymbolTable = (globalSymbolTable.getNodeGlobal(rhs.classIdent.toString())!! as TypeClass).getST()
                 val type = getRHSType(rhs.callNode, ctx)
                 globalSymbolTable = prev
@@ -1390,7 +1388,6 @@ class ASTBuilder(
 
     override fun visitAssignRhsCall(ctx: AssignRhsCallContext): Node {
         val call = visit(ctx.call_func())
-        println(call)
         return call
     }
 
