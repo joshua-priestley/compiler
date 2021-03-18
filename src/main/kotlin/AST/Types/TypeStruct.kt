@@ -65,4 +65,9 @@ open class TypeStruct(private val name: String) : Type() {
         if (other !is TypeStruct) return false
         return other.getName() == getName()  && membersEqual(other)
     }
+
+    private fun equalsType(other: Any?): Boolean {
+        if (other !is TypeStruct) return false
+        return other.getName() == getName()
+    }
 }
