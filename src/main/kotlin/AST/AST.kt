@@ -106,7 +106,6 @@ enum class UnOp(val value: Int) {
     NOT(14), MINUS(2), LEN(15), ORD(16), CHR(17), BITWISENOT(24), NOT_SUPPORTED(-1)
 }
 
-//TODO does making this a node mean its no longer an AST?
 //think about how to do binary operator precedence more
 enum class BinOp(val value: Int) : Node {
     MUL(3), DIV(4), MOD(5), PLUS(1), MINUS(2), GT(6), GTE(7), LT(8), LTE(9), EQ(10), NEQ(11), AND(12), OR(13), BITWISEAND(22), BITWISEOR(23), NOT_SUPPORTED(-1)
@@ -122,6 +121,7 @@ data class RHSNewPairNode(val expr1: ExprNode, val expr2: ExprNode) : AssignRHSN
 data class RHSPairElemNode(val pairElem: PairElemNode) : AssignRHSNode
 data class RHSCallNode(val ident: Ident, val argList: List<ExprNode>?) : AssignRHSNode
 data class RHSFoldNode(val sequenceNode: SequenceNode): AssignRHSNode
+data class RHSNewStruct(val structName: Ident, val argList: List<ExprNode>): AssignRHSNode
 
 /*
  * Pair Elem
@@ -137,6 +137,7 @@ interface TypeNode : Node {
     val type: Type
 }
 
+class StructType(override val type: TypeStruct): TypeNode
 class VoidType(override val type: Type = TypeBase(VOID)): TypeNode
 
 // Base Types

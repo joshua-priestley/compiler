@@ -8,6 +8,11 @@ class SemanticErrorHandler {
 
     fun hasSemanticErrors() = errorList.isNotEmpty()
 
+    fun structNotImplemented(name: String, ctx: ParserRuleContext) {
+        val msg = "struct $name does not exist yet"
+        addErrorMessage(msg, errorPosition(ctx))
+    }
+
     fun mapOperatesOnArray(ctx: ParserRuleContext) {
         val msg = "must apply map to a list"
         addErrorMessage(msg, errorPosition(ctx))

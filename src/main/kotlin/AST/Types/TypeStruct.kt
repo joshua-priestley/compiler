@@ -23,7 +23,8 @@ open class TypeStruct(private val name: String) : Type() {
     }
 
     override fun toString(): String {
-        return VOCABULARY.getSymbolicName(getType())
+        return getName()
+        //return VOCABULARY.getSymbolicName(getType())
     }
 
     fun getName(): String {

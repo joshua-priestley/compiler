@@ -79,7 +79,7 @@ base_type: INT                                  # baseT
 
 void_type: VOID # voidT;
 
-struct_type: struct;
+struct_type: ident;
 
 array_type: type OPEN_SQUARE CLOSE_SQUARE;
 
