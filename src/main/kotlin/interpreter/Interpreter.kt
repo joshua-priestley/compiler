@@ -5,7 +5,6 @@ import compiler.FailedParse
 import compiler.FrontendUtils
 import compiler.SuccessfulParse
 import compiler.interpreter.VarStore
-import kotlin.system.exitProcess
 
 // Class for interpreting whole programs
 class InterpreterFrontend : FrontendUtils() {
@@ -32,6 +31,8 @@ data class PairObject<T, S>(var fst: T?, var snd: S?) {
         snd = null
     }
 }
+
+class RuntimeError(): Exception()
 
 // Runtime error messages
 enum class Error(val msg: String) {
@@ -62,7 +63,11 @@ class InterpreterBackend (
     }
 
     fun executeProgram(root: ProgramNode): Int {
-        visitProgram(root)
+        try {
+            visitProgram(root)
+        } catch (e: RuntimeError) {
+            return 255
+        }
         return exitCode
     }
 
@@ -74,7 +79,7 @@ class InterpreterBackend (
 
     private fun runtimeErr(error: Error) {
         println(error.msg)
-        exitProcess(255)
+        throw RuntimeError()
     }
 
 
