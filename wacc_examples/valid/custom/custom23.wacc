@@ -8,8 +8,12 @@
 class thing() {
   int x;
 
-}
+  int f() is
+    return 3
+  end
+};
 
 begin
-  int x = 3;
+  thing ting = new thing();
+  int x = ting.x
 end

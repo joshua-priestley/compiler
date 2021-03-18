@@ -64,7 +64,7 @@ assign_rhs: expr                                                  # assignRhsExp
   | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES     # assignRhsCall
   | FOLDL OPEN_PARENTHESES bin_op CLOSE_PARENTHESES expr ident    # assignRhsFoldl
   | FOLDR OPEN_PARENTHESES bin_op CLOSE_PARENTHESES expr ident    # assignRhsFoldr
-  | NEW ident OPEN_PARENTHESES arg_list CLOSE_PARENTHESES         # assignRhsNewStruct
+  | NEW ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES      # assignRhsNewObject
   ;
 
 struct_access: ident DOT ident;

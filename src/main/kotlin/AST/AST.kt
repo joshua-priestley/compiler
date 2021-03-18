@@ -13,6 +13,16 @@ interface Node
 data class ProgramNode(val stucts: List<StructNode>, val funcs: List<FunctionNode>, val stat: StatementNode) : Node
 
 /*
+ * Classes
+ */
+data class ClassNode(val ident: Ident, val members: List<ClassMemberNode>, val functions: List<FunctionNode>, val type: TypeClass) : Node
+
+interface ClassMemberNode: Node
+data class NonInitMember(val memb: MemberNode): ClassMemberNode
+data class InitMember(val memb: DeclarationNode): ClassMemberNode
+
+
+/*
  * Structs
  */
 data class StructNode(val ident: Ident, val members: List<MemberNode>, val type: TypeStruct) : Node
@@ -73,7 +83,8 @@ data class ElseIfNode(val expr: ExprNode, val then: StatementNode): StatementNod
  */
 interface AssignLHSNode : Node
 data class AssignLHSIdentNode(val ident: Ident) : AssignLHSNode
-data class AssignLHSStructNode(val structMemberNode: StructMemberNode): AssignLHSNode
+data class AssignLHSClassNode(val objectMemberNode: ObjectMemberNode): AssignLHSNode
+data class AssignLHSStructNode(val objectMemberNode: ObjectMemberNode): AssignLHSNode
 data class LHSArrayElemNode(val arrayElem: ArrayElem) : AssignLHSNode
 data class LHSPairElemNode(val pairElem: PairElemNode) : AssignLHSNode
 
@@ -90,7 +101,7 @@ data class StrLiterNode(val value: String) : LiterNode
 data class CharLiterNode(val value: String) : LiterNode
 data class BoolLiterNode(val value: String) : LiterNode
 class PairLiterNode : ExprNode
-data class StructMemberNode(val structIdent: Ident, val memberIdent: Ident): ExprNode
+data class ObjectMemberNode(val objectIdent: Ident, val memberIdent: Ident): ExprNode
 data class Ident(var name: String) : LiterNode
 data class ArrayElem(val ident: Ident, val expr: List<ExprNode>) : ExprNode
 data class UnaryOpNode(val operator: UnOp, val expr: ExprNode) : ExprNode
@@ -122,7 +133,9 @@ data class RHSNewPairNode(val expr1: ExprNode, val expr2: ExprNode) : AssignRHSN
 data class RHSPairElemNode(val pairElem: PairElemNode) : AssignRHSNode
 data class RHSCallNode(val ident: Ident, val argList: List<ExprNode>?) : AssignRHSNode
 data class RHSFoldNode(val sequenceNode: SequenceNode): AssignRHSNode
-data class RHSNewStruct(val structName: Ident, val argList: List<ExprNode>): AssignRHSNode
+interface RHSNewObject: AssignRHSNode
+data class RHSNewStruct(val structName: Ident, val argList: List<ExprNode>): RHSNewObject
+data class RHSNewClass(val structName: Ident, val argList: List<ExprNode>): RHSNewObject
 
 /*
  * Pair Elem
@@ -139,6 +152,7 @@ interface TypeNode : Node {
 }
 
 class StructType(override val type: TypeStruct): TypeNode
+class ClassType(override val type: TypeClass): TypeNode
 class VoidType(override val type: Type = TypeBase(VOID)): TypeNode
 
 // Base Types

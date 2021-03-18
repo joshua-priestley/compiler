@@ -27,6 +27,7 @@ class ASTBuilder(
 
     // A map to store all the functions and their parameters for semantic checking
     private val structLists: LinkedHashMap<Ident, TypeStruct> = linkedMapOf()
+    private val classLists: LinkedHashMap<Ident, TypeClass> = linkedMapOf()
 
     // A flag to know if we want the type a boolean returns or requires
     private var boolTypeResult = false
@@ -40,6 +41,7 @@ class ASTBuilder(
     // Visits the main program to build the AST
     override fun visitProgram(ctx: ProgramContext): Node {
         val structNodes = visitAllStructs(ctx.struct())
+        visitAllClasses(ctx.classs())
 
         // First add all the functions to the map
         addAllMacros(ctx.macro())
@@ -52,6 +54,53 @@ class ASTBuilder(
         val stat = visit(ctx.stat()) as StatementNode
 
         return ProgramNode(structNodes, functionNodes, stat)
+    }
+
+    /*
+    =================================================================
+                                CLASSES
+    =================================================================
+     */
+
+    private fun visitAllClasses(classes: List<ClasssContext>): List<ClassNode> {
+        val classNodes = mutableListOf<ClassNode>()
+        classes.map { classNodes.add(visit(it) as ClassNode) }
+        return classNodes
+    }
+
+    override fun visitClasss(ctx: ClasssContext): Node {
+        val prevST = globalSymbolTable
+        val classST = SymbolTable(null, -1)
+        globalSymbolTable = classST
+
+        val ident = visit(ctx.ident()) as Ident
+        val classType = TypeClass(ident)
+        val membersList = mutableListOf<ClassMemberNode>()
+        ctx.class_member().map { membersList.add(visit(it) as ClassMemberNode) }
+        val functionList = mutableListOf<FunctionNode>()
+        ctx.func().map { functionList.add(visit(it) as FunctionNode) }
+
+        classType.setST(globalSymbolTable)
+        classLists[ident] = classType
+
+        globalSymbolTable.printEntries()
+
+        globalSymbolTable = prevST
+
+        return ClassNode(ident, membersList, functionList, classType)
+    }
+
+    override fun visitClass_member(ctx: Class_memberContext): Node {
+        return when {
+            ctx.member() != null -> {
+                val ident = visit(ctx.member().ident()) as Ident
+                val type = visit(ctx.member().type()) as TypeNode
+                globalSymbolTable.addNode(ident.toString(), type.type)
+                NonInitMember(MemberNode(type, ident))
+            }
+            ctx.declare_var() != null -> InitMember(visit(ctx.declare_var()) as DeclarationNode)
+            else -> throw Error("Not implemented")
+        }
     }
 
     /*
@@ -822,12 +871,15 @@ class ASTBuilder(
     override fun visitStruct_type(ctx: Struct_typeContext): Node {
         val ident = visit(ctx.ident()) as Ident
 
-        val type = structLists[ident]
-        return if (type == null) {
-            semanticListener.structNotImplemented(ident.name, ctx)
+        val sType = structLists[ident]
+        val cType = classLists[ident]
+        return if (sType != null && cType != null) {
+            semanticListener.objectNotImplemented(ident.name, ctx)
             VoidType()
+        } else if (sType != null) {
+            StructType(sType)
         } else {
-            StructType(type)
+            ClassType(cType!!)
         }
 
     }
@@ -902,8 +954,11 @@ class ASTBuilder(
                 }
                 globalSymbolTable.getNodeGlobal(lhs.ident.toString())
             }
+            is AssignLHSClassNode -> {
+                return getObjectMembType(lhs.objectMemberNode, ctx)
+            }
             is AssignLHSStructNode -> {
-                return getStructMembType(lhs.structMemberNode, ctx)
+                return getObjectMembType(lhs.objectMemberNode, ctx)
             }
             is LHSArrayElemNode -> {
                 // Check the array exists, the type is valid and the index is an integer
@@ -1035,6 +1090,15 @@ class ASTBuilder(
                     type
                 }
             }
+            is RHSNewClass -> {
+                val type = classLists[rhs.structName]
+                if (type == null) {
+                    semanticListener.classNotImplemented(rhs.structName.name, ctx)
+                    null
+                } else {
+                    type
+                }
+            }
             else -> throw Error("RHS not implemented")
         }
     }
@@ -1099,21 +1163,21 @@ class ASTBuilder(
                 }
             }
             is PairLiterNode -> TypePair(null, null)
-            is StructMemberNode -> {
-                return getStructMembType(expr, ctx)
+            is ObjectMemberNode -> {
+                return getObjectMembType(expr, ctx)
             }
 
             else -> throw Error("Expression not implemented")
         }
     }
 
-    private fun getStructMembType(expr: StructMemberNode, ctx: ParserRuleContext): Type? {
-        val structType = getExprType(expr.structIdent, ctx) as TypeStruct?
+    private fun getObjectMembType(expr: ObjectMemberNode, ctx: ParserRuleContext): Type? {
+        val structType = getExprType(expr.objectIdent, ctx) as TypeStruct?
         return if (structType == null) {
-            semanticListener.structNotImplemented(expr.structIdent.name, ctx)
+            semanticListener.structNotImplemented(expr.objectIdent.name, ctx)
             null
         } else if (!structType.containsMember(expr.memberIdent)) {
-            semanticListener.structMemberDoesNotExist(expr.structIdent.name, expr.memberIdent.name, ctx)
+            semanticListener.structMemberDoesNotExist(expr.objectIdent.name, expr.memberIdent.name, ctx)
             null
         } else {
             structType.memberType(expr.memberIdent)
@@ -1249,11 +1313,11 @@ class ASTBuilder(
     }
 
     override fun visitAssignLhsStruct(ctx: AssignLhsStructContext): Node {
-        return AssignLHSStructNode(visit(ctx.struct_access()) as StructMemberNode)
+        return AssignLHSStructNode(visit(ctx.struct_access()) as ObjectMemberNode)
     }
 
     override fun visitStruct_access(ctx: Struct_accessContext): Node {
-        return StructMemberNode(visit(ctx.ident(0)) as Ident, visit(ctx.ident(1)) as Ident)
+        return ObjectMemberNode(visit(ctx.ident(0)) as Ident, visit(ctx.ident(1)) as Ident)
     }
 
     override fun visitAssignLhsArray(ctx: AssignLhsArrayContext): Node {
@@ -1292,11 +1356,19 @@ class ASTBuilder(
                 })
     }
 
-    override fun visitAssignRhsNewStruct(ctx: AssignRhsNewStructContext): Node {
+    override fun visitAssignRhsNewObject(ctx: AssignRhsNewObjectContext): Node {
         val structIdent = visit(ctx.ident()) as Ident
-        val args = ctx.arg_list().expr().map { visit(it) as ExprNode }
-
-        return RHSNewStruct(structIdent, args)
+        return if (structLists[structIdent] != null) {
+            val args = ctx.arg_list().expr().map { visit(it) as ExprNode }
+            RHSNewStruct(structIdent, args)
+        } else {
+            val args = if (ctx.arg_list() != null) {
+                ctx.arg_list().expr().map { visit(it) as ExprNode }
+            } else {
+                emptyList()
+            }
+            RHSNewClass(structIdent, args)
+        }
     }
 
     override fun visitPairFst(ctx: PairFstContext): Node {

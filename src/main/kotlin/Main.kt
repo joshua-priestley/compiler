@@ -50,7 +50,7 @@ class Compiler(private val inputFile: String, private val assembly: Boolean = fa
 
         if (result is SuccessfulParse) {
             println(result.root)
-            if (assembly) {
+            if (false) {
                 val codeGeneration = CodeGeneration(result.symbolTable)
                 val listOfInstructions = codeGeneration.generateProgram(result.root)
                 val instructions = listOfInstructions.joinToString(separator = "\n") + "\n"
