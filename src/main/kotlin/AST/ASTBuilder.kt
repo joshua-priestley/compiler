@@ -222,6 +222,11 @@ class ASTBuilder(
             globalSymbolTable.addChildTable(functionSymbolTable.ID, functionSymbolTable)
         }
 
+        if (globalSymbolTable.containsNodeLocal(ident.toString() + funcType.toString())) {
+            semanticListener.redefinedVariable(ident.name + "()", ctx)
+        } else {
+            globalSymbolTable.addNode(ident.toString() + funcType.toString(), funcType)
+        }
         return FunctionNode(type, ident, parameterNodes.toList(), stat)
     }
 
