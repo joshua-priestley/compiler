@@ -5,9 +5,10 @@
 # 4
 
 # Program:
-
+struct thing {
+  int x;
+  int y;
+}
 begin
-  while true do
-    int x = 3
-  done
+  int x = 3
 end
