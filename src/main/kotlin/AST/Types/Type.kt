@@ -12,6 +12,7 @@ const val ANY = -3
 const val PAIR_LITER = -5
 const val FUNCTION = -6
 const val EMPTY_ARR = -7
+const val STRUCT = -8
 
 abstract class Type {
     open val typeInt: Int = ANY
@@ -82,7 +83,7 @@ abstract class Type {
         return this is TypePair
     }
 
-    fun getTypeSize(): Int {
+    open fun getTypeSize(): Int {
         return when (this.typeInt) {
             STRING -> 4
             INT -> 4

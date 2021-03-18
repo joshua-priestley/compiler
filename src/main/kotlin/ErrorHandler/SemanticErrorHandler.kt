@@ -1,11 +1,22 @@
 package ErrorHandler
 
+import antlr.WACCParser
 import org.antlr.v4.runtime.ParserRuleContext
 
 class SemanticErrorHandler {
     private val errorList: MutableSet<String> = mutableSetOf()
 
     fun hasSemanticErrors() = errorList.isNotEmpty()
+
+    fun structNotImplemented(name: String, ctx: ParserRuleContext) {
+        val msg = "struct $name does not exist yet"
+        addErrorMessage(msg, errorPosition(ctx))
+    }
+
+    fun structMemberDoesNotExist(structName: String, memberName: String, ctx: ParserRuleContext) {
+        val msg = "struct $structName does not contain $memberName"
+        addErrorMessage(msg, errorPosition(ctx))
+    }
 
     fun mapOperatesOnArray(ctx: ParserRuleContext) {
         val msg = "must apply map to a list"
@@ -135,6 +146,9 @@ class SemanticErrorHandler {
         addErrorMessage(msg, errorPosition(ctx))
     }
 
+    fun structMemberNonExistent(structName: String, memberName: String, ctx: WACCParser.Assign_lhsContext) {
+        val msg = "$memberName does not exist in the struct $structName"
+        addErrorMessage(msg, errorPosition(ctx))    }
 
     //Build a full error message given the message, line, and char of the error
     private fun addErrorMessage(msg: String, location: String) {

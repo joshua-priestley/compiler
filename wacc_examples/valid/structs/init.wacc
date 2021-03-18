@@ -1,0 +1,20 @@
+# a simple increment function definition and usage
+
+# Output:
+# 1
+# 4
+
+# Program:
+
+begin
+  struct ab {
+    int a;
+    int b;
+  };
+  struct cd {
+    int c;
+    int d;
+  };
+
+
+end
