@@ -266,11 +266,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
         }
         globalSymbolTable.subFromOffset(totalOffset)
-        val args : List<Type>
-        args = if (call.argList == null){
+        val args: List<Type>
+        args = if (call.argList == null) {
             mutableListOf()
         } else {
-            call.argList.map { x -> getType(x)!!}
+            call.argList.map { x -> getType(x)!! }
         }
         //val args = rhs.argList!!.map { x -> getExprType(x,ctx) }
         val string = call.ident.toString() + "(" + args.toString() + ")"
@@ -580,23 +580,28 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is UnaryOpNode -> generateUnOp(expr, reg)
             is ArrayElem -> generateArrayElem(expr, reg)
             is PairLiterNode -> mutableListOf(Load(reg, 0))
-            else -> emptyList()
+            is StructMemberNode -> generateStructMember(expr, reg)
+            else -> throw Error("Expression not implemented yet")
         }
+    }
+
+    private fun generateStructMember(memberNode: StructMemberNode, reg: Register = Register.r5): List<Instruction> {
+        // TODO
+        val structMembInstruction = mutableListOf<Instruction>()
+        println(memberNode)
+        return structMembInstruction
     }
 
     private fun generateRHSNode(rhs: AssignRHSNode, reg: Register = Register.r5): List<Instruction> {
         val rhsInstruction = mutableListOf<Instruction>()
         when (rhs) {
-            is RHSCallNode -> {
-                rhsInstruction.addAll(generateCallNode(rhs))
-            }
-            is RHSExprNode -> {
-                rhsInstruction.addAll(generateExpr(rhs.expr))
-            }
+            is RHSCallNode -> rhsInstruction.addAll(generateCallNode(rhs))
+            is RHSExprNode -> rhsInstruction.addAll(generateExpr(rhs.expr))
             is RHSArrayLitNode -> rhsInstruction.addAll(generateArrayLitNode(rhs.exprs, reg))
             is RHSNewPairNode -> rhsInstruction.addAll(generateNewPair(rhs))
             is RHSPairElemNode -> rhsInstruction.addAll(generatePairAccess(rhs.pairElem, false))
             is RHSFoldNode -> rhsInstruction.addAll(generateFold(rhs))
+            is RHSNewStruct -> rhsInstruction.addAll(generateNewStruct(rhs))
             else -> throw Error("RHS not implemented")
         }
 
@@ -647,6 +652,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         pairElemInstructions.add(Store(Register.r5, Register.r0, byte = (getExprOffset(elem) == 1)))
         pairElemInstructions.add(Store(Register.r0, Register.r4, if (!second) 0 else 4))
         return pairElemInstructions
+    }
+
+    private fun generateNewStruct(struct: RHSNewStruct): List<Instruction> {
+        // TODO
+        val structInstructions = mutableListOf<Instruction>()
+        println(struct)
+        return structInstructions
     }
 
     private fun generateNewPair(pair: RHSNewPairNode): List<Instruction> {
@@ -708,12 +720,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         when (lhs) {
             is AssignLHSIdentNode -> lhsInstructions.addAll(loadIdentValue(lhs.ident))
-            is LHSArrayElemNode -> {
-                lhsInstructions.addAll(generateExpr(lhs.arrayElem, reg))
-            }
-            is LHSPairElemNode -> {
-                lhsInstructions.addAll(generatePairAccess(lhs.pairElem, true, reg))
-            }
+            is LHSArrayElemNode -> lhsInstructions.addAll(generateExpr(lhs.arrayElem, reg))
+            is LHSPairElemNode -> lhsInstructions.addAll(generatePairAccess(lhs.pairElem, true, reg))
+            is AssignLHSStructNode -> lhsInstructions.addAll(generateExpr(lhs.structMemberNode, reg))
         }
 
         return lhsInstructions
@@ -1065,10 +1074,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is BoolLiterNode -> TypeBase(WACCParser.BOOL)
             is CharLiterNode -> TypeBase(WACCParser.CHAR)
             is Ident -> globalSymbolTable.getNodeGlobal(expr.toString())
-            is ArrayElem -> globalSymbolTable.getNodeGlobal(expr.ident.toString())?.getBaseType() ?: TypeBase(INVALID)
+            is ArrayElem -> globalSymbolTable.getNodeGlobal(expr.ident.toString())?.getBaseType()
+                    ?: TypeBase(INVALID)
             is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value)
             is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value)
-            is PairLiterNode -> TypePair(null,null)
+            is PairLiterNode -> TypePair(null, null)
             is PairElemNode -> getType(expr.expr)
             else -> {
                 throw Error("Expr not implemented")

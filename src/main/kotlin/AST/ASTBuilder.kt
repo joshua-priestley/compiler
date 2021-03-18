@@ -475,7 +475,6 @@ class ASTBuilder(
 
     override fun visitVarAssign(ctx: VarAssignContext): Node {
         val lhs = visit(ctx.assign_lhs()) as AssignLHSNode
-        println(lhs)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
 
         val lhsType = getLHSType(lhs, ctx.assign_lhs())
