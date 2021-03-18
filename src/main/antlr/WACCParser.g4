@@ -4,11 +4,16 @@ options {
   tokenVocab=WACCLexer;
 }
 
-program: (struct)* BEGIN (macro)* (func)* stat END EOF;
+program: (struct)* (classs)* BEGIN (macro)* (func)* stat END EOF;
+
+classs: CLASS ident OPEN_PARENTHESES (param_list)? CLOSE_PARENTHESES
+             OPEN_CURLY (class_member)* (func)* CLOSE_CURLY SEMICOLON;
 
 struct: STRUCT ident OPEN_CURLY (member)+ CLOSE_CURLY SEMICOLON;
 
 member: type ident SEMICOLON;
+
+class_member: member | (declare_var SEMICOLON);
 
 func: type ident OPEN_PARENTHESES (param_list)? CLOSE_PARENTHESES IS stat END;
 

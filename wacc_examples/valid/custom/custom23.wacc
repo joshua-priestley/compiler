@@ -1,0 +1,15 @@
+# a simple increment function definition and usage
+
+# Output:
+# 1
+# 4
+
+# Program:
+class thing() {
+  int x;
+
+}
+
+begin
+  int x = 3;
+end
