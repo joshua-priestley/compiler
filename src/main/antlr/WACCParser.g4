@@ -4,7 +4,11 @@ options {
   tokenVocab=WACCLexer;
 }
 
-program: BEGIN (macro)* (func)* stat END EOF;
+program: (struct)* BEGIN (macro)* (func)* stat END EOF;
+
+struct: STRUCT ident OPEN_CURLY (member)+ CLOSE_CURLY SEMICOLON;
+
+member: type ident SEMICOLON;
 
 func: type ident OPEN_PARENTHESES (param_list)? CLOSE_PARENTHESES IS stat END;
 
@@ -13,7 +17,7 @@ param_list: param (COMMA param)*;
 param: type ident;
 
 stat: SKP                                           # skip
-  | type ident ASSIGN assign_rhs                    # varDeclaration
+  | declare_var                                     # varDeclaration
   | assign_lhs ASSIGN assign_rhs                    # varAssign
   | READ assign_lhs                                 # read
   | FREE expr                                       # free
@@ -24,6 +28,7 @@ stat: SKP                                           # skip
   | IF expr THEN stat (else_if)* (ELSE stat)? FI    # if
   | WHILE expr DO stat DONE                         # while
   | DO stat WHILE expr DONE                         # do_while
+  | FOR for_cond DO stat DONE                       # for_loop
   | BEGIN stat END                                  # begin
   | <assoc=right> stat SEMICOLON stat               # sequence
   | assign_lhs sideExpr                             # sideExpression
@@ -35,9 +40,14 @@ stat: SKP                                           # skip
         ident                                       # map
   ;
 
+declare_var: type ident ASSIGN assign_rhs;
+
+for_cond: OPEN_PARENTHESES declare_var SEMICOLON expr SEMICOLON stat CLOSE_PARENTHESES;
+
 else_if: ELSE IF expr THEN stat;
 
 assign_lhs: ident                                   # assignLhsId
+  | struct_access                                   # assignLhsStruct
   | array_elem                                      # assignLhsArray
   | pair_elem                                       # assignLhsPair
   ;
@@ -49,7 +59,10 @@ assign_rhs: expr                                                  # assignRhsExp
   | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES     # assignRhsCall
   | FOLDL OPEN_PARENTHESES bin_op CLOSE_PARENTHESES expr ident    # assignRhsFoldl
   | FOLDR OPEN_PARENTHESES bin_op CLOSE_PARENTHESES expr ident    # assignRhsFoldr
+  | NEW ident OPEN_PARENTHESES arg_list CLOSE_PARENTHESES         # assignRhsNewStruct
   ;
+
+struct_access: ident DOT ident;
 
 arg_list: expr (COMMA expr)*;
 
@@ -58,6 +71,7 @@ pair_elem: FST expr                             # pairFst
   ;
 
 type: base_type
+  | struct_type
   | void_type
   | type OPEN_SQUARE CLOSE_SQUARE
   | pair_type;
@@ -69,6 +83,8 @@ base_type: INT                                  # baseT
   ;
 
 void_type: VOID # voidT;
+
+struct_type: ident;
 
 array_type: type OPEN_SQUARE CLOSE_SQUARE;
 
@@ -96,6 +112,7 @@ expr: (PLUS | MINUS)? INT_LITER                 # liter
   | expr (OR) expr                              # binaryOp
   | expr (BITWISEAND | BITWISEOR) expr          # binaryOp
   | OPEN_PARENTHESES expr CLOSE_PARENTHESES     # parentheses
+  | struct_access                               # structExpr
   ;
 
 bin_op: MUL | DIV | PLUS | MINUS | AND | OR | BITWISEAND | BITWISEOR;

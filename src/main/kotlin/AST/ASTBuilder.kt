@@ -11,10 +11,7 @@ import AST.Types.Type.Companion.unaryOpsProduces
 import AST.Types.Type.Companion.unaryOpsRequires
 import ErrorHandler.SemanticErrorHandler
 import ErrorHandler.SyntaxErrorHandler
-import compiler.AST.Types.TypeArray
-import compiler.AST.Types.TypeBase
-import compiler.AST.Types.TypeFunction
-import compiler.AST.Types.TypePair
+import compiler.AST.Types.*
 import java.util.concurrent.atomic.AtomicInteger
 
 
@@ -22,12 +19,14 @@ class ASTBuilder(
         private val semanticListener: SemanticErrorHandler,
         private val syntaxHandler: SyntaxErrorHandler,
         private var globalSymbolTable: SymbolTable,
-    // A map to store all the functions and their parameters for semantic checking
+        // A map to store all the functions and their parameters for semantic checking
         private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
 ) : WACCParserBaseVisitor<Node>() {
     private val nextSymbolID = AtomicInteger()
     private var inWhile = false
 
+    // A map to store all the functions and their parameters for semantic checking
+    private val structLists: LinkedHashMap<Ident, TypeStruct> = linkedMapOf()
 
     // A flag to know if we want the type a boolean returns or requires
     private var boolTypeResult = false
@@ -40,6 +39,8 @@ class ASTBuilder(
 
     // Visits the main program to build the AST
     override fun visitProgram(ctx: ProgramContext): Node {
+        val structNodes = visitAllStructs(ctx.struct())
+
         // First add all the functions to the map
         addAllMacros(ctx.macro())
         addAllFunctions(ctx.func())
@@ -50,7 +51,39 @@ class ASTBuilder(
         ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
         val stat = visit(ctx.stat()) as StatementNode
 
-        return ProgramNode(functionNodes, stat)
+        return ProgramNode(structNodes, functionNodes, stat)
+    }
+
+    /*
+    =================================================================
+                                STRUCTS
+    =================================================================
+     */
+
+    private fun visitAllStructs(structs: List<StructContext>): List<StructNode> {
+        val structNodes = mutableListOf<StructNode>()
+        structs.map { structNodes.add(visit(it) as StructNode) }
+        return structNodes
+    }
+
+    override fun visitStruct(ctx: StructContext): Node {
+        val members = mutableListOf<MemberNode>()
+
+        val structIdent = visit(ctx.ident()) as Ident
+        val structType = TypeStruct(structIdent)
+
+        ctx.member().map {
+            val ident = visit(it.ident()) as Ident
+            val type = visit(it.type()) as TypeNode
+            structType.addMember(ident, type.type)
+            members.add(MemberNode(type, ident))
+        }
+
+        val structNode = StructNode(structIdent, members, structType)
+
+        structLists[structIdent] = structType
+
+        return structNode
     }
 
     /*
@@ -64,13 +97,12 @@ class ASTBuilder(
         // Check if the function already exists
 
 
-
         // Add each parameter to the function's parameter list in the map
         val parameterTypes = mutableListOf<Type>()
         if (p != null) {
             for (i in 0..p.childCount step 2) {
-                val p = visit(p.getChild(i)) as Param
-                parameterTypes.add(p.type.type)
+                val param = visit(p.getChild(i)) as Param
+                parameterTypes.add(param.type.type)
             }
         }
         val funcType = TypeFunction(type.type, parameterTypes)
@@ -88,37 +120,38 @@ class ASTBuilder(
     }
 
     // Visits each function and adds it to the global symbol table
-   /* private fun addAllFunctions(funcCTXs: MutableList<FuncContext>) {
-        for (func in funcCTXs) {
-            val ident = visit(func.ident()) as Ident // Function name
-            val type = visit(func.type()) as TypeNode // Function return type
-            // Check if the function already exists
+    /* private fun addAllFunctions(funcCTXs: MutableList<FuncContext>) {
+         for (func in funcCTXs) {
+             val ident = visit(func.ident()) as Ident // Function name
+             val type = visit(func.type()) as TypeNode // Function return type
+             // Check if the function already exists
 
 
 
-            // Add each parameter to the function's parameter list in the map
-            val parameterTypes = mutableListOf<Type>()
-            if (func.param_list() != null) {
-                for (i in 0..func.param_list().childCount step 2) {
-                    val p = visit(func.param_list().getChild(i)) as Param
-                    parameterTypes.add(p.type.type)
-                }
-            }
-            val funcType = TypeFunction(type.type, parameterTypes)
+             // Add each parameter to the function's parameter list in the map
+             val parameterTypes = mutableListOf<Type>()
+             if (func.param_list() != null) {
+                 for (i in 0..func.param_list().childCount step 2) {
+                     val p = visit(func.param_list().getChild(i)) as Param
+                     parameterTypes.add(p.type.type)
+                 }
+             }
+             val funcType = TypeFunction(type.type, parameterTypes)
 
-            functionParameters[ident.toString()] = parameterTypes
+             functionParameters[ident.toString()] = parameterTypes
 
-            if (globalSymbolTable.containsNodeLocal(ident.toString() + funcType.toString())) {
-                semanticListener.redefinedVariable(ident.name + "()", func)
-            } else {
-                globalSymbolTable.addNode(ident.toString() + funcType.toString(), funcType)
-            }
-        }
-    }*/
+             if (globalSymbolTable.containsNodeLocal(ident.toString() + funcType.toString())) {
+                 semanticListener.redefinedVariable(ident.name + "()", func)
+             } else {
+                 globalSymbolTable.addNode(ident.toString() + funcType.toString(), funcType)
+             }
+         }
+     }*/
 
-        private fun addAllMacros(macroCTXs: MutableList<MacroContext>) {
-            macroCTXs.forEach { addIndividual(it.ident(), it.type(), it.param_list(), it) }
-        }
+    private fun addAllMacros(macroCTXs: MutableList<MacroContext>) {
+        macroCTXs.forEach { addIndividual(it.ident(), it.type(), it.param_list(), it) }
+    }
+
     override fun visitMacro(ctx: MacroContext): Node {
         return addSingleFunction(ctx.type(), ctx.ident(), ctx.param_list(), null, ctx.expr(), ctx)
     }
@@ -257,14 +290,14 @@ class ASTBuilder(
             else -> null
         }
         checkParameters(RHSCallNode(ident, params), ctx)
-        val args = params?.map { x -> getExprType(x,ctx) } ?: mutableListOf<Type>()
+        val args = params?.map { x -> getExprType(x, ctx) } ?: mutableListOf<Type>()
         val string = "$ident($args)"
         var found = false
         if (!globalSymbolTable.containsNodeGlobal(string)) {
             if (args.contains(TypePair(null, null))) {
                 val funcKeys = globalSymbolTable.filterFuncs(ident.toString())
-                for (value in funcKeys.values){
-                    if (value is TypeFunction && TypeFunction(value.getReturn(),(args as MutableCollection<Type>)) == value){
+                for (value in funcKeys.values) {
+                    if (value is TypeFunction && TypeFunction(value.getReturn(), (args as MutableCollection<Type>)) == value) {
                         found = true
                         break
                     }
@@ -442,6 +475,7 @@ class ASTBuilder(
 
     override fun visitVarAssign(ctx: VarAssignContext): Node {
         val lhs = visit(ctx.assign_lhs()) as AssignLHSNode
+        println(lhs)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
 
         val lhsType = getLHSType(lhs, ctx.assign_lhs())
@@ -452,7 +486,7 @@ class ASTBuilder(
         if (lhsType != null) {
             // Check that the types are equal for all different cases (variable, array or pair)
             if (lhsType.getType() != rhsType!!.getType() && !(lhsType.getArray() && rhsType.getType() == TypeBase(EMPTY_ARR).getType())
-                    && !(lhsType.getPair() && rhsType.getType() == TypePair(null,null).getType())
+                    && !(lhsType.getPair() && rhsType.getType() == TypePair(null, null).getType())
             ) {
                 semanticListener.incompatibleTypeAss(lhsType.toString(), rhsType.toString(), ctx)
             }
@@ -692,6 +726,45 @@ class ASTBuilder(
 
     // Checks that the LHS type = RHS type and creates an AST node
     override fun visitVarDeclaration(ctx: VarDeclarationContext): Node {
+        return visit(ctx.declare_var())
+    }
+
+    private fun checkForCondSemantics(cond: ExprNode, ctx: ParserRuleContext) {
+        if (cond !is BinaryOpNode || binaryOpsProduces(cond.operator.value) != TypeBase(BOOL)) {
+            semanticListener.forLoopCond(ctx)
+        } else {
+            val expr1Type = getExprType(cond.expr1, ctx)
+            if (!binaryOpsRequires(cond.operator.value).contains(expr1Type)) {
+                semanticListener.binaryOpType(ctx)
+            }
+            val expr2Type = getExprType(cond.expr2, ctx)
+            if (!binaryOpsRequires(cond.operator.value).contains(expr2Type)) {
+                semanticListener.binaryOpType(ctx)
+            }
+        }
+    }
+
+    private fun checkUpdateSemantics(update: StatementNode, ctx: ParserRuleContext) {
+        if (update !is SideExpressionNode && update !is AssignNode) {
+            semanticListener.forLoopUpdate(ctx)
+        }
+    }
+
+    override fun visitFor_loop(ctx: For_loopContext): Node {
+        val loopSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
+        val counter = visit(ctx.for_cond().declare_var()) as DeclarationNode
+        globalSymbolTable = loopSymbolTable
+        val terminator = visit(ctx.for_cond().expr()) as ExprNode
+        val update = visit(ctx.for_cond().stat()) as StatementNode
+        val do_ = visit(ctx.stat()) as StatementNode
+        checkForCondSemantics(terminator, ctx)
+        checkUpdateSemantics(update, ctx)
+
+        globalSymbolTable = globalSymbolTable.parentT!!
+        return ForNode(counter, update, terminator, do_)
+    }
+
+    override fun visitDeclare_var(ctx: Declare_varContext): Node {
         val type = visit(ctx.type()) as TypeNode
         val ident = Ident(ctx.ident().text)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
@@ -709,6 +782,7 @@ class ASTBuilder(
         val rhsType = getRHSType(rhs, ctx)
         boolTypeResult = false
 
+        //println("$ident, $lhsType, $rhsType, $rhs")
         // Check each side's type is equal
         if (rhsType != null) {
             if (lhsType.getType() != rhsType.getType()
@@ -716,6 +790,11 @@ class ASTBuilder(
                     && !(lhsType.getPair() && rhsType.getType() == PAIR_LITER)
             ) {
                 semanticListener.incompatibleTypeDecl(ident.name, lhsType.toString(), rhsType.toString(), ctx)
+            }
+            if (lhsType.getType() == AST.Types.STRUCT || rhsType.getType() == AST.Types.STRUCT) {
+                if (lhsType != rhsType) {
+                    semanticListener.incompatibleTypeDecl(ident.name, lhsType.toString(), rhsType.toString(), ctx)
+                }
             }
         }
 
@@ -734,9 +813,23 @@ class ASTBuilder(
             ctx.OPEN_SQUARE() != null -> return ArrayNode(visit(ctx.type()) as TypeNode)
             ctx.pair_type() != null -> return visit(ctx.pair_type())
             ctx.void_type() != null -> return VoidType()
+            ctx.struct_type() != null -> return visit(ctx.struct_type())
         }
 
         return visitChildren(ctx)
+    }
+
+    override fun visitStruct_type(ctx: Struct_typeContext): Node {
+        val ident = visit(ctx.ident()) as Ident
+
+        val type = structLists[ident]
+        return if (type == null) {
+            semanticListener.structNotImplemented(ident.name, ctx)
+            VoidType()
+        } else {
+            StructType(type)
+        }
+
     }
 
     override fun visitBaseT(ctx: BaseTContext): Node {
@@ -809,6 +902,9 @@ class ASTBuilder(
                 }
                 globalSymbolTable.getNodeGlobal(lhs.ident.toString())
             }
+            is AssignLHSStructNode -> {
+                return getStructMembType(lhs.structMemberNode, ctx)
+            }
             is LHSArrayElemNode -> {
                 // Check the array exists, the type is valid and the index is an integer
                 if (!globalSymbolTable.containsNodeGlobal(lhs.arrayElem.ident.toString())) {
@@ -856,19 +952,19 @@ class ASTBuilder(
             }
             is RHSCallNode -> {
                 // Check the function exists and that the parameters are correct
-                val args : List<Type>
-                args = if (rhs.argList == null){
+                val args: List<Type>
+                args = if (rhs.argList == null) {
                     mutableListOf()
                 } else {
-                    rhs.argList.map { x -> getExprType(x,ctx)!!}
+                    rhs.argList.map { x -> getExprType(x, ctx)!! }
                 }
                 //val args = rhs.argList!!.map { x -> getExprType(x,ctx) }
                 val string = rhs.ident.toString() + "(" + args.toString() + ")"
                 if (!globalSymbolTable.containsNodeGlobal(string)) {
                     if (args.contains(TypePair(null, null))) {
                         val funcKeys = globalSymbolTable.filterFuncs(rhs.ident.toString())
-                        for (value in funcKeys.values){
-                            if (value is TypeFunction && TypeFunction(value.getReturn(),(args as MutableCollection<Type>)) == value){
+                        for (value in funcKeys.values) {
+                            if (value is TypeFunction && TypeFunction(value.getReturn(), (args as MutableCollection<Type>)) == value) {
                                 return value.getReturn()
                             }
                         }
@@ -909,12 +1005,12 @@ class ASTBuilder(
 
                 if (expr1 != null) {
                     if (expr1.getType() == PAIR_LITER) {
-                        expr1 = TypePair(null,null)
+                        expr1 = TypePair(null, null)
                     }
                 }
                 if (expr2 != null) {
                     if (expr2.getType() == PAIR_LITER) {
-                        expr2 = TypePair(null,null)
+                        expr2 = TypePair(null, null)
                     }
                 }
 
@@ -928,6 +1024,15 @@ class ASTBuilder(
                         null
                     }
                     else -> TypePair(expr1, expr2)
+                }
+            }
+            is RHSNewStruct -> {
+                val type = structLists[rhs.structName]
+                if (type == null) {
+                    semanticListener.structNotImplemented(rhs.structName.name, ctx)
+                    null
+                } else {
+                    type
                 }
             }
             else -> throw Error("RHS not implemented")
@@ -993,10 +1098,25 @@ class ASTBuilder(
                     }
                 }
             }
-            else -> {
-                // AST.PairLiterNode
-                TypePair(null,null)
+            is PairLiterNode -> TypePair(null, null)
+            is StructMemberNode -> {
+                return getStructMembType(expr, ctx)
             }
+
+            else -> throw Error("Expression not implemented")
+        }
+    }
+
+    private fun getStructMembType(expr: StructMemberNode, ctx: ParserRuleContext): Type? {
+        val structType = getExprType(expr.structIdent, ctx) as TypeStruct?
+        return if (structType == null) {
+            semanticListener.structNotImplemented(expr.structIdent.name, ctx)
+            null
+        } else if (!structType.containsMember(expr.memberIdent)) {
+            semanticListener.structMemberDoesNotExist(expr.structIdent.name, expr.memberIdent.name, ctx)
+            null
+        } else {
+            structType.memberType(expr.memberIdent)
         }
     }
 
@@ -1128,6 +1248,14 @@ class ASTBuilder(
         return AssignLHSIdentNode(visit(ctx.ident()) as Ident)
     }
 
+    override fun visitAssignLhsStruct(ctx: AssignLhsStructContext): Node {
+        return AssignLHSStructNode(visit(ctx.struct_access()) as StructMemberNode)
+    }
+
+    override fun visitStruct_access(ctx: Struct_accessContext): Node {
+        return StructMemberNode(visit(ctx.ident(0)) as Ident, visit(ctx.ident(1)) as Ident)
+    }
+
     override fun visitAssignLhsArray(ctx: AssignLhsArrayContext): Node {
         return LHSArrayElemNode(visit(ctx.array_elem()) as ArrayElem)
     }
@@ -1162,6 +1290,13 @@ class ASTBuilder(
                     ctx.arg_list() != null -> ctx.arg_list().expr().map { visit(it) as ExprNode }
                     else -> null
                 })
+    }
+
+    override fun visitAssignRhsNewStruct(ctx: AssignRhsNewStructContext): Node {
+        val structIdent = visit(ctx.ident()) as Ident
+        val args = ctx.arg_list().expr().map { visit(it) as ExprNode }
+
+        return RHSNewStruct(structIdent, args)
     }
 
     override fun visitPairFst(ctx: PairFstContext): Node {

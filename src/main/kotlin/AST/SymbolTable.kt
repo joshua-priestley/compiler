@@ -1,7 +1,6 @@
 package AST
 
 import AST.Types.Type
-import compiler.AST.Types.TypeFunction
 import kotlin.Int
 
 // Class to store the symbol table with a reference to the parent symbol table
@@ -132,6 +131,20 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
 
         // Now in the scope that has the variable we want
         return offset + offsetInTable(name)
+    }
+
+    fun printEntries() {
+        for (entry in table.keys) {
+            println("Key: $entry     Value: ${table[entry]}      Offset: ${table[entry]!!.getOffset()}")
+        }
+    }
+
+    fun printChildTables() {
+        println(childrenTables)
+        println("Total Size: ${localStackSize()}")
+        for (key in childrenTables.keys) {
+            childrenTables[key]?.printChildTables()
+        }
     }
 
 }

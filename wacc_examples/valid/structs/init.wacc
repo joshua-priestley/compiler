@@ -7,7 +7,14 @@
 # Program:
 
 begin
-  for (int i=0; i < 10; i = i * 3) do
-    println(i)
-  done
+  struct ab {
+    int a;
+    int b;
+  };
+  struct cd {
+    int c;
+    int d;
+  };
+
+
 end
