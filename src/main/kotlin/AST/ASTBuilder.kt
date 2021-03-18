@@ -21,13 +21,13 @@ import java.util.concurrent.atomic.AtomicInteger
 class ASTBuilder(
         private val semanticListener: SemanticErrorHandler,
         private val syntaxHandler: SyntaxErrorHandler,
-        private var globalSymbolTable: SymbolTable
+        private var globalSymbolTable: SymbolTable,
+    // A map to store all the functions and their parameters for semantic checking
+        private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
 ) : WACCParserBaseVisitor<Node>() {
     private val nextSymbolID = AtomicInteger()
     private var inWhile = false
 
-    // A map to store all the functions and their parameters for semantic checking
-    private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
 
     // A flag to know if we want the type a boolean returns or requires
     private var boolTypeResult = false
