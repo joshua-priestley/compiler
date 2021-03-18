@@ -4,7 +4,7 @@ import AST.Ident
 import AST.Types.Type
 import antlr.WACCParser.*
 
-open class TypeStruct(private val name: String) : Type() {
+open class TypeStruct(private val name: Ident) : Type() {
 
     override val typeInt: Int = AST.Types.STRUCT
     override var isParam = false
@@ -28,7 +28,7 @@ open class TypeStruct(private val name: String) : Type() {
     }
 
     fun getName(): String {
-        return name
+        return name.name
     }
 
     fun containsMember(name: Ident): Boolean {

@@ -16,6 +16,6 @@ struct thing2 {
 };
 
 begin
-  int x = 3;
-  thing2 y = new thing(1, 2, 'a')
+  thing y = new thing(1, 2, 'a');
+  int a = y.x
 end

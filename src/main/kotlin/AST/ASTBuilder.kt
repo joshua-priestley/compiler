@@ -73,7 +73,7 @@ class ASTBuilder(
         val members = mutableListOf<MemberNode>()
 
         val structIdent = visit(ctx.ident()) as Ident
-        val structType = TypeStruct(structIdent.name)
+        val structType = TypeStruct(structIdent)
 
         ctx.member().map {
             val ident = visit(it.ident()) as Ident
@@ -745,8 +745,8 @@ class ASTBuilder(
         val rhsType = getRHSType(rhs, ctx)
         boolTypeResult = false
 
+        println("$ident, $lhsType, $rhsType, $rhs")
         // Check each side's type is equal
-        println("$ident, $lhsType, $rhsType, ${lhsType.getType()}")
         if (rhsType != null) {
             if (lhsType.getType() != rhsType.getType()
                     && !(lhsType.getArray() && rhsType.getType() == TypeBase(EMPTY_ARR).getType())
@@ -787,7 +787,7 @@ class ASTBuilder(
 
         val type = structLists[ident]
         return if (type == null) {
-            semanticListener.structNotImplemented(ident.toString(), ctx)
+            semanticListener.structNotImplemented(ident.name, ctx)
             VoidType()
         } else {
             StructType(type)
@@ -993,7 +993,7 @@ class ASTBuilder(
             is RHSNewStruct -> {
                 val type = structLists[rhs.structName]
                 if (type == null) {
-                    semanticListener.structNotImplemented(rhs.structName.toString(), ctx)
+                    semanticListener.structNotImplemented(rhs.structName.name, ctx)
                     null
                 } else {
                     type
@@ -1062,10 +1062,21 @@ class ASTBuilder(
                     }
                 }
             }
-            else -> {
-                // AST.PairLiterNode
-                TypePair(null, null)
+            is PairLiterNode -> TypePair(null, null)
+            is StructMemberNode -> {
+                val structType = getExprType(expr.structIdent, ctx) as TypeStruct?
+                if (structType == null) {
+                    semanticListener.structNotImplemented(expr.structIdent.name, ctx)
+                    null
+                } else if (!structType.containsMember(expr.memberIdent)) {
+                    semanticListener.structMemberDoesNotExist(expr.structIdent.name, expr.memberIdent.name, ctx)
+                    null
+                } else {
+                    structType.memberType(expr.memberIdent)
+                }
             }
+
+            else -> throw Error("Expression not implemented")
         }
     }
 

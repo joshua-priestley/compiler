@@ -13,6 +13,11 @@ class SemanticErrorHandler {
         addErrorMessage(msg, errorPosition(ctx))
     }
 
+    fun structMemberDoesNotExist(structName: String, memberName: String, ctx: ParserRuleContext) {
+        val msg = "struct $structName does not contain $memberName"
+        addErrorMessage(msg, errorPosition(ctx))
+    }
+
     fun mapOperatesOnArray(ctx: ParserRuleContext) {
         val msg = "must apply map to a list"
         addErrorMessage(msg, errorPosition(ctx))
