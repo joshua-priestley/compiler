@@ -1,7 +1,6 @@
 package AST
 
 import AST.Types.Type
-import compiler.AST.Types.TypeFunction
 import kotlin.Int
 
 // Class to store the symbol table with a reference to the parent symbol table
