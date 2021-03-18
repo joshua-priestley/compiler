@@ -730,7 +730,7 @@ class ASTBuilder(
     }
 
     private fun checkForCondSemantics(cond: ExprNode, ctx: ParserRuleContext) {
-        if (cond !is BinaryOpNode || binaryOpsProduces(cond.operator.value) != Type(BOOL)) {
+        if (cond !is BinaryOpNode || binaryOpsProduces(cond.operator.value) != TypeBase(BOOL)) {
             semanticListener.forLoopCond(ctx)
         } else {
             val expr1Type = getExprType(cond.expr1, ctx)
