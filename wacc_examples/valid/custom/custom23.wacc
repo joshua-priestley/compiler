@@ -8,10 +8,13 @@
 class thing() {
   int x = 3;
   int y = 10;
-  int z;
 
   int f() is
     return x
+  end
+
+  int f() is
+    return 1
   end
 };
 

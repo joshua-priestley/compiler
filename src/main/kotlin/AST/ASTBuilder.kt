@@ -53,8 +53,6 @@ class ASTBuilder(
         ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
         val stat = visit(ctx.stat()) as StatementNode
 
-        globalSymbolTable.printEntries()
-
         return ProgramNode(structNodes, functionNodes, stat)
     }
 
@@ -105,7 +103,11 @@ class ASTBuilder(
             ctx.member() != null -> {
                 val ident = visit(ctx.member().ident()) as Ident
                 val type = visit(ctx.member().type()) as TypeNode
-                globalSymbolTable.addNode(ident.toString(), type.type)
+                if (globalSymbolTable.containsNodeLocal(ident.toString())) {
+                    semanticListener.redefinedVariable(ident.name, ctx)
+                } else {
+                    globalSymbolTable.addNode(ident.toString(), type.type)
+                }
                 NonInitMember(MemberNode(type, ident))
             }
             ctx.declare_var() != null -> InitMember(visit(ctx.declare_var()) as DeclarationNode)
@@ -153,8 +155,6 @@ class ASTBuilder(
     private fun addIndividual(id: IdentContext, t: TypeContext, p: Param_listContext?, ctx: ParserRuleContext) {
         val ident = visit(id) as Ident // Function name
         val type = visit(t) as TypeNode // Function return type
-        // Check if the function already exists
-
 
         // Add each parameter to the function's parameter list in the map
         val parameterTypes = mutableListOf<Type>()
