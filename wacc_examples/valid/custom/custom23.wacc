@@ -12,10 +12,6 @@ class thing() {
   int f() is
     return x
   end
-
-  int f() is
-    return 1
-  end
 };
 
 begin
