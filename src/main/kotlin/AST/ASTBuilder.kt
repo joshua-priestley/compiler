@@ -75,8 +75,8 @@ class ASTBuilder(
 
         val ident = visit(ctx.ident()) as Ident
         val classType = TypeClass(ident)
-        val membersList = mutableListOf<ClassMemberNode>()
-        ctx.class_member().map { membersList.add(visit(it) as ClassMemberNode) }
+        val membersList = mutableListOf<ClassMember>()
+        ctx.class_member().map { membersList.add(visit(it) as ClassMember) }
         val functionList = mutableListOf<FunctionNode>()
         ctx.func().map { functionList.add(visit(it) as FunctionNode) }
 
@@ -529,7 +529,6 @@ class ASTBuilder(
 
     override fun visitVarAssign(ctx: VarAssignContext): Node {
         val lhs = visit(ctx.assign_lhs()) as AssignLHSNode
-        println(lhs)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
 
         val lhsType = getLHSType(lhs, ctx.assign_lhs())
@@ -960,10 +959,10 @@ class ASTBuilder(
                 globalSymbolTable.getNodeGlobal(lhs.ident.toString())
             }
             is AssignLHSClassNode -> {
-                return getObjectMembType(lhs.objectMemberNode, ctx)
+                return getClassMembType(lhs.classMemberNode, ctx)
             }
             is AssignLHSStructNode -> {
-                return getObjectMembType(lhs.objectMemberNode, ctx)
+                return getStructMembType(lhs.structMemberNode, ctx)
             }
             is LHSArrayElemNode -> {
                 // Check the array exists, the type is valid and the index is an integer
@@ -1168,21 +1167,37 @@ class ASTBuilder(
                 }
             }
             is PairLiterNode -> TypePair(null, null)
-            is ObjectMemberNode -> {
-                return getObjectMembType(expr, ctx)
+            is StructMemberNode -> {
+                return getStructMembType(expr, ctx)
+            }
+            is ClassMemberNode -> {
+                return getClassMembType(expr, ctx)
             }
 
             else -> throw Error("Expression not implemented")
         }
     }
 
-    private fun getObjectMembType(expr: ObjectMemberNode, ctx: ParserRuleContext): Type? {
-        val structType = getExprType(expr.objectIdent, ctx) as TypeStruct?
+    private fun getClassMembType(expr: ClassMemberNode, ctx: ParserRuleContext): Type? {
+        val classType = getExprType(expr.structIdent, ctx) as TypeClass?
+        return if (classType == null) {
+            semanticListener.structNotImplemented(expr.structIdent.name, ctx)
+            null
+        } else if (!classType.containsMember(expr.memberIdent)) {
+            semanticListener.structMemberDoesNotExist(expr.structIdent.name, expr.memberIdent.name, ctx)
+            null
+        } else {
+            classType.memberType(expr.memberIdent)
+        }
+    }
+
+    private fun getStructMembType(expr: StructMemberNode, ctx: ParserRuleContext): Type? {
+        val structType = getExprType(expr.structIdent, ctx) as TypeStruct?
         return if (structType == null) {
-            semanticListener.structNotImplemented(expr.objectIdent.name, ctx)
+            semanticListener.structNotImplemented(expr.structIdent.name, ctx)
             null
         } else if (!structType.containsMember(expr.memberIdent)) {
-            semanticListener.structMemberDoesNotExist(expr.objectIdent.name, expr.memberIdent.name, ctx)
+            semanticListener.structMemberDoesNotExist(expr.structIdent.name, expr.memberIdent.name, ctx)
             null
         } else {
             structType.memberType(expr.memberIdent)
@@ -1318,11 +1333,23 @@ class ASTBuilder(
     }
 
     override fun visitAssignLhsStruct(ctx: AssignLhsStructContext): Node {
-        return AssignLHSStructNode(visit(ctx.struct_access()) as ObjectMemberNode)
+        val assign = visit(ctx.struct_access())
+        return if (assign is StructMemberNode) {
+            AssignLHSStructNode(assign)
+        } else {
+            AssignLHSClassNode(assign as ClassMemberNode)
+        }
     }
 
     override fun visitStruct_access(ctx: Struct_accessContext): Node {
-        return ObjectMemberNode(visit(ctx.ident(0)) as Ident, visit(ctx.ident(1)) as Ident)
+        val ident = visit(ctx.ident(0)) as Ident
+        val type = globalSymbolTable.getNodeGlobal(ident.toString())
+        val member = visit(ctx.ident(1)) as Ident
+        return if (type is TypeStruct) {
+            StructMemberNode(ident, member)
+        } else {
+            ClassMemberNode(ident, member)
+        }
     }
 
     override fun visitAssignLhsArray(ctx: AssignLhsArrayContext): Node {

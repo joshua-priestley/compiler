@@ -6,14 +6,19 @@
 
 # Program:
 class thing() {
-  int x;
+  int x = 3;
 
   int f() is
-    return 3
+    return x
+  end
+
+  int g(int x) is
+    return 4
   end
 };
 
 begin
   thing ting = new thing();
-  int x = ting.x
+  int x = ting.x;
+  ting.x = 4
 end

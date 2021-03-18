@@ -15,11 +15,11 @@ data class ProgramNode(val stucts: List<StructNode>, val funcs: List<FunctionNod
 /*
  * Classes
  */
-data class ClassNode(val ident: Ident, val members: List<ClassMemberNode>, val functions: List<FunctionNode>, val type: TypeClass) : Node
+data class ClassNode(val ident: Ident, val members: List<ClassMember>, val functions: List<FunctionNode>, val type: TypeClass) : Node
 
-interface ClassMemberNode: Node
-data class NonInitMember(val memb: MemberNode): ClassMemberNode
-data class InitMember(val memb: DeclarationNode): ClassMemberNode
+interface ClassMember: Node
+data class NonInitMember(val memb: MemberNode): ClassMember
+data class InitMember(val memb: DeclarationNode): ClassMember
 
 
 /*
@@ -83,8 +83,8 @@ data class ElseIfNode(val expr: ExprNode, val then: StatementNode): StatementNod
  */
 interface AssignLHSNode : Node
 data class AssignLHSIdentNode(val ident: Ident) : AssignLHSNode
-data class AssignLHSClassNode(val objectMemberNode: ObjectMemberNode): AssignLHSNode
-data class AssignLHSStructNode(val objectMemberNode: ObjectMemberNode): AssignLHSNode
+data class AssignLHSClassNode(val classMemberNode: ClassMemberNode): AssignLHSNode
+data class AssignLHSStructNode(val structMemberNode: StructMemberNode): AssignLHSNode
 data class LHSArrayElemNode(val arrayElem: ArrayElem) : AssignLHSNode
 data class LHSPairElemNode(val pairElem: PairElemNode) : AssignLHSNode
 
@@ -101,7 +101,8 @@ data class StrLiterNode(val value: String) : LiterNode
 data class CharLiterNode(val value: String) : LiterNode
 data class BoolLiterNode(val value: String) : LiterNode
 class PairLiterNode : ExprNode
-data class ObjectMemberNode(val objectIdent: Ident, val memberIdent: Ident): ExprNode
+data class StructMemberNode(val structIdent: Ident, val memberIdent: Ident): ExprNode
+data class ClassMemberNode(val structIdent: Ident, val memberIdent: Ident): ExprNode
 data class Ident(var name: String) : LiterNode
 data class ArrayElem(val ident: Ident, val expr: List<ExprNode>) : ExprNode
 data class UnaryOpNode(val operator: UnOp, val expr: ExprNode) : ExprNode
