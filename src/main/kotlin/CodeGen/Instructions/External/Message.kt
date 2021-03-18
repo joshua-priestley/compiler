@@ -1,6 +1,6 @@
 package compiler.CodeGen.Instructions.External
 
-import compiler.Instructions.Instruction
+import compiler.CodeGen.Instructions.Instruction
 
 // Stores the value of a message in the data segment
 data class Message(val value : String) : Instruction {

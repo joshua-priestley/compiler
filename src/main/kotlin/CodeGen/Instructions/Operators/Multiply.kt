@@ -1,6 +1,6 @@
 package compiler.CodeGen.Instructions.Operators
 
-import compiler.Instructions.Instruction
+import compiler.CodeGen.Instructions.Instruction
 import compiler.Instructions.Register
 
 class Multiply(private val dstHi: Register, private val dstLo: Register, private val srcReg1: Register, private val srcReg2: Register, private val s: Boolean) : Instruction {

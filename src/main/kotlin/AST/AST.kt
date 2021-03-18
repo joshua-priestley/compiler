@@ -1,6 +1,8 @@
 package AST
 
+import AST.Types.*
 import antlr.WACCParser.*
+import compiler.AST.Types.*
 import kotlin.Int
 
 interface Node
@@ -27,7 +29,7 @@ data class FunctionNode(val type: TypeNode, val ident: Ident, val params: List<P
 interface StatementNode : Node {
     fun valid(): Boolean {
         return when (this) {
-            is IfElseNode -> !(!this.then.valid() || !this.else_?.valid()!! || !this.elseIfs.map { it.valid() }.any { it })
+            is IfElseNode -> !(!this.then.valid() || !this.else_?.valid()!! || !this.elseIfs.map { it.valid() }.all { it })
             is ElseIfNode -> this.then.valid()
             is SequenceNode -> this.statList[this.statList.size - 1].valid()
             is ExitNode -> true
@@ -88,7 +90,7 @@ data class CharLiterNode(val value: String) : LiterNode
 data class BoolLiterNode(val value: String) : LiterNode
 class PairLiterNode : ExprNode
 data class StructMemberNode(val structIdent: Ident, val memberIdent: Ident): ExprNode
-data class Ident(val name: String) : LiterNode
+data class Ident(var name: String) : LiterNode
 data class ArrayElem(val ident: Ident, val expr: List<ExprNode>) : ExprNode
 data class UnaryOpNode(val operator: UnOp, val expr: ExprNode) : ExprNode
 data class BinaryOpNode(val operator: BinOp, val expr1: ExprNode, val expr2: ExprNode) : ExprNode
@@ -135,28 +137,28 @@ interface TypeNode : Node {
     val type: Type
 }
 
-class VoidType(override val type: Type = Type(VOID)) : TypeNode
+class VoidType(override val type: Type = TypeBase(VOID)): TypeNode
 
 // Base Types
 interface BaseType : TypeNode
 
-class Str(override val type: Type = Type(STRING)) : BaseType
-class Bool(override val type: Type = Type(BOOL)) : BaseType
-class Chr(override val type: Type = Type(CHAR)) : BaseType
-class Int(override val type: Type = Type(INT)) : BaseType
+class Str(override val type: Type = TypeBase(STRING)) : BaseType
+class Bool(override val type: Type = TypeBase(BOOL)) : BaseType
+class Chr(override val type: Type = TypeBase(CHAR)) : BaseType
+class Int(override val type: Type = TypeBase(INT)) : BaseType
 
 // Nested pair type
-class Pair(override val type: Type = Type(PAIR_LITER)) : BaseType
+class Pair(override val type: Type = TypePair(null,null)) : BaseType
 
 // Array Types
 interface ArrayType : TypeNode
-class ArrayNode(private val typeNode: TypeNode, override val type: Type = Type(typeNode.type)) : ArrayType
+class ArrayNode(private val typeNode: TypeNode, override val type: Type = TypeArray(typeNode.type)) : ArrayType
 
 //Pair Types
 data class PairTypeNode(
         val type1: PairElemTypeNode,
         val type2: PairElemTypeNode,
-        override val type: Type = Type(type1.type, type2.type)
+        override val type: Type = TypePair(type1.type,type2.type)
 ) : TypeNode
 
 data class PairElemTypeNode(val typeNode: TypeNode, override val type: Type = typeNode.type) : TypeNode

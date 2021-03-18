@@ -1,7 +1,7 @@
 package compiler.CodeGen.Instructions.ARM
 
 import compiler.Instructions.Conditions
-import compiler.Instructions.Instruction
+import compiler.CodeGen.Instructions.Instruction
 import java.lang.StringBuilder
 
 class Branch(private val label: String, private val link: Boolean, private val cond: Conditions? = null) : Instruction {

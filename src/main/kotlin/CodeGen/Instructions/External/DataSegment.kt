@@ -1,6 +1,6 @@
 package compiler.CodeGen.Instructions.External
 
-import compiler.Instructions.Instruction
+import compiler.CodeGen.Instructions.Instruction
 import java.lang.StringBuilder
 
 // Stores mapping of messages to labels for the data segment

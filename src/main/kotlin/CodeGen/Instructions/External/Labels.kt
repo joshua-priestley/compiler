@@ -1,6 +1,6 @@
 package compiler.CodeGen.Instructions.External
 
-import compiler.Instructions.Instruction
+import compiler.CodeGen.Instructions.Instruction
 
 abstract class Labels(private val label:String): Instruction {
     override fun toString(): String {

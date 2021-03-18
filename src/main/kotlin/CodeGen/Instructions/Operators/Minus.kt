@@ -1,6 +1,6 @@
 package compiler.CodeGen.Instructions.Operators
 
-import compiler.Instructions.Instruction
+import compiler.CodeGen.Instructions.Instruction
 import compiler.Instructions.Register
 
 class Minus(private val reg : Register) : Instruction {

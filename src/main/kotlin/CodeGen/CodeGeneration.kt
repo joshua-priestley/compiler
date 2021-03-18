@@ -1,13 +1,19 @@
 package compiler.CodeGen
 
 import AST.*
+import AST.Types.INVALID
+import AST.Types.Type
+import compiler.AST.Types.*
+import compiler.CodeGen.Instructions.Instruction
 import antlr.WACCParser
+import compiler.AST.Types.TypeBase
 import compiler.CodeGen.Instructions.ARM.*
 import compiler.CodeGen.Instructions.External.*
 import compiler.CodeGen.Instructions.Operators.*
 import compiler.Instructions.*
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
+
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     // Global Variable to know which symbol table to step into
@@ -195,10 +201,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         assign = false
         printing = false
         val funcName: String = when (getType(stat.expr)) {
-            Type(WACCParser.INT) -> predefined.addFunc(PrintInt())
-            Type(WACCParser.STRING) -> predefined.addFunc(PrintString())
-            Type(WACCParser.BOOL) -> predefined.addFunc(PrintBool())
-            Type(WACCParser.CHAR) -> "putchar"
+
+            TypeBase(WACCParser.INT) -> predefined.addFunc(PrintInt())
+            TypeBase(WACCParser.STRING) -> predefined.addFunc(PrintString())
+            TypeBase(WACCParser.BOOL) -> predefined.addFunc(PrintBool())
+            TypeBase(WACCParser.CHAR) -> "putchar"
             else -> predefined.addFunc(PrintReference())
         }
 
@@ -232,7 +239,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val type = getType(expr)
         readInstructions.add(Move(Register.r0, Register.r4))
 
-        if (type == Type(WACCParser.CHAR)) {
+        if (type == TypeBase(WACCParser.CHAR)) {
             readInstructions.add(Branch(predefined.addFunc(ReadChar()), true))
         } else {
             readInstructions.add(Branch(predefined.addFunc(ReadInt()), true))
@@ -259,8 +266,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
         }
         globalSymbolTable.subFromOffset(totalOffset)
-
-        val functionName = "f_${call.ident.name}"
+        val args : List<Type>
+        args = if (call.argList == null){
+            mutableListOf()
+        } else {
+            call.argList.map { x -> getType(x)!!}
+        }
+        //val args = rhs.argList!!.map { x -> getExprType(x,ctx) }
+        val string = call.ident.toString() + "(" + args.toString() + ")"
+        val functionName = "f_$string"
         callInstructions.add(Branch(functionName, true))
         if (totalOffset != 0) callInstructions.add(Add(Register.sp, Register.sp, ImmOp(totalOffset)))
 
@@ -683,7 +697,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun loadIdentValue(ident: Ident): List<Instruction> {
         val loadInstructions = mutableListOf<Instruction>()
         val type = globalSymbolTable.getNodeGlobal(ident.toString())!!
-        val byte: Boolean = type == Type(WACCParser.CHAR) || type == Type(WACCParser.BOOL)
+        val byte: Boolean = type == TypeBase(WACCParser.CHAR) || type == TypeBase(WACCParser.BOOL)
         val offset = getStackOffsetValue(ident.toString())
         loadInstructions.add(Store(Register.r4, Register.sp, offset, byte = byte))
         return loadInstructions
@@ -1046,16 +1060,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun getType(expr: ExprNode): Type? {
         return when (expr) {
-            is IntLiterNode -> Type(WACCParser.INT)
-            is StrLiterNode -> Type(WACCParser.STRING)
-            is BoolLiterNode -> Type(WACCParser.BOOL)
-            is CharLiterNode -> Type(WACCParser.CHAR)
+            is IntLiterNode -> TypeBase(WACCParser.INT)
+            is StrLiterNode -> TypeBase(WACCParser.STRING)
+            is BoolLiterNode -> TypeBase(WACCParser.BOOL)
+            is CharLiterNode -> TypeBase(WACCParser.CHAR)
             is Ident -> globalSymbolTable.getNodeGlobal(expr.toString())
-            is ArrayElem -> globalSymbolTable.getNodeGlobal(expr.ident.toString())?.getBaseType()
-                    ?: Type(INVALID)
+            is ArrayElem -> globalSymbolTable.getNodeGlobal(expr.ident.toString())?.getBaseType() ?: TypeBase(INVALID)
             is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value)
             is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value)
-            is PairLiterNode -> Type(PAIR_LITER)
+            is PairLiterNode -> TypePair(null,null)
             is PairElemNode -> getType(expr.expr)
             else -> {
                 throw Error("Expr not implemented")
