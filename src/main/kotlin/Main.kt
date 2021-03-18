@@ -1,17 +1,8 @@
 package compiler
 
-import AST.ASTBuilder
-import AST.ProgramNode
-import AST.SymbolTable
-import ErrorHandler.SemanticErrorHandler
-import ErrorHandler.SyntaxErrorHandler
-import antlr.WACCLexer
-import antlr.WACCParser
 import compiler.CodeGen.CodeGeneration
 import interpreter.InterpreterFrontend
 import interpreter.Shell
-import org.antlr.v4.runtime.CharStreams
-import org.antlr.v4.runtime.CommonTokenStream
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -45,8 +36,9 @@ fun main(args: Array<String>) {
     }
 }
 
-class Compiler(private val inputFile: String, private val assembly: Boolean = false) {
+class Compiler(private val inputFile: String, private val assembly: Boolean = false): FrontendUtils() {
     fun compile(): Int {
+
         val file = File(inputFile)
 
         if (!file.exists() || !file.isFile) {
@@ -54,51 +46,23 @@ class Compiler(private val inputFile: String, private val assembly: Boolean = fa
         }
 
         println("Compiling...")
+        val result = lexAndParse(file.readText())
 
-        val listener = SyntaxErrorHandler()
-        val input = CharStreams.fromPath(file.toPath())
-        val lexer = WACCLexer(input)
-        lexer.removeErrorListeners()
-        lexer.addErrorListener(listener)
-        val tokens = CommonTokenStream(lexer)
-        val parser = WACCParser(tokens)
-        parser.removeErrorListeners()
-        parser.addErrorListener(listener)
-        val tree = parser.program()
-        val semanticErrorHandler = SemanticErrorHandler()
+        if (result is SuccessfulParse) {
+            println(result.root)
+            if (assembly) {
+                val codeGeneration = CodeGeneration(result.symbolTable)
+                val listOfInstructions = codeGeneration.generateProgram(result.root)
+                val instructions = listOfInstructions.joinToString(separator = "\n") + "\n"
 
-        if (listener.hasSyntaxErrors()) {
-            listener.printSyntaxErrors()
-            return SYNTACTIC_ERROR
+                val assemblyFileName = file.name.replace(".wacc", ".s")
+                File(assemblyFileName).writeText(instructions)
+                println(instructions)
+            }
+
+            println("Successfully finished compilation with exit code 0.")
+            return OK
         }
-
-        val symbolTable = SymbolTable(null, 0)
-        val visitor = ASTBuilder(semanticErrorHandler, listener, symbolTable)
-        val root = visitor.visit(tree)
-
-        if (listener.hasSyntaxErrors()) {
-            listener.printSyntaxErrors()
-            return SYNTACTIC_ERROR
-        }
-
-        if (semanticErrorHandler.hasSemanticErrors()) {
-            semanticErrorHandler.printSemanticErrors()
-            return SEMANTIC_ERROR
-        }
-
-        println(root)
-
-        if (assembly) {
-            val codeGeneration = CodeGeneration(symbolTable)
-            val listOfInstructions = codeGeneration.generateProgram(root as ProgramNode)
-            val instructions = listOfInstructions.joinToString(separator = "\n") + "\n"
-
-            val assemblyFileName = file.name.replace(".wacc", ".s")
-            File(assemblyFileName).writeText(instructions)
-            println(instructions)
-        }
-
-        println("Successfully finished compilation with exit code 0.")
-        return OK
+        return (result as FailedParse).statusCode
     }
 }
