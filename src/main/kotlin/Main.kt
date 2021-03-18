@@ -1,30 +1,48 @@
 package compiler
 
-import ErrorHandler.SemanticErrorHandler
-import AST.SymbolTable
 import AST.ASTBuilder
 import AST.ProgramNode
+import AST.SymbolTable
+import ErrorHandler.SemanticErrorHandler
 import ErrorHandler.SyntaxErrorHandler
-import org.antlr.v4.runtime.*
-import antlr.*
+import antlr.WACCLexer
+import antlr.WACCParser
 import compiler.CodeGen.CodeGeneration
-
-import kotlin.system.exitProcess
+import interpreter.InterpreterFrontend
+import interpreter.Shell
+import org.antlr.v4.runtime.CharStreams
+import org.antlr.v4.runtime.CommonTokenStream
 import java.io.File
-import java.lang.IllegalArgumentException
+import kotlin.system.exitProcess
 
 const val SYNTACTIC_ERROR = 100
 const val SEMANTIC_ERROR = 200
 const val OK = 0
 
 fun main(args: Array<String>) {
-    if (args.size != 1) {
-        throw IllegalArgumentException("Wrong number of arguments: expected: 1, actual: {$args.size}")
+    when (args.size) {
+        1 -> {
+            when (args[0]) {
+                "-s" -> {
+                    val shell = Shell()
+                    shell.run()
+                }
+                else -> {
+                    val compiler = Compiler(args[0], true)
+                    exitProcess(compiler.compile())
+                }
+            }
+        }
+        2 -> {
+            if (args[1] == "-i") {
+                val interpreter = InterpreterFrontend()
+                exitProcess(interpreter.run(args[0]))
+            } else {
+                throw IllegalArgumentException("Invalid format: to interpret programs use -i")
+            }
+        }
+        else -> throw IllegalArgumentException("Wrong number of arguments: expected: 1 or 2, actual: ${args.size}")
     }
-
-    val compiler = Compiler(args[0], true)
-
-    exitProcess(compiler.compile())
 }
 
 class Compiler(private val inputFile: String, private val assembly: Boolean = false) {
