@@ -19,6 +19,10 @@ open class TypeClass(private val name: Ident) : Type() {
         classST = st
     }
 
+    fun getST(): SymbolTable {
+        return classST
+    }
+
     override fun getTypeSize(): Int {
         return totalSize
     }

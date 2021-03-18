@@ -61,11 +61,13 @@ assign_rhs: expr                                                  # assignRhsExp
   | array_liter                                                   # assignRhsArray
   | NEWPAIR OPEN_PARENTHESES expr COMMA expr CLOSE_PARENTHESES    # assignRhsNewpair
   | pair_elem                                                     # assignRhsPairElem
-  | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES     # assignRhsCall
+  | CALL call_func                                                # assignRhsCall
   | FOLDL OPEN_PARENTHESES bin_op CLOSE_PARENTHESES expr ident    # assignRhsFoldl
   | FOLDR OPEN_PARENTHESES bin_op CLOSE_PARENTHESES expr ident    # assignRhsFoldr
   | NEW ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES      # assignRhsNewObject
   ;
+
+call_func: (ident DOT)? ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES;
 
 struct_access: ident DOT ident;
 

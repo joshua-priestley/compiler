@@ -11,14 +11,13 @@ class thing() {
   int f() is
     return x
   end
-
-  int g(int x) is
-    return 4
-  end
 };
 
 begin
+  int g() is
+    return 4
+  end
   thing ting = new thing();
-  int x = ting.x;
-  ting.x = 4
+  int x = call g() ;
+  int x = call ting.f()
 end

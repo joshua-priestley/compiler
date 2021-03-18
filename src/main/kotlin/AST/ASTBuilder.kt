@@ -1037,6 +1037,14 @@ class ASTBuilder(
                     (globalSymbolTable.getNodeGlobal(string) as TypeFunction).getReturn()
                 }
             }
+            is RHSClassCallNode -> {
+                val prev = globalSymbolTable
+                println("ting: $rhs")
+                globalSymbolTable = (globalSymbolTable.getNodeGlobal(rhs.classIdent.toString())!! as TypeClass).getST()
+                val type = getRHSType(rhs.callNode, ctx)
+                globalSymbolTable = prev
+                type
+            }
             is RHSPairElemNode -> {
                 getPairElemType(rhs.pairElem, ctx)
             }
@@ -1381,11 +1389,26 @@ class ASTBuilder(
     }
 
     override fun visitAssignRhsCall(ctx: AssignRhsCallContext): Node {
-        return RHSCallNode(visit(ctx.ident()) as Ident,
-                when {
-                    ctx.arg_list() != null -> ctx.arg_list().expr().map { visit(it) as ExprNode }
-                    else -> null
-                })
+        val call = visit(ctx.call_func())
+        println(call)
+        return call
+    }
+
+    override fun visitCall_func(ctx: Call_funcContext): Node {
+        return if (ctx.ident().size == 1) {
+            RHSCallNode(visit(ctx.ident(0)) as Ident,
+                    when {
+                        ctx.arg_list() != null -> ctx.arg_list().expr().map { visit(it) as ExprNode }
+                        else -> null
+                    })
+        } else {
+            val call = RHSCallNode(visit(ctx.ident(1)) as Ident,
+                    when {
+                        ctx.arg_list() != null -> ctx.arg_list().expr().map { visit(it) as ExprNode }
+                        else -> null
+                    })
+            RHSClassCallNode(visit(ctx.ident(0)) as Ident, call)
+        }
     }
 
     override fun visitAssignRhsNewObject(ctx: AssignRhsNewObjectContext): Node {
