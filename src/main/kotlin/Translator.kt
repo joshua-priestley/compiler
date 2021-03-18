@@ -14,13 +14,13 @@ import java.io.File
 
 interface ParseResult
 
-// TODO - move error printing to failed parse somehow to ?
 data class FailedParse(val statusCode: Int): ParseResult
 data class SuccessfulParse(val root: ProgramNode, val symbolTable: SymbolTable): ParseResult
 
-// TODO abstract compiler main once design is finalised
+
 abstract class FrontendUtils {
 
+    // Returns the contents of a file as a string
     fun fileToString(fileName: String):String {
         val file = File(fileName)
 

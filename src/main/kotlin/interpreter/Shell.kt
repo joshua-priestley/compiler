@@ -1,69 +1,39 @@
-package compiler
+package interpreter
 
 import AST.FunctionNode
 import AST.SymbolTable
 import AST.Type
-import org.jline.terminal.TerminalBuilder
-import org.jline.utils.NonBlockingReader
+import compiler.FailedParse
+import compiler.FrontendUtils
+import compiler.SuccessfulParse
+import compiler.interpreter.VarStore
 import java.util.*
 
-fun main() {
-    val shell = Shell()
-    shell.test()
-}
 
 class Shell : FrontendUtils() {
 
+    // Structures allowing for values/functions to persist between statements
     private val symbolTable = SymbolTable(null, 0)
     private val varStore = VarStore()
     private val funcList: MutableList<FunctionNode> = mutableListOf()
     private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
-    //private val func
 
-    private val history = mutableListOf<String>()
-    private val scanner = Scanner(System.`in`)
-    private val terminal = TerminalBuilder.builder()
-        .jna(true)
-        .system(true)
-        .build();
-
+    // Variables handling multi-line statements/functions
     private var inFunction = false
     private var inMultiLineStatement = false
     private var buffer = ""
 
+    // Format the statement to a valid program
     private fun makeProgram(input: String?): String {
         return "begin\n$input\n" + (if (inFunction) "skip\n" else "") + "end\n"
     }
 
-
-    //TODO look into raw mode
-    fun getUserInput(reader: NonBlockingReader): String {
-// raw mode means we get keypresses rather than line buffered input
-        var read = '0'.toInt()
-        val sb = StringBuilder()
-        while (read != '\n'.toInt()) {
-            read = reader.read();
-            sb.append(read.toChar())
-        }
-        return sb.toString()
-    }
-
-    fun test() {
-        terminal.enterRawMode();
-        val reader = terminal.reader();
-        while (true) {
-            print("> ")
-            println(getUserInput(reader))
-        }
-        reader.close();
-        terminal.close();
-    }
-
+    // Main shell loop
     fun run() {
         println("-----WACC Shell-----")
         println(" - type *quit to exit")
         println(" - you don't need the global begin/end statements")
-        println(" - when writing a multiple line statement/funciton provide enter a blank line to execute")
+        println(" - when writing a multiple line statement/funciton enter a blank line after to execute")
         println()
 
         while (true) {
@@ -81,7 +51,6 @@ class Shell : FrontendUtils() {
             } else if (inMultiLineStatement) {
                 if (line == "") {
                     execute(buffer)
-                    inMultiLineStatement = false
                 } else {
                     buffer += "\n$line"
                 }
@@ -94,7 +63,7 @@ class Shell : FrontendUtils() {
         }
     }
 
-    //TODO change to use the lexer definitions somehow
+    // Check if entering a multi-line statement
     private fun enteringMultiLineStatement(line: String): Boolean {
         val stripped = line.replace("\\s".toRegex(), "")
         // Handle function parsing case
@@ -104,10 +73,10 @@ class Shell : FrontendUtils() {
         }
         return stripped.substring(0, 2) == "if" ||
                 stripped.length >= 5 && stripped.substring(0, 5) == "while" ||
-                stripped.substring(0, 3)  == "for" ||
                 stripped[stripped.length - 1] == ';'
     }
 
+    // Execute the user's input
     private fun execute(statement: String) {
         val toRun = makeProgram(statement)
         val result = lexAndParse(toRun, symbolTable, functionParameters)
@@ -115,7 +84,9 @@ class Shell : FrontendUtils() {
             val backend = InterpreterBackend(symbolTable, varStore, funcList)
             backend.executeProgram((result as SuccessfulParse).root)
         }
+        // Reset all variables to do with multi-line input
         buffer = ""
         inFunction = false
+        inMultiLineStatement = false
     }
 }

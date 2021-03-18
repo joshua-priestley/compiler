@@ -1,10 +1,14 @@
-package compiler
+package interpreter
 
 import AST.*
 import antlr.WACCParser
+import compiler.FailedParse
+import compiler.FrontendUtils
+import compiler.SuccessfulParse
+import compiler.interpreter.VarStore
 import kotlin.system.exitProcess
 
-
+// Class for interpreting whole programs
 class InterpreterFrontend : FrontendUtils() {
     fun run(fileName: String): Int {
         val parseResult = lexAndParse(fileToString(fileName))
@@ -20,7 +24,7 @@ class InterpreterFrontend : FrontendUtils() {
     }
 }
 
-
+// Interal representation for Wacc pairs
 data class PairObject<T, S>(var fst: T?, var snd: S?) {
     fun isNull(): Boolean = fst == null && snd == null
 
@@ -30,6 +34,7 @@ data class PairObject<T, S>(var fst: T?, var snd: S?) {
     }
 }
 
+// Runtime error messages
 enum class Error(val msg: String) {
     ARRAY_NEGATIVE_INDEX("ArrayIndexOutOfBoundsError: negative index"),
     ARRAY_INDEX_TOO_LARGE("ArrayIndexOutOfBoundsError: index too large"),
@@ -37,6 +42,7 @@ enum class Error(val msg: String) {
     INTEGER_OVERFLOW("OverflowError: the result is too small/large to store in a 4-byte signed-integer."),
     NULL_DEFERENCE("NullReferenceError: dereference a null reference.")
 }
+
 
 class InterpreterBackend (
     private var globalSymbolTable: SymbolTable,
@@ -47,6 +53,7 @@ class InterpreterBackend (
     private var funcReturn: Any? = null
     private var isRetruning = false
 
+    // Prints all the variables in the current scope
     fun displayVarStore(varStore: VarStore) {
         println("All vars:")
         varStore.varStore.forEach{
@@ -138,7 +145,8 @@ class InterpreterBackend (
                 val type = globalSymbolTable.getNodeGlobal((stat.expr as Ident).toString())!!.getBaseType()
                 println(type)
                 if (type == Type(WACCParser.CHAR)) {
-                    // TODO this doesn't work oop - printAllTypes test
+                    // TODO this doesn't work because we aren't changing st scopes oop - printAllTypes test
+                    // shouldn't use st here
                     print(expr.joinToString(""))
                 } else {
                     print("#arr_addr#")
