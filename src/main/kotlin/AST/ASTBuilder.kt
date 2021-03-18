@@ -1448,8 +1448,7 @@ class ASTBuilder(
     }
 
     override fun visitAssignRhsCall(ctx: AssignRhsCallContext): Node {
-        val call = visit(ctx.call_func())
-        return call
+        return visit(ctx.call_func())
     }
 
     override fun visitCall_func(ctx: Call_funcContext): Node {
