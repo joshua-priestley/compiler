@@ -5,8 +5,8 @@
 # 4
 
 # Program:
-class thing() {
-  int x = 3;
+class thing(int z) {
+  int x = z;
   int y = 10;
 
   int f() is
@@ -15,10 +15,10 @@ class thing() {
 };
 
 begin
-  int g() is
+  int g(int x) is
     return 4
   end
-  thing ting = new thing();
-  int x = call g();
+  thing ting = new thing(3);
+  int x = call g(3);
   int y = call ting.f()
 end

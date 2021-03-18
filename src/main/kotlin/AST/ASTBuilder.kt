@@ -20,7 +20,8 @@ class ASTBuilder(
         private val syntaxHandler: SyntaxErrorHandler,
         private var globalSymbolTable: SymbolTable,
         // A map to store all the functions and their parameters for semantic checking
-        private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
+        private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf(),
+        private val classParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
 ) : WACCParserBaseVisitor<Node>() {
     private val nextSymbolID = AtomicInteger()
     private var inWhile = false
@@ -76,6 +77,20 @@ class ASTBuilder(
         val ident = visit(ctx.ident()) as Ident
         val classType = TypeClass(ident)
 
+        val parameterNodes = mutableListOf<Param>()
+        val parameterTypes = mutableListOf<Type>()
+        if (ctx.param_list() != null) {
+            for (i in 0..ctx.param_list().childCount step 2) {
+                val param = visit(ctx.param_list().getChild(i)) as Param
+                parameterNodes.add(param)
+                globalSymbolTable.addNode(param.ident.toString(), param.type.type.setParameter(true))
+                parameterTypes.add(param.type.type)
+                classType.addMember(param.ident, param.type.type)
+            }
+        }
+
+        classParameters[ident.toString()] = parameterTypes
+
         val membersList = mutableListOf<ClassMember>()
         ctx.class_member().map { membersList.add(visit(it) as ClassMember) }
         for (memb in membersList) {
@@ -95,7 +110,7 @@ class ASTBuilder(
 
         globalSymbolTable = prevST
 
-        return ClassNode(ident, membersList, functionList, classType)
+        return ClassNode(ident, parameterNodes, membersList, functionList, classType)
     }
 
     override fun visitClass_member(ctx: Class_memberContext): Node {
@@ -303,6 +318,42 @@ class ASTBuilder(
 
     override fun visitParam_list(ctx: Param_listContext?): Node {
         return visitChildren(ctx)
+    }
+
+    private fun checkClassParameters(newClass: RHSNewClass, ctx: ParserRuleContext): Boolean {
+        // Checks all the arguments being passed into a function so that all the types match up
+        val parameterTypes = classParameters[newClass.className.toString()]
+        if (newClass.argList == null && parameterTypes!!.isEmpty()) {
+            // Check if there are parameters
+            return true
+        } else if (newClass.argList!!.size != parameterTypes!!.size) {
+            // Check they are the same size
+            semanticListener.mismatchedArgs(parameterTypes.size.toString(), newClass.argList.size.toString(), ctx)
+            return false
+        }
+        // Get the type of each argument
+        val argTypes = mutableListOf<Type>()
+        for (arg in newClass.argList) {
+            val type = getExprType(arg, ctx)
+            if (type == null) {
+                return false
+            } else {
+                argTypes.add(type)
+            }
+        }
+
+        // Check each argument matches with the type of the parameter
+        for (i in argTypes.indices) {
+            if (argTypes[i].getType() != parameterTypes[i].getType()) {
+                semanticListener.mismatchedParamTypes(
+                        argTypes[i].toString(),
+                        parameterTypes[i].toString(),
+                        ctx
+                )
+                return false
+            }
+        }
+        return true
     }
 
     private fun checkParameters(rhs: RHSCallNode, ctx: ParserRuleContext): Boolean {
@@ -845,7 +896,6 @@ class ASTBuilder(
         val rhsType = getRHSType(rhs, ctx)
         boolTypeResult = false
 
-        //println("$ident, $lhsType, $rhsType, $rhs")
         // Check each side's type is equal
         if (rhsType != null) {
             if (lhsType.getType() != rhsType.getType()
@@ -1112,9 +1162,9 @@ class ASTBuilder(
                 }
             }
             is RHSNewClass -> {
-                val type = classLists[rhs.structName]
+                val type = classLists[rhs.className]
                 if (type == null) {
-                    semanticListener.classNotImplemented(rhs.structName.name, ctx)
+                    semanticListener.classNotImplemented(rhs.className.name, ctx)
                     null
                 } else {
                     type
@@ -1430,7 +1480,9 @@ class ASTBuilder(
             } else {
                 emptyList()
             }
-            RHSNewClass(structIdent, args)
+            val newClass = RHSNewClass(structIdent, args)
+            checkClassParameters(newClass, ctx)
+            newClass
         }
     }
 

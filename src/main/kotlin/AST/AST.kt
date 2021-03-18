@@ -15,7 +15,7 @@ data class ProgramNode(val stucts: List<StructNode>, val funcs: List<FunctionNod
 /*
  * Classes
  */
-data class ClassNode(val ident: Ident, val members: List<ClassMember>, val functions: List<FunctionNode>, val type: TypeClass) : Node
+data class ClassNode(val ident: Ident, val params: List<Param>, val members: List<ClassMember>, val functions: List<FunctionNode>, val type: TypeClass) : Node
 
 interface ClassMember: Node
 data class NonInitMember(val memb: MemberNode): ClassMember
@@ -137,7 +137,7 @@ data class RHSClassCallNode(val classIdent: Ident, val callNode: RHSCallNode): A
 data class RHSFoldNode(val sequenceNode: SequenceNode): AssignRHSNode
 interface RHSNewObject: AssignRHSNode
 data class RHSNewStruct(val structName: Ident, val argList: List<ExprNode>): RHSNewObject
-data class RHSNewClass(val structName: Ident, val argList: List<ExprNode>): RHSNewObject
+data class RHSNewClass(val className: Ident, val argList: List<ExprNode>?): RHSNewObject
 
 /*
  * Pair Elem
