@@ -15,8 +15,6 @@ import compiler.AST.Types.TypeArray
 import compiler.AST.Types.TypeBase
 import compiler.AST.Types.TypeFunction
 import compiler.AST.Types.TypePair
-import org.antlr.v4.codegen.model.decl.Decl
-import org.antlr.v4.runtime.Parser
 import java.util.concurrent.atomic.AtomicInteger
 
 
@@ -80,7 +78,7 @@ class ASTBuilder(
         functionParameters[ident.toString()] = parameterTypes
 
         if (globalSymbolTable.containsNodeLocal(ident.toString() + funcType.toString())) {
-            semanticListener.redefinedVariable(ident.name + "()", id)
+            semanticListener.redefinedVariable(ident.name + "()", ctx)
         } else {
             globalSymbolTable.addNode(ident.toString() + funcType.toString(), funcType)
         }
@@ -259,9 +257,22 @@ class ASTBuilder(
             else -> null
         }
         checkParameters(RHSCallNode(ident, params), ctx)
-        if (!globalSymbolTable.containsNodeGlobal(ident.toString())) {
-            semanticListener.funRefBeforeAss(ident.name, ctx)
+        val args = params?.map { x -> getExprType(x,ctx) } ?: mutableListOf<Type>()
+        val string = "$ident($args)"
+        var found = false
+        if (!globalSymbolTable.containsNodeGlobal(string)) {
+            if (args.contains(TypePair(null, null))) {
+                val funcKeys = globalSymbolTable.filterFuncs(ident.toString())
+                for (value in funcKeys.values){
+                    if (value is TypeFunction && TypeFunction(value.getReturn(),(args as MutableCollection<Type>)) == value){
+                        found = true
+                        break
+                    }
+                }
+            }
+            if (!found) semanticListener.funRefBeforeAss(ident.name, ctx)
         }
+
         return CallNode(ident, params)
     }
 
@@ -616,7 +627,7 @@ class ASTBuilder(
         globalSymbolTable = globalSymbolTable.parentT!!
 
         val elseIfs = mutableListOf<ElseIfNode>()
-        if (!ctx.else_if().isEmpty()) {
+        if (ctx.else_if().isNotEmpty()) {
             ctx.else_if().map { elseIfs.add(visit(it) as ElseIfNode) }
         }
 
@@ -862,7 +873,6 @@ class ASTBuilder(
                             }
                         }
                     }
-                    println(string)
                     semanticListener.funRefBeforeAss(rhs.ident.name, ctx)
                     null
                 } else if (!checkParameters(rhs, ctx)) {
@@ -894,8 +904,7 @@ class ASTBuilder(
             }
             is RHSNewPairNode -> {
                 // RHSNewPairElemNode
-                val pair = rhs
-                var expr1 = getExprType(pair.expr1, ctx)
+                var expr1 = getExprType(rhs.expr1, ctx)
                 var expr2 = getExprType(rhs.expr2, ctx)
 
                 if (expr1 != null) {
