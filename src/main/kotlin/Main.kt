@@ -69,9 +69,8 @@ class Compiler(private val inputFile: String, private val assembly: Boolean = fa
         }
 
         println(root)
-        symbolTable.printEntries()
 
-        if (false) {
+        if (assembly) {
             val codeGeneration = CodeGeneration(symbolTable)
             val listOfInstructions = codeGeneration.generateProgram(root as ProgramNode)
             val instructions = listOfInstructions.joinToString(separator = "\n") + "\n"

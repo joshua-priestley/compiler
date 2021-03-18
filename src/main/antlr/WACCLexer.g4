@@ -25,6 +25,11 @@ SUBN: '-=';
 MULN: '*=';
 DIVN: '/=';
 
+//extension
+BITWISEAND: '&';
+BITWISEOR: '|';
+BITWISENOT: '~';
+
 //program
 BEGIN: 'begin';
 END: 'end';
@@ -83,6 +88,9 @@ FI: 'fi';
 WHILE: 'while';
 DO: 'do';
 DONE: 'done';
+MAP: 'map';
+FOLDL: 'foldl';
+FOLDR: 'foldr';
 
 //for
 FOR: 'for'; //rest follows from WHILE
@@ -132,3 +140,5 @@ WS: [ \t\n\r]+ -> skip;
 COMMENT: '#' ~[\n]* '\n' -> skip;
 
 ID: ('_' | [a-zA-Z]) ('_' | [a-zA-Z0-9])* ;
+
+MACRO: 'define ';

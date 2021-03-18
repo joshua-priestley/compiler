@@ -124,6 +124,7 @@ open class Type {
                 operator <= 5 -> Type(INT)
                 //Tokens 6-13 are bool operators
                 operator in 6..13 -> Type(BOOL)
+                operator in 22..23 -> Type(INT)
                 else -> Type(INVALID)
             }
         }
@@ -136,6 +137,7 @@ open class Type {
                 operator in 10..11 -> mutableListOf(Type(ANY)) // EQ and NEQ can take any type
                 operator in 12..14 -> mutableListOf(Type(BOOL))
                 operator in 12..14 -> mutableListOf(Type(BOOL))
+                operator in 22..23 -> mutableListOf(Type(INT))
                 else -> mutableListOf(Type(INVALID))
             }
         }
@@ -146,6 +148,7 @@ open class Type {
                 NOT -> Type(BOOL)
                 LEN, ORD, MINUS -> Type(INT)
                 CHR -> Type(CHAR)
+                BITWISENOT -> Type(INT)
                 else -> Type(INVALID)
             }
         }
@@ -157,6 +160,7 @@ open class Type {
                 ORD -> Type(CHAR)
                 MINUS, CHR -> Type(INT)
                 LEN -> Type(ARRAY)
+                BITWISENOT -> Type(INT)
                 else -> Type(INVALID)
             }
         }
