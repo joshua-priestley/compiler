@@ -6,7 +6,7 @@ import antlr.WACCParser.*
 
 open class TypeStruct(private val name: String) : Type() {
 
-    override val typeInt: Int = STRUCT
+    override val typeInt: Int = AST.Types.STRUCT
     override var isParam = false
     override var offsetInTable: Int = 0
 

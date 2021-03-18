@@ -730,7 +730,6 @@ class ASTBuilder(
     override fun visitVarDeclaration(ctx: VarDeclarationContext): Node {
         val type = visit(ctx.type()) as TypeNode
         val ident = Ident(ctx.ident().text)
-        println(type)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
         // Check that the variable named exists and is not a function
         if (!boolTypeResult && globalSymbolTable.containsNodeLocal(ident.toString()) && globalSymbolTable.containsNodeLocal(ident.toString())
@@ -747,12 +746,18 @@ class ASTBuilder(
         boolTypeResult = false
 
         // Check each side's type is equal
+        println("$ident, $lhsType, $rhsType, ${lhsType.getType()}")
         if (rhsType != null) {
             if (lhsType.getType() != rhsType.getType()
                     && !(lhsType.getArray() && rhsType.getType() == TypeBase(EMPTY_ARR).getType())
                     && !(lhsType.getPair() && rhsType.getType() == PAIR_LITER)
             ) {
                 semanticListener.incompatibleTypeDecl(ident.name, lhsType.toString(), rhsType.toString(), ctx)
+            }
+            if (lhsType.getType() == AST.Types.STRUCT || rhsType.getType() == AST.Types.STRUCT) {
+                if (lhsType != rhsType) {
+                    semanticListener.incompatibleTypeDecl(ident.name, lhsType.toString(), rhsType.toString(), ctx)
+                }
             }
         }
 
@@ -1237,7 +1242,6 @@ class ASTBuilder(
     }
 
     override fun visitAssignRhsNewStruct(ctx: AssignRhsNewStructContext): Node {
-        println("cunt")
         val structIdent = visit(ctx.ident()) as Ident
         val args = ctx.arg_list().expr().map { visit(it) as ExprNode }
 

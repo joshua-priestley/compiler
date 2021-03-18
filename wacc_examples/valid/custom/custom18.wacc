@@ -17,5 +17,5 @@ struct thing2 {
 
 begin
   int x = 3;
-  thing y = new thing(1, 2, 'a')
+  thing2 y = new thing(1, 2, 'a')
 end
