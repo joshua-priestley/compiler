@@ -17,7 +17,7 @@ param_list: param (COMMA param)*;
 param: type ident;
 
 stat: SKP                                           # skip
-  | type ident ASSIGN assign_rhs                    # varDeclaration
+  | declare_var                                     # varDeclaration
   | assign_lhs ASSIGN assign_rhs                    # varAssign
   | READ assign_lhs                                 # read
   | FREE expr                                       # free
@@ -28,6 +28,7 @@ stat: SKP                                           # skip
   | IF expr THEN stat (else_if)* (ELSE stat)? FI    # if
   | WHILE expr DO stat DONE                         # while
   | DO stat WHILE expr DONE                         # do_while
+  | FOR for_cond DO stat DONE                       # for_loop
   | BEGIN stat END                                  # begin
   | <assoc=right> stat SEMICOLON stat               # sequence
   | assign_lhs sideExpr                             # sideExpression
@@ -38,6 +39,10 @@ stat: SKP                                           # skip
         (OPEN_PARENTHESES arg_list  CLOSE_PARENTHESES)?
         ident                                       # map
   ;
+
+declare_var: type ident ASSIGN assign_rhs;
+
+for_cond: OPEN_PARENTHESES declare_var SEMICOLON expr SEMICOLON stat CLOSE_PARENTHESES;
 
 else_if: ELSE IF expr THEN stat;
 

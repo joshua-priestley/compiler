@@ -726,6 +726,45 @@ class ASTBuilder(
 
     // Checks that the LHS type = RHS type and creates an AST node
     override fun visitVarDeclaration(ctx: VarDeclarationContext): Node {
+        return visit(ctx.declare_var())
+    }
+
+    private fun checkForCondSemantics(cond: ExprNode, ctx: ParserRuleContext) {
+        if (cond !is BinaryOpNode || binaryOpsProduces(cond.operator.value) != Type(BOOL)) {
+            semanticListener.forLoopCond(ctx)
+        } else {
+            val expr1Type = getExprType(cond.expr1, ctx)
+            if (!binaryOpsRequires(cond.operator.value).contains(expr1Type)) {
+                semanticListener.binaryOpType(ctx)
+            }
+            val expr2Type = getExprType(cond.expr2, ctx)
+            if (!binaryOpsRequires(cond.operator.value).contains(expr2Type)) {
+                semanticListener.binaryOpType(ctx)
+            }
+        }
+    }
+
+    private fun checkUpdateSemantics(update: StatementNode, ctx: ParserRuleContext) {
+        if (update !is SideExpressionNode && update !is AssignNode) {
+            semanticListener.forLoopUpdate(ctx)
+        }
+    }
+
+    override fun visitFor_loop(ctx: For_loopContext): Node {
+        val loopSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
+        val counter = visit(ctx.for_cond().declare_var()) as DeclarationNode
+        globalSymbolTable = loopSymbolTable
+        val terminator = visit(ctx.for_cond().expr()) as ExprNode
+        val update = visit(ctx.for_cond().stat()) as StatementNode
+        val do_ = visit(ctx.stat()) as StatementNode
+        checkForCondSemantics(terminator, ctx)
+        checkUpdateSemantics(update, ctx)
+
+        globalSymbolTable = globalSymbolTable.parentT!!
+        return ForNode(counter, update, terminator, do_)
+    }
+
+    override fun visitDeclare_var(ctx: Declare_varContext): Node {
         val type = visit(ctx.type()) as TypeNode
         val ident = Ident(ctx.ident().text)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
