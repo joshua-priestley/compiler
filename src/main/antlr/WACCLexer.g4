@@ -127,6 +127,7 @@ VOID: 'void';
 
 //structs
 STRUCT: 'struct';
+NEW: 'new';
 
 //characters
 fragment QUOTE: '\'';

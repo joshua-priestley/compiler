@@ -11,10 +11,7 @@ import AST.Types.Type.Companion.unaryOpsProduces
 import AST.Types.Type.Companion.unaryOpsRequires
 import ErrorHandler.SemanticErrorHandler
 import ErrorHandler.SyntaxErrorHandler
-import compiler.AST.Types.TypeArray
-import compiler.AST.Types.TypeBase
-import compiler.AST.Types.TypeFunction
-import compiler.AST.Types.TypePair
+import compiler.AST.Types.*
 import java.util.concurrent.atomic.AtomicInteger
 
 
@@ -29,7 +26,7 @@ class ASTBuilder(
     private var inWhile = false
 
     // A map to store all the functions and their parameters for semantic checking
-    private val structLists: LinkedHashMap<String, SymbolTable> = linkedMapOf()
+    private val structLists: LinkedHashMap<Ident, TypeStruct> = linkedMapOf()
 
     // A flag to know if we want the type a boolean returns or requires
     private var boolTypeResult = false
@@ -54,6 +51,9 @@ class ASTBuilder(
         ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
         val stat = visit(ctx.stat()) as StatementNode
 
+        globalSymbolTable.printEntries()
+        println(structLists)
+
         return ProgramNode(structNodes, functionNodes, stat)
     }
 
@@ -72,21 +72,19 @@ class ASTBuilder(
     override fun visitStruct(ctx: StructContext): Node {
         val members = mutableListOf<MemberNode>()
 
-        val symbolTable = SymbolTable(null, -1)
-
         val structIdent = visit(ctx.ident()) as Ident
+        val structType = TypeStruct(structIdent.toString())
 
         ctx.member().map {
-            val type = visit(it.type()) as TypeNode
             val ident = visit(it.ident()) as Ident
-            symbolTable.addNode(ident.toString(), type.type)
+            val type = visit(it.type()) as TypeNode
+            structType.addMember(ident, type.type)
             members.add(MemberNode(type, ident))
         }
 
-        val structNode = StructNode(structIdent, members, symbolTable)
-        println(symbolTable.localStackSize())
+        val structNode = StructNode(structIdent, members, structType)
 
-        structLists[structIdent.toString()] = symbolTable
+        structLists[structIdent] = structType
 
         return structNode
     }
@@ -849,14 +847,7 @@ class ASTBuilder(
             }
             is AssignLHSStructNode -> {
                 //TODO
-                if (!globalSymbolTable.containsNodeGlobal(lhs.structMemberNode.structIdent.toString())) {
-                    semanticListener.undefinedVar(lhs.structMemberNode.structIdent.name, ctx)
-                } else if (globalSymbolTable.getNodeGlobal(lhs.structMemberNode.structIdent.toString())!!.isFunction()) {
-                    semanticListener.assigningFunction(lhs.structMemberNode.structIdent.name, ctx)
-                } else if (!structLists[lhs.structMemberNode.structIdent.toString()]!!.containsNodeLocal(lhs.structMemberNode.memberIdent.toString())) {
-                    semanticListener.structMemberNonExistent(lhs.structMemberNode.structIdent.name, lhs.structMemberNode.memberIdent.name, ctx)
-                }
-                structLists[lhs.structMemberNode.structIdent.toString()]!!.getNodeLocal(lhs.structMemberNode.memberIdent.toString())
+                null
             }
             is LHSArrayElemNode -> {
                 // Check the array exists, the type is valid and the index is an integer

@@ -6,9 +6,9 @@ options {
 
 program: (struct)* BEGIN (macro)* (func)* stat END EOF;
 
-struct: STRUCT ident OPEN_CURLY member (member SEMICOLON)* CLOSE_CURLY SEMICOLON;
+struct: STRUCT ident OPEN_CURLY (member)+ CLOSE_CURLY SEMICOLON;
 
-member: type ident;
+member: type ident SEMICOLON;
 
 func: type ident OPEN_PARENTHESES (param_list)? CLOSE_PARENTHESES IS stat END;
 
@@ -54,6 +54,7 @@ assign_rhs: expr                                                  # assignRhsExp
   | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES     # assignRhsCall
   | FOLDL OPEN_PARENTHESES bin_op CLOSE_PARENTHESES expr ident    # assignRhsFoldl
   | FOLDR OPEN_PARENTHESES bin_op CLOSE_PARENTHESES expr ident    # assignRhsFoldr
+  | NEW ident OPEN_PARENTHESES arg_list CLOSE_PARENTHESES         # assignRhsNewStruct
   ;
 
 struct_access: ident DOT ident;

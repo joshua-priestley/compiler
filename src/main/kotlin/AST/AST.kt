@@ -15,7 +15,7 @@ data class ProgramNode(val stucts: List<StructNode>, val funcs: List<FunctionNod
 /*
  * Structs
  */
-data class StructNode(val ident: Ident, val members: List<MemberNode>, val symbolTable: SymbolTable) : Node
+data class StructNode(val ident: Ident, val members: List<MemberNode>, val type: TypeStruct) : Node
 data class MemberNode(val type: TypeNode, val ident: Ident) : Node
 
 /*

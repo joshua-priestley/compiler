@@ -26,23 +26,23 @@ open class TypeStruct(private val name: String) : Type() {
         return VOCABULARY.getSymbolicName(getType())
     }
 
-    private fun getName(): String {
+    fun getName(): String {
         return name
     }
 
-    private fun containsMember(name: Ident): Boolean {
+    fun containsMember(name: Ident): Boolean {
         return memberST.containsNodeGlobal(name.toString())
     }
 
-    private fun memberType(name: Ident): Type? {
+    fun memberType(name: Ident): Type? {
         return memberST.getNodeGlobal(name.toString())
     }
 
-    private fun numberOfMembers(): Int {
+    fun numberOfMembers(): Int {
         return memberNames.size
     }
 
-    private fun addMember(name: Ident, type: Type) {
+    fun addMember(name: Ident, type: Type) {
         memberST.addNode(name.toString(), type)
         totalSize += type.getTypeSize()
     }
@@ -66,7 +66,7 @@ open class TypeStruct(private val name: String) : Type() {
         return other.getName() == getName()  && membersEqual(other)
     }
 
-    private fun equalsType(other: Any?): Boolean {
+    fun equalsType(other: Any?): Boolean {
         if (other !is TypeStruct) return false
         return other.getName() == getName()
     }

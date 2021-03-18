@@ -133,4 +133,18 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
         return offset + offsetInTable(name)
     }
 
+    fun printEntries() {
+        for (entry in table.keys) {
+            println("Key: $entry     Value: ${table[entry]}      Offset: ${table[entry]!!.getOffset()}")
+        }
+    }
+
+    fun printChildTables() {
+        println(childrenTables)
+        println("Total Size: ${localStackSize()}")
+        for (key in childrenTables.keys) {
+            childrenTables[key]?.printChildTables()
+        }
+    }
+
 }

@@ -8,7 +8,13 @@
 struct thing {
   int x;
   int y;
-}
+  char t;
+};
+
+struct thing2 {
+  char t;
+};
+
 begin
   int x = 3
 end
