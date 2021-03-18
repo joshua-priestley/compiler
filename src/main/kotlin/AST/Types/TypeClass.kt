@@ -64,7 +64,7 @@ open class TypeClass(private val name: Ident) : Type() {
     }
 
     fun addMember(name: Ident, type: Type) {
-        classST.addNode(name.toString(), type)
+        memberNames.add(name)
         totalSize += type.getTypeSize()
     }
 

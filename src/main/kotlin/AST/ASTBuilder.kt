@@ -53,6 +53,8 @@ class ASTBuilder(
         ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
         val stat = visit(ctx.stat()) as StatementNode
 
+        globalSymbolTable.printEntries()
+
         return ProgramNode(structNodes, functionNodes, stat)
     }
 
@@ -75,11 +77,20 @@ class ASTBuilder(
 
         val ident = visit(ctx.ident()) as Ident
         val classType = TypeClass(ident)
+
         val membersList = mutableListOf<ClassMember>()
-        ctx.func().forEach { addIndividual(it.ident(), it.type(), it.param_list(), it) }
         ctx.class_member().map { membersList.add(visit(it) as ClassMember) }
+        for (memb in membersList) {
+            if (memb is InitMember) {
+                classType.addMember(memb.memb.ident, memb.memb.type.type)
+            } else if (memb is NonInitMember) {
+                classType.addMember(memb.memb.ident, memb.memb.type.type)
+            }
+        }
+
         val functionList = mutableListOf<FunctionNode>()
         ctx.func().map { functionList.add(visit(it) as FunctionNode) }
+        ctx.func().forEach { addIndividual(it.ident(), it.type(), it.param_list(), it) }
 
         classType.setST(globalSymbolTable)
         classLists[ident] = classType
