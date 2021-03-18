@@ -51,9 +51,6 @@ class ASTBuilder(
         ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
         val stat = visit(ctx.stat()) as StatementNode
 
-        globalSymbolTable.printEntries()
-        println(structLists)
-
         return ProgramNode(structNodes, functionNodes, stat)
     }
 
@@ -478,6 +475,7 @@ class ASTBuilder(
 
     override fun visitVarAssign(ctx: VarAssignContext): Node {
         val lhs = visit(ctx.assign_lhs()) as AssignLHSNode
+        println(lhs)
         val rhs = visit(ctx.assign_rhs()) as AssignRHSNode
 
         val lhsType = getLHSType(lhs, ctx.assign_lhs())
@@ -745,7 +743,7 @@ class ASTBuilder(
         val rhsType = getRHSType(rhs, ctx)
         boolTypeResult = false
 
-        println("$ident, $lhsType, $rhsType, $rhs")
+        //println("$ident, $lhsType, $rhsType, $rhs")
         // Check each side's type is equal
         if (rhsType != null) {
             if (lhsType.getType() != rhsType.getType()
@@ -866,8 +864,7 @@ class ASTBuilder(
                 globalSymbolTable.getNodeGlobal(lhs.ident.toString())
             }
             is AssignLHSStructNode -> {
-                //TODO
-                null
+                return getStructMembType(lhs.structMemberNode, ctx)
             }
             is LHSArrayElemNode -> {
                 // Check the array exists, the type is valid and the index is an integer
@@ -1064,19 +1061,23 @@ class ASTBuilder(
             }
             is PairLiterNode -> TypePair(null, null)
             is StructMemberNode -> {
-                val structType = getExprType(expr.structIdent, ctx) as TypeStruct?
-                if (structType == null) {
-                    semanticListener.structNotImplemented(expr.structIdent.name, ctx)
-                    null
-                } else if (!structType.containsMember(expr.memberIdent)) {
-                    semanticListener.structMemberDoesNotExist(expr.structIdent.name, expr.memberIdent.name, ctx)
-                    null
-                } else {
-                    structType.memberType(expr.memberIdent)
-                }
+                return getStructMembType(expr, ctx)
             }
 
             else -> throw Error("Expression not implemented")
+        }
+    }
+
+    private fun getStructMembType(expr: StructMemberNode, ctx: ParserRuleContext): Type? {
+        val structType = getExprType(expr.structIdent, ctx) as TypeStruct?
+        return if (structType == null) {
+            semanticListener.structNotImplemented(expr.structIdent.name, ctx)
+            null
+        } else if (!structType.containsMember(expr.memberIdent)) {
+            semanticListener.structMemberDoesNotExist(expr.structIdent.name, expr.memberIdent.name, ctx)
+            null
+        } else {
+            structType.memberType(expr.memberIdent)
         }
     }
 
