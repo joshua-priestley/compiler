@@ -330,7 +330,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             call.argList.map { x -> getType(x)!! }
         }
         //val args = rhs.argList!!.map { x -> getExprType(x,ctx) }
-        val string = call.ident.name + args.joinToString(separator = "_")
+        val string = call.ident.name + args.joinToString(separator = "_").replace("[]","ARR")
         var functionName = if (classFunc) "c_" else ""
         functionName += "f_$string"
         callInstructions.add(Branch(functionName, true))
