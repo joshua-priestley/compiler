@@ -702,9 +702,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateNewClass(newClass: RHSNewClass): List<Instruction> {
         val newClassInstruction = mutableListOf<Instruction>()
         val currentST = globalSymbolTable
-        val classT = classLists[newClass.className]:
+        val classT = classLists[newClass.className]
+
         // Enter the class symbol table
-        globalSymbolTable = classT.getST()
+        globalSymbolTable = classT!!.getST()
 
         val classNode = getClassNode(newClass.className)!!
         var index = 0
