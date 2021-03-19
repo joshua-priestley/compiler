@@ -69,9 +69,9 @@ assign_rhs: expr                                                  # assignRhsExp
 
 call_func: (ident DOT)? ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES;
 
-struct_access: ident DOT ident;
+struct_access: ident DOT (ident | array_elem);
 
-arg_list: expr (COMMA expr)*;
+arg_list: (expr|array_liter) (COMMA (expr|array_liter))*;
 
 pair_elem: FST expr                             # pairFst
   | SND expr                                    # pairSnd
@@ -110,7 +110,7 @@ expr: (PLUS | MINUS)? INT_LITER                 # liter
   | ident                                       # id
   | array_elem                                  # arrayElem
   | (NOT | MINUS | LEN | ORD
-   | CHR | BITWISENOT) expr                     # unaryOp
+  | CHR | BITWISENOT) expr                     # unaryOp
   | expr (MUL | DIV | MOD) expr                 # binaryOp
   | expr (PLUS | MINUS) expr                    # binaryOp
   | expr (GT | GTE | LT | LTE) expr             # binaryOp

@@ -665,25 +665,31 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is UnaryOpNode -> generateUnOp(expr, reg)
             is ArrayElem -> generateArrayElem(expr, reg)
             is PairLiterNode -> mutableListOf(Load(reg, 0))
-            //is ClassMemberNode ->
+            is StructMemberNode -> generateStructMember(expr, reg)
             else -> emptyList()
         }
+    }
+
+    private fun generateStructMember(memberNode: StructMemberNode, reg: Register = Register.r5): List<Instruction> {
+        val structMemberInstruction = mutableListOf<Instruction>()
+        when (memberNode.memberExpr) {
+            is ArrayElem -> structMemberInstruction.addAll(generateArrayElem(memberNode, reg))
+            is Ident -> structMemberInstruction.addAll(generateLiterNode(memberNode, reg))
+        }
+        return structMemberInstruction
     }
 
     private fun generateRHSNode(rhs: AssignRHSNode, reg: Register = Register.r5, ident: String = ""): List<Instruction> {
         val rhsInstruction = mutableListOf<Instruction>()
         when (rhs) {
-            is RHSCallNode -> {
-                rhsInstruction.addAll(generateCallNode(rhs))
-            }
+            is RHSCallNode -> rhsInstruction.addAll(generateCallNode(rhs))
             is RHSClassCallNode -> rhsInstruction.addAll(generateClassCallNode(rhs))
-            is RHSExprNode -> {
-                rhsInstruction.addAll(generateExpr(rhs.expr))
-            }
+            is RHSExprNode -> rhsInstruction.addAll(generateExpr(rhs.expr))
             is RHSArrayLitNode -> rhsInstruction.addAll(generateArrayLitNode(rhs.exprs, reg))
             is RHSNewPairNode -> rhsInstruction.addAll(generateNewPair(rhs))
             is RHSPairElemNode -> rhsInstruction.addAll(generatePairAccess(rhs.pairElem, false))
             is RHSFoldNode -> rhsInstruction.addAll(generateFold(rhs))
+            is RHSNewStruct -> rhsInstruction.addAll(generateNewStruct(rhs,ident))
             is RHSNewClass -> rhsInstruction.addAll(generateNewClass(rhs))
             else -> throw Error("RHS not implemented")
         }
@@ -764,6 +770,21 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return pairElemInstructions
     }
 
+    private fun generateNewStruct(struct: RHSNewStruct, ident : String): List<Instruction> {
+
+        val currentST = globalSymbolTable
+        val structT = globalSymbolTable.getNodeGlobal(ident) as TypeStruct
+        val offset = structT.getOffset()
+        globalSymbolTable = structT.getMemberST()
+        val members = structT.getMemberNames()
+        val structInstructions = mutableListOf<Instruction>()
+        for ((argCount, arg) in struct.argList.withIndex()){
+            structInstructions.addAll(generateDeclaration(DeclarationNode(StructType(structT),members.elementAt(argCount), RHSExprNode(arg))))
+        }
+        globalSymbolTable = currentST
+        return structInstructions
+    }
+
     private fun generateNewPair(pair: RHSNewPairNode): List<Instruction> {
         val newPairInstructions = mutableListOf<Instruction>()
 
@@ -823,20 +844,20 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         when (lhs) {
             is AssignLHSIdentNode -> lhsInstructions.addAll(loadIdentValue(lhs.ident))
-            is LHSArrayElemNode -> {
-                lhsInstructions.addAll(generateExpr(lhs.arrayElem, reg))
-            }
-            is LHSPairElemNode -> {
-                lhsInstructions.addAll(generatePairAccess(lhs.pairElem, true, reg))
-            }
+            is LHSArrayElemNode -> lhsInstructions.addAll(generateExpr(lhs.arrayElem, reg))
+            is LHSPairElemNode -> lhsInstructions.addAll(generatePairAccess(lhs.pairElem, true, reg))
+            is AssignLHSStructNode -> lhsInstructions.addAll(generateExpr(lhs.structMemberNode, reg))
         }
 
         return lhsInstructions
     }
 
-    private fun generateArrayElem(expr: ArrayElem, reg: Register): List<Instruction> {
+    private fun generateArrayElem(expr: ExprNode, reg: Register): List<Instruction> {
+        val stOffset = if (expr is StructMemberNode) (globalSymbolTable.getNodeGlobal(expr.structIdent.toString()) as TypeStruct).getOffset() else 0
+        val st = if (expr is StructMemberNode) (globalSymbolTable.getNodeGlobal(expr.structIdent.toString()) as TypeStruct).getMemberST() else globalSymbolTable
+        val expr = if (expr is StructMemberNode) (expr.memberExpr as ArrayElem) else (expr as ArrayElem)
         val arrayElemInstructions = mutableListOf<Instruction>()
-        val offset = getStackOffsetValue(expr.ident.toString())
+        val offset = getStackOffsetValue(expr.ident.toString(), st) + stOffset
         val reg2 = reg.nextAvailable()
         var type: Type? = null
         arrayElemInstructions.add(Add(reg, Register.sp, ImmOp(offset)))
@@ -848,7 +869,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             arrayElemInstructions.add(Move(Register.r1, reg))
             arrayElemInstructions.add(Branch(predefined.addFunc(CheckArrayBounds()), true))
 
-            type = globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
+            type = st.getNodeGlobal(expr.ident.toString())!!.getBaseType()
             arrayElemInstructions.add(Add(reg, reg, ImmOp(4)))
             if (type.getTypeSize() == 1) {
                 arrayElemInstructions.add(Add(reg, reg, reg2))
@@ -873,6 +894,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generateLiterNode(exprNode: ExprNode, dstRegister: Register): List<Instruction> {
         val loadInstruction = mutableListOf<Instruction>()
+        val st = if (exprNode is StructMemberNode) (globalSymbolTable.getNodeGlobal(exprNode.structIdent.toString()) as TypeStruct).getMemberST() else globalSymbolTable
+        val exprNode = if (exprNode is StructMemberNode) exprNode.memberExpr else exprNode
+
         when (exprNode) {
             is IntLiterNode -> {
                 loadInstruction.add(Load(dstRegister, exprNode.value.toInt()))
@@ -906,8 +930,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 }))
             }
             is Ident -> {
-                val type = globalSymbolTable.getNodeGlobal(exprNode.toString())!!
-                val offset = getStackOffsetValue(exprNode.toString())
+                val type = st.getNodeGlobal(exprNode.toString())!!
+                val offset = getStackOffsetValue(exprNode.toString(), st)
                 loadInstruction.add(Load(dstRegister, Register.sp, offset, sb = type.getTypeSize() == 1))
             }
         }
@@ -1126,20 +1150,20 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return instructions
     }
 
-    private fun getStackOffsetValue(name: String): Int {
+    private fun getStackOffsetValue(name: String, st: SymbolTable = globalSymbolTable): Int {
         var totalOffset = 0
-        if (globalSymbolTable.getNodeGlobal(name)!!.isParameter()) {
-            totalOffset += globalSymbolTable.getStackOffset(name)
-            if (globalSymbolTable.containsNodeLocal(name)) {
-                totalOffset += globalSymbolTable.localStackSize()
+        if (st.getNodeGlobal(name)!!.isParameter()) {
+            totalOffset += st.getStackOffset(name)
+            if (st.containsNodeLocal(name)) {
+                totalOffset += st.localStackSize()
             }
-            if (!inElseStatement && assign && !globalSymbolTable.containsNodeLocal(name)) {
+            if (!inElseStatement && assign && !st.containsNodeLocal(name)) {
                 totalOffset += stackToAdd
             }
         } else {
-            totalOffset += globalSymbolTable.localStackSize()
-            totalOffset -= globalSymbolTable.getStackOffset(name)
-            if (assign && !globalSymbolTable.containsNodeLocal(name)) {
+            totalOffset += st.localStackSize()
+            totalOffset -= st.getStackOffset(name)
+            if (assign && !st.containsNodeLocal(name)) {
                 totalOffset += stackToAdd
             }
         }

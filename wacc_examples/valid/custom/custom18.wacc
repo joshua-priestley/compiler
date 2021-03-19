@@ -6,18 +6,20 @@
 
 # Program:
 struct thing {
-  int x;
   int y;
-  char t;
 };
 
 struct thing2 {
-  char t;
+  int t;
 };
 
 begin
-  #thing y = new thing(1, 2, 'a');
-  #int a = y.x;
-  #y.y = a
-  int x = 3
+  thing y = new thing(2);
+  int x = y.y;
+  if x == 2 then
+    println("Struct working!")
+  else
+    println("Struct not working :(")
+  fi;
+  println(x)
 end

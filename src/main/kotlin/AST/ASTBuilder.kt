@@ -194,10 +194,10 @@ class ASTBuilder(
         }
         val funcType = TypeFunction(type.type, parameterTypes)
 
-        if (globalSymbolTable.containsNodeLocal(ident.toString() + funcType.toString())) {
+        if (globalSymbolTable.containsNodeLocal(ident.name + funcType.toString())) {
             semanticListener.redefinedVariable(ident.name + "()", ctx)
         } else {
-            globalSymbolTable.addNode(ident.toString() + funcType.toString(), funcType)
+            globalSymbolTable.addNode(ident.name + funcType.toString(), funcType)
         }
 
         // Add each parameter to the function's parameter list in the map
@@ -251,6 +251,7 @@ class ASTBuilder(
     // Visits each function and adds it to the global symbol table
     private fun addAllFunctions(funcCTXs: MutableList<FuncContext>) {
         funcCTXs.forEach { addIndividual(it.ident(), it.type(), it.param_list(), it) }
+        globalSymbolTable.printEntries()
     }
 
     // Visit a function for the AST
@@ -283,6 +284,10 @@ class ASTBuilder(
         ident.name = ident.name + funcType.toString()
         functionParameters[ident.name] = parameterTypes
 
+        if (!globalSymbolTable.containsNodeLocal(ident.name)) {
+            globalSymbolTable.addChildTable(functionSymbolTable.ID, functionSymbolTable)
+        }
+
         // Assign the current scope to the scope of the function when building its statement node
         val stat: StatementNode
         globalSymbolTable = functionSymbolTable
@@ -302,16 +307,6 @@ class ASTBuilder(
 
         // Revert back to the global scope
         globalSymbolTable = globalSymbolTable.parentT!!
-
-        if (!globalSymbolTable.containsNodeLocal(ident.name)) {
-            globalSymbolTable.addChildTable(functionSymbolTable.ID, functionSymbolTable)
-        }
-
-        if (globalSymbolTable.containsNodeLocal(ident.name)) {
-            semanticListener.redefinedVariable(ident.name + "()", ctx)
-        } else {
-            globalSymbolTable.addNode(ident.name, funcType)
-        }
 
         return FunctionNode(type, ident, parameterNodes.toList(), stat)
     }
@@ -430,7 +425,9 @@ class ASTBuilder(
                     }
                 }
             }
-            if (!found) semanticListener.funRefBeforeAss(ident.name, ctx)
+            if (!found) {
+                println("asdf$string")
+                semanticListener.funRefBeforeAss(ident.name, ctx)}
         }
 
         return CallNode(ident, params)
@@ -1034,6 +1031,9 @@ class ASTBuilder(
                 return getClassMembType(lhs.classMemberNode, ctx)
             }
             is AssignLHSStructNode -> {
+                if (lhs.structMemberNode.memberExpr is ArrayElem){
+                    return getStructMembType(lhs.structMemberNode, ctx)!!.getBaseType()
+                }
                 return getStructMembType(lhs.structMemberNode, ctx)
             }
             is LHSArrayElemNode -> {
@@ -1085,21 +1085,24 @@ class ASTBuilder(
                 // Check the function exists and that the parameters are correct
                 val args: List<Type>
                 args = if (rhs.argList == null) {
-                    mutableListOf()
+                    mutableListOf(TypeBase(VOID))
                 } else {
                     rhs.argList.map { x -> getExprType(x, ctx)!! }
                 }
                 //val args = rhs.argList!!.map { x -> getExprType(x,ctx) }
                 val string = rhs.ident.name + args.joinToString(separator = "_")
+                println(string)
+                globalSymbolTable.printEntries()
                 if (!globalSymbolTable.containsNodeGlobal(string)) {
                     if (args.contains(TypePair(null, null))) {
-                        val funcKeys = globalSymbolTable.filterFuncs(rhs.ident.toString())
+                        val funcKeys = globalSymbolTable.filterFuncs(rhs.ident.name)
                         for (value in funcKeys.values) {
                             if (value is TypeFunction && TypeFunction(value.getReturn(), (args as MutableCollection<Type>)) == value) {
                                 return value.getReturn()
                             }
                         }
                     }
+                    println("asdf$string")
                     semanticListener.funRefBeforeAss(rhs.ident.name, ctx)
                     null
                 } else {
@@ -1273,11 +1276,18 @@ class ASTBuilder(
         return if (structType == null) {
             semanticListener.structNotImplemented(expr.structIdent.name, ctx)
             null
-        } else if (!structType.containsMember(expr.memberIdent)) {
-            semanticListener.structMemberDoesNotExist(expr.structIdent.name, expr.memberIdent.name, ctx)
+        } else if (expr.memberExpr is ArrayElem) {
+            if (!structType.containsMember(expr.memberExpr.ident)) {
+                semanticListener.structMemberDoesNotExist(expr.structIdent.name, expr.memberExpr.ident.name, ctx)
+                null
+            } else {
+                structType.memberType(expr.memberExpr.ident)
+            }
+        } else if (!structType.containsMember(expr.memberExpr as Ident)) {
+            semanticListener.structMemberDoesNotExist(expr.structIdent.name, expr.memberExpr.name, ctx)
             null
         } else {
-            structType.memberType(expr.memberIdent)
+            structType.memberType(expr.memberExpr)
         }
     }
 
@@ -1423,7 +1433,14 @@ class ASTBuilder(
         val type = globalSymbolTable.getNodeGlobal(ident.toString())
         val member = visit(ctx.ident(1)) as Ident
         return if (type is TypeStruct) {
-            StructMemberNode(ident, member)
+            return when {
+                ctx.array_elem() != null -> {
+                    StructMemberNode(visit(ctx.ident(0)) as Ident, visit(ctx.array_elem()) as ArrayElem)
+                }
+                else -> {
+                    StructMemberNode(visit(ctx.ident(0)) as Ident, visit(ctx.ident(1)) as Ident)
+                }
+            }
         } else {
             ClassMemberNode(ident, member)
         }

@@ -1,6 +1,7 @@
 package compiler.AST.Types
 
 import AST.Ident
+import AST.SymbolTable
 import AST.Types.Type
 import antlr.WACCParser.*
 
@@ -10,9 +11,17 @@ open class TypeStruct(private val name: Ident) : Type() {
     override var isParam = false
     override var offsetInTable: Int = 0
 
-    private val memberST = AST.SymbolTable(null, -1)
+    private val memberST = SymbolTable(null, -1)
     private val memberNames = mutableListOf<Ident>()
     private var totalSize = 0
+
+    fun getMemberNames() : MutableCollection<Ident>{
+        return this.memberNames
+    }
+
+    fun getMemberST() : SymbolTable {
+        return this.memberST
+    }
 
     override fun getTypeSize(): Int {
         return totalSize
@@ -45,6 +54,7 @@ open class TypeStruct(private val name: Ident) : Type() {
 
     fun addMember(name: Ident, type: Type) {
         memberST.addNode(name.toString(), type)
+        memberNames.add(name)
         totalSize += type.getTypeSize()
     }
 
