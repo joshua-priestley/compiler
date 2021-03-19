@@ -44,7 +44,7 @@ class ASTBuilder(
     // Visits the main program to build the AST
     override fun visitProgram(ctx: ProgramContext): Node {
         val structNodes = visitAllStructs(ctx.struct())
-        classNodes.addAll(visitAllClasses(ctx.classs()))
+        val classNodes = visitAllClasses(ctx.classs())
 
         // First add all the functions to the map
         addAllMacros(ctx.macro())

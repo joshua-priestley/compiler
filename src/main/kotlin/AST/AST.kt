@@ -1,6 +1,6 @@
 package AST
 
-import AST.Types.*
+import AST.Types.Type
 import antlr.WACCParser.*
 import compiler.AST.Types.*
 import kotlin.Int
@@ -10,7 +10,7 @@ interface Node
 /*
  * Programs
  */
-data class ProgramNode(val stucts: List<StructNode>, val classes: List<ClassNode>, val funcs: List<FunctionNode>, val stat: StatementNode) : Node
+data class ProgramNode(val stucts: List<StructNode>, val classes: List<ClassNode> ,val funcs: List<FunctionNode>, val stat: StatementNode) : Node
 
 /*
  * Classes
@@ -115,7 +115,7 @@ data class Param(val type: TypeNode, val ident: Ident) : ExprNode
 /*
  * Operators
  */
-enum class UnOp(val value: Int) {
+enum class UnOp(val value: kotlin.Int) {
     NOT(14), MINUS(2), LEN(15), ORD(16), CHR(17), BITWISENOT(24), NOT_SUPPORTED(-1)
 }
 
