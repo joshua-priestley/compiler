@@ -690,7 +690,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is RHSNewPairNode -> rhsInstruction.addAll(generateNewPair(rhs))
             is RHSPairElemNode -> rhsInstruction.addAll(generatePairAccess(rhs.pairElem, false))
             is RHSFoldNode -> rhsInstruction.addAll(generateFold(rhs))
-            is RHSNewStruct -> rhsInstruction.addAll(generateNewStruct(rhs,ident))
+            is RHSNewStruct -> rhsInstruction.addAll(generateNewStruct(rhs, ident))
             is RHSNewClass -> rhsInstruction.addAll(generateNewClass(rhs))
             else -> throw Error("RHS not implemented")
         }
@@ -709,11 +709,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val classNode = getClassNode(newClass.className)!!
         var index = 0
         classNode.members.map {
-            println(it)
             if (it is NonInitMember) {
-                val d = DeclarationNode(it.memb.type, it.memb.ident, RHSExprNode(newClass.argList!![index++]))
-                println(d)
-                d
+                DeclarationNode(it.memb.type, it.memb.ident, RHSExprNode(newClass.argList!![index++]))
             } else {
                 (it as InitMember).memb
             }
@@ -771,7 +768,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return pairElemInstructions
     }
 
-    private fun generateNewStruct(struct: RHSNewStruct, ident : String): List<Instruction> {
+    private fun generateNewStruct(struct: RHSNewStruct, ident: String): List<Instruction> {
 
         val currentST = globalSymbolTable
         val structT = globalSymbolTable.getNodeGlobal(ident) as TypeStruct
@@ -779,8 +776,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         globalSymbolTable = structT.getMemberST()
         val members = structT.getMemberNames()
         val structInstructions = mutableListOf<Instruction>()
-        for ((argCount, arg) in struct.argList.withIndex()){
-            structInstructions.addAll(generateDeclaration(DeclarationNode(StructType(structT),members.elementAt(argCount), RHSExprNode(arg))))
+        for ((argCount, arg) in struct.argList.withIndex()) {
+            structInstructions.addAll(generateDeclaration(DeclarationNode(StructType(structT), members.elementAt(argCount), RHSExprNode(arg))))
         }
         globalSymbolTable = currentST
         return structInstructions

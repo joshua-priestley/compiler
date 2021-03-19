@@ -19,11 +19,11 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
         parentT?.addChildTable(ID, this)
     }
 
-    fun filterFuncs(name : String) : Map<String,Type>{
-        val funcs : LinkedHashMap<String, Type> = linkedMapOf()
+    fun filterFuncs(name: String): Map<String, Type> {
+        val funcs: LinkedHashMap<String, Type> = linkedMapOf()
         var currTable: SymbolTable? = this
         while (currTable != null) {
-            funcs.putAll(currTable.table.filterKeys { K -> K.contains(name)})
+            funcs.putAll(currTable.table.filterKeys { K -> K.contains(name) })
             currTable = currTable.parentT
         }
         return funcs
@@ -37,7 +37,7 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
         return childrenTables[ID]
     }
 
-    fun getVals(): MutableCollection<Type>{
+    fun getVals(): MutableCollection<Type> {
         return table.values
     }
 
@@ -65,7 +65,7 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
         while (currTable != null) {
             val type = currTable.table[name]
             if (type != null) {
-                if(setType != null) {
+                if (setType != null) {
                     currTable.table[name] = setType
                 }
                 return type
@@ -131,20 +131,6 @@ class SymbolTable(var parentT: SymbolTable?, val ID: Int) {
 
         // Now in the scope that has the variable we want
         return offset + offsetInTable(name)
-    }
-
-    fun printEntries() {
-        for (entry in table.keys) {
-            println("Key: $entry     Value: ${table[entry]}      Offset: ${table[entry]!!.getOffset()}")
-        }
-    }
-
-    fun printChildTables() {
-        println(childrenTables)
-        println("Total Size: ${localStackSize()}")
-        for (key in childrenTables.keys) {
-            childrenTables[key]?.printChildTables()
-        }
     }
 
 }
