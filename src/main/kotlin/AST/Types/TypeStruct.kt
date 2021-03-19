@@ -15,6 +15,10 @@ open class TypeStruct(private val name: Ident) : Type() {
     private val memberNames = mutableListOf<Ident>()
     private var totalSize = 0
 
+    fun getMemberNames() : MutableCollection<Ident>{
+        return this.memberNames
+    }
+
     fun getMemberST() : SymbolTable {
         return this.memberST
     }
@@ -50,6 +54,7 @@ open class TypeStruct(private val name: Ident) : Type() {
 
     fun addMember(name: Ident, type: Type) {
         memberST.addNode(name.toString(), type)
+        memberNames.add(name)
         totalSize += type.getTypeSize()
     }
 
