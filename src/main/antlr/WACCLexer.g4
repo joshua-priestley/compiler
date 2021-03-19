@@ -126,8 +126,9 @@ STRING: 'string';
 PAIR: 'pair';
 VOID: 'void';
 
-//structs
+//structs + classes
 STRUCT: 'struct';
+CLASS: 'class';
 NEW: 'new';
 
 //characters

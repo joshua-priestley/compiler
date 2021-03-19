@@ -8,8 +8,18 @@ class SemanticErrorHandler {
 
     fun hasSemanticErrors() = errorList.isNotEmpty()
 
+    fun objectNotImplemented(name: String, ctx: ParserRuleContext) {
+        val msg = "object $name does not exist yet"
+        addErrorMessage(msg, errorPosition(ctx))
+    }
+
     fun structNotImplemented(name: String, ctx: ParserRuleContext) {
         val msg = "struct $name does not exist yet"
+        addErrorMessage(msg, errorPosition(ctx))
+    }
+
+    fun classNotImplemented(name: String, ctx: ParserRuleContext) {
+        val msg = "class $name does not exist yet"
         addErrorMessage(msg, errorPosition(ctx))
     }
 
@@ -155,10 +165,6 @@ class SemanticErrorHandler {
         val msg = "cannot return from the global scope"
         addErrorMessage(msg, errorPosition(ctx))
     }
-
-    fun structMemberNonExistent(structName: String, memberName: String, ctx: WACCParser.Assign_lhsContext) {
-        val msg = "$memberName does not exist in the struct $structName"
-        addErrorMessage(msg, errorPosition(ctx))    }
 
     //Build a full error message given the message, line, and char of the error
     private fun addErrorMessage(msg: String, location: String) {

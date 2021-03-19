@@ -4,11 +4,16 @@ options {
   tokenVocab=WACCLexer;
 }
 
-program: (struct)* BEGIN (macro)* (func)* stat END EOF;
+program: (struct)* (classs)* BEGIN (macro)* (func)* stat END EOF;
+
+classs: CLASS ident OPEN_PARENTHESES (param_list)? CLOSE_PARENTHESES
+             OPEN_CURLY (class_member)* (func)* CLOSE_CURLY SEMICOLON;
 
 struct: STRUCT ident OPEN_CURLY (member)+ CLOSE_CURLY SEMICOLON;
 
 member: type ident SEMICOLON;
+
+class_member: member | (declare_var SEMICOLON);
 
 func: type ident OPEN_PARENTHESES (param_list)? CLOSE_PARENTHESES IS stat END;
 
@@ -56,11 +61,13 @@ assign_rhs: expr                                                  # assignRhsExp
   | array_liter                                                   # assignRhsArray
   | NEWPAIR OPEN_PARENTHESES expr COMMA expr CLOSE_PARENTHESES    # assignRhsNewpair
   | pair_elem                                                     # assignRhsPairElem
-  | CALL ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES     # assignRhsCall
+  | CALL call_func                                                # assignRhsCall
   | FOLDL OPEN_PARENTHESES bin_op CLOSE_PARENTHESES expr ident    # assignRhsFoldl
   | FOLDR OPEN_PARENTHESES bin_op CLOSE_PARENTHESES expr ident    # assignRhsFoldr
-  | NEW ident OPEN_PARENTHESES arg_list CLOSE_PARENTHESES         # assignRhsNewStruct
+  | NEW ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES      # assignRhsNewObject
   ;
+
+call_func: (ident DOT)? ident OPEN_PARENTHESES (arg_list)? CLOSE_PARENTHESES;
 
 struct_access: ident DOT ident;
 

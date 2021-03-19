@@ -17,13 +17,14 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     // Global Variable to know which symbol table to step into
-    private val currentSymbolID = AtomicInteger()
+    private var currentSymbolID = AtomicInteger()
 
     // Booleans to know at which section of code we are in
     private var inElseStatement = false
     private var assign = false
     private var printing = false
     private var parameter = false
+    private var classFunc = false
 
     private var endLabel = Stack<String>()
     private var conditionLabel = Stack<String>()
@@ -37,6 +38,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private val data: DataSegment = DataSegment()
     private val predefined: PredefinedFuncs = PredefinedFuncs(data)
 
+    private var classes: MutableList<ClassNode> = mutableListOf()
+
+    private var structLists: LinkedHashMap<Ident, TypeStruct> = linkedMapOf()
+    private var classLists: LinkedHashMap<Ident, TypeClass> = linkedMapOf()
 
     companion object {
         private const val MAX_SIZE = 1024
@@ -57,6 +62,27 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         labelInstructions.add(GlobalLabel("text"))
         labelInstructions.add(GlobalLabel("global main"))
 
+        // Generate the class functions
+        val classFuncInstructions = mutableListOf<Instruction>()
+        val prevST = globalSymbolTable
+        val prevCounter = currentSymbolID
+        classFunc = true
+        for (c in program.classes) {
+            classLists[c.ident] = c.type
+            classes.add(c)
+
+            globalSymbolTable = c.type.getST()
+            currentSymbolID = AtomicInteger()
+            for (func in c.functions) {
+                globalSymbolTable = globalSymbolTable.getChildTable(currentSymbolID.incrementAndGet())!!
+                classFuncInstructions.addAll(generateFunction(func))
+                globalSymbolTable = globalSymbolTable.parentT!!
+            }
+        }
+        classFunc = false
+        globalSymbolTable = prevST
+        currentSymbolID = prevCounter
+
         // Generate the functions
         val funcInstructions = mutableListOf<Instruction>()
         for (func in program.funcs) {
@@ -74,9 +100,19 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         return listOf<Instruction>(data) +
                 labelInstructions +
+                classFuncInstructions +
                 funcInstructions +
                 mainInstructions +
                 predefined.toInstructionList()
+    }
+
+    fun getClassNode(ident: Ident): ClassNode? {
+        for (classNode in classes!!) {
+            if (classNode.ident == ident) {
+                return classNode
+            }
+        }
+        return null
     }
 
     //------------------------------------------------
@@ -87,7 +123,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val instructions = mutableListOf<Instruction>()
 
         // f_NAME:
-        instructions.add(FunctionDeclaration("f_${function.ident.name}"))
+        val name = if (classFunc) "c_" else ""
+        instructions.add(FunctionDeclaration(name + "f_${function.ident.name}"))
 
         // Rest follows same format as the main function
         functionBodyInstructions(instructions, function.stat, false)
@@ -248,7 +285,25 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return readInstructions
     }
 
-    private fun generateCallNode(call: RHSCallNode, voidReturn: Boolean = false): List<Instruction> {
+    private fun generateClassCallNode(call: RHSClassCallNode): List<Instruction> {
+        val callInstructions = mutableListOf<Instruction>()
+        val classT = globalSymbolTable.getNodeGlobal(call.classIdent.toString()) as TypeClass
+
+        val currentST = globalSymbolTable
+        val currentCounter = currentSymbolID
+
+        globalSymbolTable = classT.getST()
+        currentSymbolID = AtomicInteger()
+
+        callInstructions.addAll(generateCallNode(call.callNode, classFunc = true))
+
+        globalSymbolTable = currentST
+        currentSymbolID = currentCounter
+
+        return callInstructions
+    }
+
+    private fun generateCallNode(call: RHSCallNode, voidReturn: Boolean = false, classFunc: Boolean = false): List<Instruction> {
         val callInstructions = mutableListOf<Instruction>()
         var totalOffset = 0
         if (!call.argList.isNullOrEmpty()) {
@@ -267,15 +322,16 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
         }
         globalSymbolTable.subFromOffset(totalOffset)
-        val args : List<Type>
-        args = if (call.argList == null){
+        val args: List<Type>
+        args = if (call.argList == null) {
             mutableListOf()
         } else {
-            call.argList.map { x -> getType(x)!!}
+            call.argList.map { x -> getType(x)!! }
         }
         //val args = rhs.argList!!.map { x -> getExprType(x,ctx) }
-        val string = call.ident.toString() + "(" + args.toString() + ")"
-        val functionName = "f_$string"
+        val string = call.ident.name + args.joinToString(separator = "_")
+        var functionName = if (classFunc) "c_" else ""
+        functionName += "f_$string"
         callInstructions.add(Branch(functionName, true))
         if (totalOffset != 0) callInstructions.add(Add(Register.sp, Register.sp, ImmOp(totalOffset)))
 
@@ -307,14 +363,15 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return assignInstructions
     }
 
-    private fun generateDeclaration(stat: DeclarationNode): List<Instruction> {
+    private fun generateDeclaration(stat: DeclarationNode, offset: Int = 0): List<Instruction> {
         val declareInstructions = mutableListOf<Instruction>()
 
-        declareInstructions.addAll(generateRHSNode(stat.value))
-        declareInstructions.addAll(loadIdentValue(stat.ident))
+        declareInstructions.addAll(generateRHSNode(stat.value, Register.r5, stat.ident.toString()))
+        declareInstructions.addAll(loadIdentValue(stat.ident, offset))
 
         return declareInstructions
     }
+
 
     private fun generateElseIf(instructions: MutableList<Instruction>, elseIf: ElseIfNode, nextElse: String?, endLabel: String): Boolean {
         if (elseIf.expr is BoolLiterNode && elseIf.expr.value == "false") {
@@ -608,16 +665,18 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is UnaryOpNode -> generateUnOp(expr, reg)
             is ArrayElem -> generateArrayElem(expr, reg)
             is PairLiterNode -> mutableListOf(Load(reg, 0))
+            //is ClassMemberNode ->
             else -> emptyList()
         }
     }
 
-    private fun generateRHSNode(rhs: AssignRHSNode, reg: Register = Register.r5): List<Instruction> {
+    private fun generateRHSNode(rhs: AssignRHSNode, reg: Register = Register.r5, ident: String = ""): List<Instruction> {
         val rhsInstruction = mutableListOf<Instruction>()
         when (rhs) {
             is RHSCallNode -> {
                 rhsInstruction.addAll(generateCallNode(rhs))
             }
+            is RHSClassCallNode -> rhsInstruction.addAll(generateClassCallNode(rhs))
             is RHSExprNode -> {
                 rhsInstruction.addAll(generateExpr(rhs.expr))
             }
@@ -625,10 +684,38 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is RHSNewPairNode -> rhsInstruction.addAll(generateNewPair(rhs))
             is RHSPairElemNode -> rhsInstruction.addAll(generatePairAccess(rhs.pairElem, false))
             is RHSFoldNode -> rhsInstruction.addAll(generateFold(rhs))
+            is RHSNewClass -> rhsInstruction.addAll(generateNewClass(rhs))
             else -> throw Error("RHS not implemented")
         }
 
         return rhsInstruction
+    }
+
+    private fun generateNewClass(newClass: RHSNewClass): List<Instruction> {
+        val newClassInstruction = mutableListOf<Instruction>()
+        val currentST = globalSymbolTable
+        val classT = classLists[newClass.className]
+        val offset = classT!!.getOffset()
+        // Enter the class symbol table
+        globalSymbolTable = classT.getST()
+
+        val classNode = getClassNode(newClass.className)!!
+        var index = 0
+        classNode.members.map {
+            println(it)
+            if (it is NonInitMember) {
+                val d = DeclarationNode(it.memb.type, it.memb.ident, RHSExprNode(newClass.argList!![index++]))
+                println(d)
+                d
+            } else {
+                (it as InitMember).memb
+            }
+        }.forEach {
+            newClassInstruction.addAll(generateDeclaration(it, offset))
+        }
+
+        globalSymbolTable = currentST
+        return newClassInstruction
     }
 
     private fun generateFold(rhs: RHSFoldNode): List<Instruction> {
@@ -722,11 +809,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return arrayLitInstructions
     }
 
-    private fun loadIdentValue(ident: Ident): List<Instruction> {
+    private fun loadIdentValue(ident: Ident, structOffset: Int = 0): List<Instruction> {
         val loadInstructions = mutableListOf<Instruction>()
         val type = globalSymbolTable.getNodeGlobal(ident.toString())!!
         val byte: Boolean = type == TypeBase(WACCParser.CHAR) || type == TypeBase(WACCParser.BOOL)
-        val offset = getStackOffsetValue(ident.toString())
+        val offset = getStackOffsetValue(ident.toString()) + structOffset
         loadInstructions.add(Store(Register.r4, Register.sp, offset, byte = byte))
         return loadInstructions
     }
@@ -1093,10 +1180,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is BoolLiterNode -> TypeBase(WACCParser.BOOL)
             is CharLiterNode -> TypeBase(WACCParser.CHAR)
             is Ident -> globalSymbolTable.getNodeGlobal(expr.toString())
-            is ArrayElem -> globalSymbolTable.getNodeGlobal(expr.ident.toString())?.getBaseType() ?: TypeBase(INVALID)
+            is ArrayElem -> globalSymbolTable.getNodeGlobal(expr.ident.toString())?.getBaseType()
+                    ?: TypeBase(INVALID)
             is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value)
             is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value)
-            is PairLiterNode -> TypePair(null,null)
+            is PairLiterNode -> TypePair(null, null)
             is PairElemNode -> getType(expr.expr)
             else -> {
                 throw Error("Expr not implemented")

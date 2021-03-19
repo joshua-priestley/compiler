@@ -30,7 +30,7 @@ class TypeFunction(private val retType: Type?, val params: MutableCollection<Typ
     }
 
     override fun toString(): String {
-        return "($params)"
+        return params.joinToString(separator = "_")
     }
 
     init {

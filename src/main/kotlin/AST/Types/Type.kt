@@ -50,7 +50,6 @@ abstract class Type {
         return null
     }
 
-
     fun isFunction(): Boolean {
         return false
     }
@@ -91,7 +90,7 @@ abstract class Type {
             CHAR -> 1
             ARRAY -> 4
             PAIR_LITER -> 4
-            else -> -1
+            else -> 0
         }
     }
 

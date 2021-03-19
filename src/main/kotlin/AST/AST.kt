@@ -1,6 +1,6 @@
 package AST
 
-import AST.Types.*
+import AST.Types.Type
 import antlr.WACCParser.*
 import compiler.AST.Types.*
 import kotlin.Int
@@ -10,7 +10,17 @@ interface Node
 /*
  * Programs
  */
-data class ProgramNode(val stucts: List<StructNode>, val funcs: List<FunctionNode>, val stat: StatementNode) : Node
+data class ProgramNode(val stucts: List<StructNode>, val classes: List<ClassNode> ,val funcs: List<FunctionNode>, val stat: StatementNode) : Node
+
+/*
+ * Classes
+ */
+data class ClassNode(val ident: Ident, val params: List<Param>, val members: List<ClassMember>, val functions: List<FunctionNode>, val type: TypeClass) : Node
+
+interface ClassMember: Node
+data class NonInitMember(val memb: MemberNode): ClassMember
+data class InitMember(val memb: DeclarationNode): ClassMember
+
 
 /*
  * Structs
@@ -73,6 +83,7 @@ data class ElseIfNode(val expr: ExprNode, val then: StatementNode): StatementNod
  */
 interface AssignLHSNode : Node
 data class AssignLHSIdentNode(val ident: Ident) : AssignLHSNode
+data class AssignLHSClassNode(val classMemberNode: ClassMemberNode): AssignLHSNode
 data class AssignLHSStructNode(val structMemberNode: StructMemberNode): AssignLHSNode
 data class LHSArrayElemNode(val arrayElem: ArrayElem) : AssignLHSNode
 data class LHSPairElemNode(val pairElem: PairElemNode) : AssignLHSNode
@@ -91,6 +102,7 @@ data class CharLiterNode(val value: String) : LiterNode
 data class BoolLiterNode(val value: String) : LiterNode
 class PairLiterNode : ExprNode
 data class StructMemberNode(val structIdent: Ident, val memberIdent: Ident): ExprNode
+data class ClassMemberNode(val structIdent: Ident, val memberIdent: Ident): ExprNode
 data class Ident(var name: String) : LiterNode
 data class ArrayElem(val ident: Ident, val expr: List<ExprNode>) : ExprNode
 data class UnaryOpNode(val operator: UnOp, val expr: ExprNode) : ExprNode
@@ -103,7 +115,7 @@ data class Param(val type: TypeNode, val ident: Ident) : ExprNode
 /*
  * Operators
  */
-enum class UnOp(val value: Int) {
+enum class UnOp(val value: kotlin.Int) {
     NOT(14), MINUS(2), LEN(15), ORD(16), CHR(17), BITWISENOT(24), NOT_SUPPORTED(-1)
 }
 
@@ -121,8 +133,11 @@ data class RHSArrayLitNode(val exprs: List<ExprNode>) : AssignRHSNode
 data class RHSNewPairNode(val expr1: ExprNode, val expr2: ExprNode) : AssignRHSNode
 data class RHSPairElemNode(val pairElem: PairElemNode) : AssignRHSNode
 data class RHSCallNode(val ident: Ident, val argList: List<ExprNode>?) : AssignRHSNode
+data class RHSClassCallNode(val classIdent: Ident, val callNode: RHSCallNode): AssignRHSNode
 data class RHSFoldNode(val sequenceNode: SequenceNode): AssignRHSNode
-data class RHSNewStruct(val structName: Ident, val argList: List<ExprNode>): AssignRHSNode
+interface RHSNewObject: AssignRHSNode
+data class RHSNewStruct(val structName: Ident, val argList: List<ExprNode>): RHSNewObject
+data class RHSNewClass(val className: Ident, val argList: List<ExprNode>?): RHSNewObject
 
 /*
  * Pair Elem
@@ -139,6 +154,7 @@ interface TypeNode : Node {
 }
 
 class StructType(override val type: TypeStruct): TypeNode
+class ClassType(override val type: TypeClass): TypeNode
 class VoidType(override val type: Type = TypeBase(VOID)): TypeNode
 
 // Base Types

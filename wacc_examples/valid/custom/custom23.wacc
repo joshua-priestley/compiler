@@ -1,0 +1,22 @@
+# a simple increment function definition and usage
+
+# Output:
+# 1
+# 4
+
+# Program:
+class thing() {
+  int y = 10;
+
+  int f(int a, int b) is
+    return a
+  end
+};
+
+begin
+  thing ting = new thing();
+  int x = ting.y;
+  println(x);
+  int y = call ting.f(1, 2);
+  println(y)
+end
