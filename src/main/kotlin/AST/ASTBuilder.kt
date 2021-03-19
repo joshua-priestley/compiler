@@ -274,7 +274,7 @@ class ASTBuilder(
         // Add the function's return type to the table too
         functionSymbolTable.addNode("\$RET", type.type.setReturn(true))
         val funcType = TypeFunction(type.type, parameterTypes)
-        ident.name = ident.toString() + funcType.toString()
+        ident.name = ident.name + funcType.toString()
         functionParameters[ident.toString()] = parameterTypes
 
         // Assign the current scope to the scope of the function when building its statement node
@@ -301,10 +301,10 @@ class ASTBuilder(
             globalSymbolTable.addChildTable(functionSymbolTable.ID, functionSymbolTable)
         }
 
-        if (globalSymbolTable.containsNodeLocal(ident.toString() + funcType.toString())) {
+        if (globalSymbolTable.containsNodeLocal(ident.name + funcType.toString())) {
             semanticListener.redefinedVariable(ident.name + "()", ctx)
         } else {
-            globalSymbolTable.addNode(ident.toString() + funcType.toString(), funcType)
+            globalSymbolTable.addNode(ident.name + funcType.toString(), funcType)
         }
 
         return FunctionNode(type, ident, parameterNodes.toList(), stat)
@@ -412,7 +412,7 @@ class ASTBuilder(
         }
         checkParameters(RHSCallNode(ident, params), ctx)
         val args = params?.map { x -> getExprType(x, ctx) } ?: mutableListOf<Type>()
-        val string = "$ident($args)"
+        val string = "${ident.name}($args)"
         var found = false
         if (!globalSymbolTable.containsNodeGlobal(string)) {
             if (args.contains(TypePair(null, null))) {
