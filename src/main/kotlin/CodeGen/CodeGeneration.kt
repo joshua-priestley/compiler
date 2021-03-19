@@ -329,7 +329,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             call.argList.map { x -> getType(x)!! }
         }
         //val args = rhs.argList!!.map { x -> getExprType(x,ctx) }
-        val string = call.ident.name + "(" + args.toString() + ")"
+        val string = call.ident.name + args.joinToString(separator = "_")
         var functionName = if (classFunc) "c_" else ""
         functionName += "f_$string"
         callInstructions.add(Branch(functionName, true))
@@ -694,8 +694,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateNewClass(newClass: RHSNewClass): List<Instruction> {
         val newClassInstruction = mutableListOf<Instruction>()
         val currentST = globalSymbolTable
-        globalSymbolTable.printEntries()
-        println(newClass)
         val classT = classLists[newClass.className]
         val offset = classT!!.getOffset()
         // Enter the class symbol table
@@ -1146,7 +1144,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun getExprOffset(expr: ExprNode): Int {
-        println(expr)
         return when (expr) {
             is PairLiterNode -> REFERENCE_SIZE
             is IntLiterNode -> INT_STR_SIZE
@@ -1161,7 +1158,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
             is Ident -> {
                 val type = globalSymbolTable.getNodeGlobal(expr.toString())
-                println(type)
                 return type!!.getTypeSize()
             }
             else -> {

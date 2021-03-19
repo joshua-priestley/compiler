@@ -186,8 +186,6 @@ class ASTBuilder(
         }
         val funcType = TypeFunction(type.type, parameterTypes)
 
-        functionParameters[ident.toString()] = parameterTypes
-
         if (globalSymbolTable.containsNodeLocal(ident.toString() + funcType.toString())) {
             semanticListener.redefinedVariable(ident.name + "()", ctx)
         } else {
@@ -275,7 +273,7 @@ class ASTBuilder(
         functionSymbolTable.addNode("\$RET", type.type.setReturn(true))
         val funcType = TypeFunction(type.type, parameterTypes)
         ident.name = ident.name + funcType.toString()
-        functionParameters[ident.toString()] = parameterTypes
+        functionParameters[ident.name] = parameterTypes
 
         // Assign the current scope to the scope of the function when building its statement node
         val stat: StatementNode
@@ -301,10 +299,10 @@ class ASTBuilder(
             globalSymbolTable.addChildTable(functionSymbolTable.ID, functionSymbolTable)
         }
 
-        if (globalSymbolTable.containsNodeLocal(ident.name + funcType.toString())) {
+        if (globalSymbolTable.containsNodeLocal(ident.name)) {
             semanticListener.redefinedVariable(ident.name + "()", ctx)
         } else {
-            globalSymbolTable.addNode(ident.name + funcType.toString(), funcType)
+            globalSymbolTable.addNode(ident.name, funcType)
         }
 
         return FunctionNode(type, ident, parameterNodes.toList(), stat)
@@ -364,7 +362,7 @@ class ASTBuilder(
 
     private fun checkParameters(rhs: RHSCallNode, ctx: ParserRuleContext): Boolean {
         // Checks all the arguments being passed into a function so that all the types match up
-        val parameterTypes = functionParameters[rhs.ident.toString()]
+        val parameterTypes = functionParameters[rhs.ident.name]
         if (rhs.argList == null && parameterTypes!!.isEmpty()) {
             // Check if there are parameters
             return true
@@ -410,7 +408,7 @@ class ASTBuilder(
             ctx.arg_list() != null -> ctx.arg_list().expr().map { visit(it) as ExprNode }
             else -> null
         }
-        checkParameters(RHSCallNode(ident, params), ctx)
+        //checkParameters(RHSCallNode(ident, params), ctx)
         val args = params?.map { x -> getExprType(x, ctx) } ?: mutableListOf<Type>()
         val string = "${ident.name}($args)"
         var found = false
@@ -1084,7 +1082,7 @@ class ASTBuilder(
                     rhs.argList.map { x -> getExprType(x, ctx)!! }
                 }
                 //val args = rhs.argList!!.map { x -> getExprType(x,ctx) }
-                val string = rhs.ident.toString() + "(" + args.toString() + ")"
+                val string = rhs.ident.name + args.joinToString(separator = "_")
                 if (!globalSymbolTable.containsNodeGlobal(string)) {
                     if (args.contains(TypePair(null, null))) {
                         val funcKeys = globalSymbolTable.filterFuncs(rhs.ident.toString())
@@ -1095,8 +1093,6 @@ class ASTBuilder(
                         }
                     }
                     semanticListener.funRefBeforeAss(rhs.ident.name, ctx)
-                    null
-                } else if (!checkParameters(rhs, ctx)) {
                     null
                 } else {
                     // Return the type of the function's return
