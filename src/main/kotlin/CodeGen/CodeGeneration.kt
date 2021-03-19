@@ -6,6 +6,7 @@ import AST.Types.Type
 import compiler.AST.Types.*
 import compiler.CodeGen.Instructions.Instruction
 import antlr.WACCParser
+import antlr.WACCParser.VOID
 import compiler.AST.Types.TypeBase
 import compiler.CodeGen.Instructions.ARM.*
 import compiler.CodeGen.Instructions.External.*
@@ -324,7 +325,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         globalSymbolTable.subFromOffset(totalOffset)
         val args: List<Type>
         args = if (call.argList == null) {
-            mutableListOf()
+            mutableListOf(TypeBase(VOID))
         } else {
             call.argList.map { x -> getType(x)!! }
         }
