@@ -199,39 +199,7 @@ class ASTBuilder(
         } else {
             globalSymbolTable.addNode(ident.name + funcType.toString(), funcType)
         }
-
-        // Add each parameter to the function's parameter list in the map
-
     }
-
-    // Visits each function and adds it to the global symbol table
-    /* private fun addAllFunctions(funcCTXs: MutableList<FuncContext>) {
-         for (func in funcCTXs) {
-             val ident = visit(func.ident()) as Ident // Function name
-             val type = visit(func.type()) as TypeNode // Function return type
-             // Check if the function already exists
-
-
-
-             // Add each parameter to the function's parameter list in the map
-             val parameterTypes = mutableListOf<Type>()
-             if (func.param_list() != null) {
-                 for (i in 0..func.param_list().childCount step 2) {
-                     val p = visit(func.param_list().getChild(i)) as Param
-                     parameterTypes.add(p.type.type)
-                 }
-             }
-             val funcType = TypeFunction(type.type, parameterTypes)
-
-             functionParameters[ident.toString()] = parameterTypes
-
-             if (globalSymbolTable.containsNodeLocal(ident.toString() + funcType.toString())) {
-                 semanticListener.redefinedVariable(ident.name + "()", func)
-             } else {
-                 globalSymbolTable.addNode(ident.toString() + funcType.toString(), funcType)
-             }
-         }
-     }*/
 
     private fun addAllMacros(macroCTXs: MutableList<MacroContext>) {
         macroCTXs.forEach { addIndividual(it.ident(), it.type(), it.param_list(), it) }
@@ -251,7 +219,6 @@ class ASTBuilder(
     // Visits each function and adds it to the global symbol table
     private fun addAllFunctions(funcCTXs: MutableList<FuncContext>) {
         funcCTXs.forEach { addIndividual(it.ident(), it.type(), it.param_list(), it) }
-        globalSymbolTable.printEntries()
     }
 
     // Visit a function for the AST
@@ -426,8 +393,8 @@ class ASTBuilder(
                 }
             }
             if (!found) {
-                println("asdf$string")
-                semanticListener.funRefBeforeAss(ident.name, ctx)}
+                semanticListener.funRefBeforeAss(ident.name, ctx)
+            }
         }
 
         return CallNode(ident, params)
@@ -1031,7 +998,7 @@ class ASTBuilder(
                 return getClassMembType(lhs.classMemberNode, ctx)
             }
             is AssignLHSStructNode -> {
-                if (lhs.structMemberNode.memberExpr is ArrayElem){
+                if (lhs.structMemberNode.memberExpr is ArrayElem) {
                     return getStructMembType(lhs.structMemberNode, ctx)!!.getBaseType()
                 }
                 return getStructMembType(lhs.structMemberNode, ctx)
@@ -1091,8 +1058,6 @@ class ASTBuilder(
                 }
                 //val args = rhs.argList!!.map { x -> getExprType(x,ctx) }
                 val string = rhs.ident.name + args.joinToString(separator = "_")
-                println(string)
-                globalSymbolTable.printEntries()
                 if (!globalSymbolTable.containsNodeGlobal(string)) {
                     if (args.contains(TypePair(null, null))) {
                         val funcKeys = globalSymbolTable.filterFuncs(rhs.ident.name)
@@ -1102,7 +1067,6 @@ class ASTBuilder(
                             }
                         }
                     }
-                    println("asdf$string")
                     semanticListener.funRefBeforeAss(rhs.ident.name, ctx)
                     null
                 } else {
