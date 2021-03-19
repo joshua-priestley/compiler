@@ -38,7 +38,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private val data: DataSegment = DataSegment()
     private val predefined: PredefinedFuncs = PredefinedFuncs(data)
 
-    private var classes: List<ClassNode>? = null
+    private var classes: MutableList<ClassNode> = mutableListOf()
+
+    private var structLists: LinkedHashMap<Ident, TypeStruct> = linkedMapOf()
+    private var classLists: LinkedHashMap<Ident, TypeClass> = linkedMapOf()
 
     companion object {
         private const val MAX_SIZE = 1024
@@ -55,7 +58,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     //------------------------------------------------
 
     fun generateProgram(program: ProgramNode): List<Instruction> {
-        classes = program.classes
         val labelInstructions = mutableListOf<Instruction>()
         labelInstructions.add(GlobalLabel("text"))
         labelInstructions.add(GlobalLabel("global main"))
@@ -66,6 +68,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val prevCounter = currentSymbolID
         classFunc = true
         for (c in program.classes) {
+            classLists[c.ident] = c.type
+            classes.add(c)
+
             globalSymbolTable = c.type.getST()
             currentSymbolID = AtomicInteger()
             for (func in c.functions) {
@@ -104,7 +109,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     fun getClassNode(ident: Ident): ClassNode? {
         for (classNode in classes!!) {
             if (classNode.ident == ident) {
-               return classNode
+                return classNode
             }
         }
         return null
@@ -317,11 +322,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             }
         }
         globalSymbolTable.subFromOffset(totalOffset)
-        val args : List<Type>
-        args = if (call.argList == null){
+        val args: List<Type>
+        args = if (call.argList == null) {
             mutableListOf()
         } else {
-            call.argList.map { x -> getType(x)!!}
+            call.argList.map { x -> getType(x)!! }
         }
         //val args = rhs.argList!!.map { x -> getExprType(x,ctx) }
         val string = call.ident.toString() + "(" + args.toString() + ")"
@@ -358,10 +363,10 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return assignInstructions
     }
 
-    private fun generateDeclaration(stat: DeclarationNode, offset : Int = 0): List<Instruction> {
+    private fun generateDeclaration(stat: DeclarationNode, offset: Int = 0): List<Instruction> {
         val declareInstructions = mutableListOf<Instruction>()
 
-        declareInstructions.addAll(generateRHSNode(stat.value,Register.r5,stat.ident.toString()))
+        declareInstructions.addAll(generateRHSNode(stat.value, Register.r5, stat.ident.toString()))
         declareInstructions.addAll(loadIdentValue(stat.ident, offset))
 
         return declareInstructions
@@ -689,14 +694,16 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateNewClass(newClass: RHSNewClass): List<Instruction> {
         val newClassInstruction = mutableListOf<Instruction>()
         val currentST = globalSymbolTable
-        val classT = globalSymbolTable.getNodeGlobal(newClass.className.name) as TypeClass
-        val offset = classT.getOffset()
+        globalSymbolTable.printEntries()
+        println(newClass)
+        val classT = classLists[newClass.className]
+        val offset = classT!!.getOffset()
         // Enter the class symbol table
         globalSymbolTable = classT.getST()
 
         val classNode = getClassNode(newClass.className)!!
         var index = 0
-        classNode.members.map{
+        classNode.members.map {
             if (it is NonInitMember) {
                 DeclarationNode(it.memb.type, it.memb.ident, RHSExprNode(newClass.argList!![index++]))
             } else {
@@ -801,7 +808,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return arrayLitInstructions
     }
 
-    private fun loadIdentValue(ident: Ident, structOffset : Int = 0): List<Instruction> {
+    private fun loadIdentValue(ident: Ident, structOffset: Int = 0): List<Instruction> {
         val loadInstructions = mutableListOf<Instruction>()
         val type = globalSymbolTable.getNodeGlobal(ident.toString())!!
         val byte: Boolean = type == TypeBase(WACCParser.CHAR) || type == TypeBase(WACCParser.BOOL)
@@ -1174,10 +1181,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is BoolLiterNode -> TypeBase(WACCParser.BOOL)
             is CharLiterNode -> TypeBase(WACCParser.CHAR)
             is Ident -> globalSymbolTable.getNodeGlobal(expr.toString())
-            is ArrayElem -> globalSymbolTable.getNodeGlobal(expr.ident.toString())?.getBaseType() ?: TypeBase(INVALID)
+            is ArrayElem -> globalSymbolTable.getNodeGlobal(expr.ident.toString())?.getBaseType()
+                    ?: TypeBase(INVALID)
             is UnaryOpNode -> Type.unaryOpsProduces(expr.operator.value)
             is BinaryOpNode -> Type.binaryOpsProduces(expr.operator.value)
-            is PairLiterNode -> TypePair(null,null)
+            is PairLiterNode -> TypePair(null, null)
             is PairElemNode -> getType(expr.expr)
             else -> {
                 throw Error("Expr not implemented")
