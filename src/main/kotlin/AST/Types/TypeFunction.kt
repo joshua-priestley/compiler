@@ -30,7 +30,7 @@ class TypeFunction(private val retType: Type?, val params: MutableCollection<Typ
     }
 
     override fun toString(): String {
-        return if (params.isEmpty()) "VOID" else params.joinToString(separator = "_")
+        return if (params.isEmpty()) "VOID" else params.joinToString(separator = "_").replace("[]","ARR")
 
     }
 
