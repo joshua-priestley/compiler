@@ -1,7 +1,1 @@
-valid/while
-valid/basic
-valid/expressions
-valid/if
-valid/sequence
-valid/variables
-valid/IO/read
+valid/custom

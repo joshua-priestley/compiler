@@ -4,6 +4,7 @@ import AST.Ident
 import AST.SymbolTable
 import AST.Types.Type
 import antlr.WACCParser.*
+import java.util.concurrent.atomic.AtomicInteger
 
 open class TypeClass(private val name: Ident) : Type() {
 
@@ -11,6 +12,7 @@ open class TypeClass(private val name: Ident) : Type() {
     override var offsetInTable: Int = 0
 
     private lateinit var classST: SymbolTable
+
     private val memberNames = mutableListOf<Ident>()
     private val functionNames = mutableListOf<Ident>()
     private var totalSize = 0
@@ -61,6 +63,10 @@ open class TypeClass(private val name: Ident) : Type() {
 
     fun numberOfFunctions(): Int {
         return functionNames.size
+    }
+
+    fun getFunctions(): MutableList<Ident> {
+        return functionNames
     }
 
     fun addMember(name: Ident, type: Type) {

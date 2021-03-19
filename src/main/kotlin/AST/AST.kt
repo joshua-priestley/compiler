@@ -10,7 +10,7 @@ interface Node
 /*
  * Programs
  */
-data class ProgramNode(val stucts: List<StructNode>, val funcs: List<FunctionNode>, val stat: StatementNode) : Node
+data class ProgramNode(val stucts: List<StructNode>, val classes: List<ClassNode>, val funcs: List<FunctionNode>, val stat: StatementNode) : Node
 
 /*
  * Classes

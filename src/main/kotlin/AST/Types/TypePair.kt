@@ -19,6 +19,10 @@ class TypePair(type1: Type?, type2: Type?) : Type() {
         return this.pairSnd
     }
 
+    override fun getTypeSize(): Int {
+        return 4
+    }
+
     override fun toString(): String {
         if (getPairFst() == null && getPairSnd() == null) {
             return "PAIR"

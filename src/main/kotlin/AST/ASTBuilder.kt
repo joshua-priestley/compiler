@@ -23,12 +23,14 @@ class ASTBuilder(
         private val functionParameters: LinkedHashMap<String, List<Type>> = linkedMapOf(),
         private val classParameters: LinkedHashMap<String, List<Type>> = linkedMapOf()
 ) : WACCParserBaseVisitor<Node>() {
-    private val nextSymbolID = AtomicInteger()
+    private var nextSymbolID = AtomicInteger()
     private var inWhile = false
 
     // A map to store all the functions and their parameters for semantic checking
     private val structLists: LinkedHashMap<Ident, TypeStruct> = linkedMapOf()
     private val classLists: LinkedHashMap<Ident, TypeClass> = linkedMapOf()
+    private val classNodes = mutableListOf<ClassNode>()
+
 
     // A flag to know if we want the type a boolean returns or requires
     private var boolTypeResult = false
@@ -42,7 +44,7 @@ class ASTBuilder(
     // Visits the main program to build the AST
     override fun visitProgram(ctx: ProgramContext): Node {
         val structNodes = visitAllStructs(ctx.struct())
-        visitAllClasses(ctx.classs())
+        classNodes.addAll(visitAllClasses(ctx.classs()))
 
         // First add all the functions to the map
         addAllMacros(ctx.macro())
@@ -54,7 +56,7 @@ class ASTBuilder(
         ctx.func().map { functionNodes.add(visit(it) as FunctionNode) }
         val stat = visit(ctx.stat()) as StatementNode
 
-        return ProgramNode(structNodes, functionNodes, stat)
+        return ProgramNode(structNodes, classNodes, functionNodes, stat)
     }
 
     /*
@@ -70,8 +72,10 @@ class ASTBuilder(
     }
 
     override fun visitClasss(ctx: ClasssContext): Node {
+        val prevCounter = nextSymbolID
         val prevST = globalSymbolTable
         val classST = SymbolTable(null, -1)
+        nextSymbolID = AtomicInteger()
         globalSymbolTable = classST
 
         val ident = visit(ctx.ident()) as Ident
@@ -109,6 +113,7 @@ class ASTBuilder(
         classLists[ident] = classType
 
         globalSymbolTable = prevST
+        nextSymbolID = prevCounter
 
         return ClassNode(ident, parameterNodes, membersList, functionList, classType)
     }
@@ -247,7 +252,7 @@ class ASTBuilder(
         return addSingleFunction(ctx.type(), ctx.ident(), ctx.param_list(), ctx.stat(), null, ctx)
     }
 
-    private fun addSingleFunction(t: TypeContext, id: IdentContext, p: Param_listContext?, s: StatContext?, e: ExprContext?, ctx: ParserRuleContext): FunctionNode {
+    private fun addSingleFunction(t: TypeContext, id: IdentContext, p: Param_listContext?, s: StatContext?, e: ExprContext?, ctx: ParserRuleContext, classFunc: Boolean = false): FunctionNode {
         // Create a new scope for the function
         val functionSymbolTable = SymbolTable(globalSymbolTable, nextSymbolID.incrementAndGet())
 
@@ -301,6 +306,7 @@ class ASTBuilder(
         } else {
             globalSymbolTable.addNode(ident.toString() + funcType.toString(), funcType)
         }
+
         return FunctionNode(type, ident, parameterNodes.toList(), stat)
     }
 
