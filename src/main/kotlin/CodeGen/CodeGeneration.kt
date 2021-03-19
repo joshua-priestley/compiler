@@ -41,7 +41,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private var classes: MutableList<ClassNode> = mutableListOf()
 
-    private var structLists: LinkedHashMap<Ident, TypeStruct> = linkedMapOf()
     private var classLists: LinkedHashMap<Ident, TypeClass> = linkedMapOf()
 
     companion object {
@@ -108,7 +107,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     fun getClassNode(ident: Ident): ClassNode? {
-        for (classNode in classes!!) {
+        for (classNode in classes) {
             if (classNode.ident == ident) {
                 return classNode
             }
@@ -435,12 +434,16 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             assign = false
             // Compare the conditional
             ifInstruction.add(Compare(Register.r4, ImmOp(0)))
-            if (stat.elseIfs.isNotEmpty()) {
-                ifInstruction.add(Branch(firstElseIfLabel, false, Conditions.EQ))
-            } else if (stat.else_ != null) {
-                ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
-            } else {
-                ifInstruction.add(Branch(endLabel, false, Conditions.EQ))
+            when {
+                stat.elseIfs.isNotEmpty() -> {
+                    ifInstruction.add(Branch(firstElseIfLabel, false, Conditions.EQ))
+                }
+                stat.else_ != null -> {
+                    ifInstruction.add(Branch(elseLabel, false, Conditions.EQ))
+                }
+                else -> {
+                    ifInstruction.add(Branch(endLabel, false, Conditions.EQ))
+                }
             }
         }
 
@@ -456,12 +459,16 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         if (!doIf && firstElseIfLabel != "") {
             ifInstruction.add(FunctionDeclaration(firstElseIfLabel))
             for (i in stat.elseIfs.indices) {
-                val nextElse: String? = if (i != stat.elseIfs.size - 1) {
-                    nextLabel()
-                } else if (stat.else_ != null) {
-                    elseLabel
-                } else {
-                    null
+                val nextElse: String? = when {
+                    i != stat.elseIfs.size - 1 -> {
+                        nextLabel()
+                    }
+                    stat.else_ != null -> {
+                        elseLabel
+                    }
+                    else -> {
+                        null
+                    }
                 }
                 doIf = generateElseIf(ifInstruction, stat.elseIfs[i], nextElse, endLabel)
                 if (nextElse != null && nextElse != elseLabel && nextElse != "") {
@@ -489,6 +496,13 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return ifInstruction
     }
 
+    private fun constantFlowOptimisation(expr: ExprNode): Boolean? {
+        if (expr is BoolLiterNode && expr.value == "false" || expr is BinaryOpNode && constantEvaluation(expr) == FALSE_VAL) {
+            return null
+        }
+        return expr is BoolLiterNode && expr.value == "true" || expr is BinaryOpNode && constantEvaluation(expr) == TRUE_VAL
+    }
+
     private fun generateDoWhile(stat: DoWhileNode): List<Instruction> {
         val doWhileInstruction = mutableListOf<Instruction>()
 
@@ -501,11 +515,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         enterNewScope(doWhileInstruction, stat.do_)
         if (!inElseStatement) stackToAdd -= globalSymbolTable.localStackSize()
 
-        if (stat.expr is BoolLiterNode && stat.expr.value == "false" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == FALSE_VAL) {
-            return doWhileInstruction
-        }
-        val forever = stat.expr is BoolLiterNode && stat.expr.value == "true" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == TRUE_VAL
-
+        val forever = constantFlowOptimisation(stat.expr) ?: return doWhileInstruction
 
         // Conditional
         if (forever) {
@@ -522,10 +532,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateWhile(stat: WhileNode): List<Instruction> {
         val whileInstruction = mutableListOf<Instruction>()
 
-        if (stat.expr is BoolLiterNode && stat.expr.value == "false" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == FALSE_VAL) {
-            return whileInstruction
-        }
-        val forever = stat.expr is BoolLiterNode && stat.expr.value == "true" || stat.expr is BinaryOpNode && constantEvaluation(stat.expr) == TRUE_VAL
+        val forever = constantFlowOptimisation(stat.expr) ?: return whileInstruction
 
         conditionLabel.push(nextLabel())
         val bodyLabel = nextLabel()
@@ -895,9 +902,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateLiterNode(exprNode: ExprNode, dstRegister: Register): List<Instruction> {
         val loadInstruction = mutableListOf<Instruction>()
         val st = if (exprNode is StructMemberNode) (globalSymbolTable.getNodeGlobal(exprNode.structIdent.toString()) as TypeStruct).getMemberST() else globalSymbolTable
-        val exprNode = if (exprNode is StructMemberNode) exprNode.memberExpr else exprNode
 
-        when (exprNode) {
+        when (val exprNode = if (exprNode is StructMemberNode) exprNode.memberExpr else exprNode) {
             is IntLiterNode -> {
                 loadInstruction.add(Load(dstRegister, exprNode.value.toInt()))
             }
