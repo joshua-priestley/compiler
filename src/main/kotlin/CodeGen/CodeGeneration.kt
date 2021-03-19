@@ -665,7 +665,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val members = structT.getMemberNames()
         val structInstructions = mutableListOf<Instruction>()
         for ((argCount, arg) in struct.argList.withIndex()){
-            structInstructions.addAll(generateDeclaration(DeclarationNode(StructType(structT),members.elementAt(argCount), RHSExprNode(arg)),offset))
+            structInstructions.addAll(generateDeclaration(DeclarationNode(StructType(structT),members.elementAt(argCount), RHSExprNode(arg))))
         }
         globalSymbolTable = currentST
         return structInstructions

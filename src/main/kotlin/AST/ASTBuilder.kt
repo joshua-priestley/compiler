@@ -71,12 +71,6 @@ class ASTBuilder(
 
         val structIdent = visit(ctx.ident()) as Ident
         val structType = TypeStruct(structIdent)
-        for (member in ctx.member()) {
-            val ident = visit(member.ident()) as Ident
-            val type = visit(member.type()) as TypeNode
-            structType.addMember(ident, type.type)
-            members.add(MemberNode(type, ident))
-        }
 
         ctx.member().map {
             val ident = visit(it.ident()) as Ident
