@@ -1,0 +1,17 @@
+# a simple function is declared, but not called
+
+# Output:
+# #empty#
+
+# Program:
+struct s {
+    int x;
+    int[] y;
+};
+begin
+  s g = new s(1,[1,2]);
+  g.y = [1,2,3];
+  g.y[2] = 3;
+  int[] z = [0,1];
+  z[0] = 1
+end

@@ -71,6 +71,12 @@ class ASTBuilder(
 
         val structIdent = visit(ctx.ident()) as Ident
         val structType = TypeStruct(structIdent)
+        for (member in ctx.member()) {
+            val ident = visit(member.ident()) as Ident
+            val type = visit(member.type()) as TypeNode
+            structType.addMember(ident, type.type)
+            members.add(MemberNode(type, ident))
+        }
 
         ctx.member().map {
             val ident = visit(it.ident()) as Ident
@@ -742,7 +748,6 @@ class ASTBuilder(
         val rhsType = getRHSType(rhs, ctx)
         boolTypeResult = false
 
-        //println("$ident, $lhsType, $rhsType, $rhs")
         // Check each side's type is equal
         if (rhsType != null) {
             if (lhsType.getType() != rhsType.getType()
@@ -863,6 +868,9 @@ class ASTBuilder(
                 globalSymbolTable.getNodeGlobal(lhs.ident.toString())
             }
             is AssignLHSStructNode -> {
+                if (lhs.structMemberNode.memberExpr is ArrayElem){
+                    return getStructMembType(lhs.structMemberNode, ctx)!!.getBaseType()
+                }
                 return getStructMembType(lhs.structMemberNode, ctx)
             }
             is LHSArrayElemNode -> {
@@ -1072,11 +1080,18 @@ class ASTBuilder(
         return if (structType == null) {
             semanticListener.structNotImplemented(expr.structIdent.name, ctx)
             null
-        } else if (!structType.containsMember(expr.memberIdent)) {
-            semanticListener.structMemberDoesNotExist(expr.structIdent.name, expr.memberIdent.name, ctx)
+        } else if (expr.memberExpr is ArrayElem) {
+            if (!structType.containsMember(expr.memberExpr.ident)) {
+                semanticListener.structMemberDoesNotExist(expr.structIdent.name, expr.memberExpr.ident.name, ctx)
+                null
+            } else {
+                structType.memberType(expr.memberExpr.ident)
+            }
+        } else if (!structType.containsMember(expr.memberExpr as Ident)) {
+            semanticListener.structMemberDoesNotExist(expr.structIdent.name, expr.memberExpr.name, ctx)
             null
         } else {
-            structType.memberType(expr.memberIdent)
+            structType.memberType(expr.memberExpr)
         }
     }
 
@@ -1213,7 +1228,14 @@ class ASTBuilder(
     }
 
     override fun visitStruct_access(ctx: Struct_accessContext): Node {
-        return StructMemberNode(visit(ctx.ident(0)) as Ident, visit(ctx.ident(1)) as Ident)
+        return when {
+            ctx.array_elem() != null -> {
+                StructMemberNode(visit(ctx.ident(0)) as Ident, visit(ctx.array_elem()) as ArrayElem)
+            }
+            else -> {
+                StructMemberNode(visit(ctx.ident(0)) as Ident, visit(ctx.ident(1)) as Ident)
+            }
+        }
     }
 
     override fun visitAssignLhsArray(ctx: AssignLhsArrayContext): Node {

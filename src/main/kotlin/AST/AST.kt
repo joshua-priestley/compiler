@@ -89,7 +89,7 @@ data class StrLiterNode(val value: String) : LiterNode
 data class CharLiterNode(val value: String) : LiterNode
 data class BoolLiterNode(val value: String) : LiterNode
 class PairLiterNode : ExprNode
-data class StructMemberNode(val structIdent: Ident, val memberIdent: Ident): ExprNode
+data class StructMemberNode(val structIdent: Ident, val memberExpr: ExprNode): ExprNode
 data class Ident(var name: String) : LiterNode
 data class ArrayElem(val ident: Ident, val expr: List<ExprNode>) : ExprNode
 data class UnaryOpNode(val operator: UnOp, val expr: ExprNode) : ExprNode

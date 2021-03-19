@@ -586,10 +586,12 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     }
 
     private fun generateStructMember(memberNode: StructMemberNode, reg: Register = Register.r5): List<Instruction> {
-        // TODO
-        val structMembInstruction = mutableListOf<Instruction>()
-        println(memberNode)
-        return structMembInstruction
+        val structMemberInstruction = mutableListOf<Instruction>()
+        when (memberNode.memberExpr) {
+            is ArrayElem -> structMemberInstruction.addAll(generateArrayElem(memberNode, reg))
+            is Ident -> structMemberInstruction.addAll(generateLiterNode(memberNode, reg))
+        }
+        return structMemberInstruction
     }
 
     private fun generateRHSNode(rhs: AssignRHSNode, reg: Register = Register.r5): List<Instruction> {
@@ -728,9 +730,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return lhsInstructions
     }
 
-    private fun generateArrayElem(expr: ArrayElem, reg: Register): List<Instruction> {
+    private fun generateArrayElem(expr: ExprNode, reg: Register): List<Instruction> {
+        val st = if (expr is StructMemberNode) (globalSymbolTable.getNodeGlobal(expr.structIdent.toString()) as TypeStruct).getMemberST() else globalSymbolTable
+        val expr = if (expr is StructMemberNode) (expr.memberExpr as ArrayElem) else (expr as ArrayElem)
         val arrayElemInstructions = mutableListOf<Instruction>()
-        val offset = getStackOffsetValue(expr.ident.toString())
+        val offset = getStackOffsetValue(expr.ident.toString(), st)
         val reg2 = reg.nextAvailable()
         var type: Type? = null
         arrayElemInstructions.add(Add(reg, Register.sp, ImmOp(offset)))
@@ -742,7 +746,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             arrayElemInstructions.add(Move(Register.r1, reg))
             arrayElemInstructions.add(Branch(predefined.addFunc(CheckArrayBounds()), true))
 
-            type = globalSymbolTable.getNodeGlobal(expr.ident.toString())!!.getBaseType()
+            type = st.getNodeGlobal(expr.ident.toString())!!.getBaseType()
             arrayElemInstructions.add(Add(reg, reg, ImmOp(4)))
             if (type.getTypeSize() == 1) {
                 arrayElemInstructions.add(Add(reg, reg, reg2))
@@ -767,6 +771,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generateLiterNode(exprNode: ExprNode, dstRegister: Register): List<Instruction> {
         val loadInstruction = mutableListOf<Instruction>()
+        val st = if (exprNode is StructMemberNode) (globalSymbolTable.getNodeGlobal(exprNode.structIdent.toString()) as TypeStruct).getMemberST() else globalSymbolTable
+        val exprNode = if (exprNode is StructMemberNode) exprNode.memberExpr else exprNode
+
         when (exprNode) {
             is IntLiterNode -> {
                 loadInstruction.add(Load(dstRegister, exprNode.value.toInt()))
@@ -800,8 +807,8 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 }))
             }
             is Ident -> {
-                val type = globalSymbolTable.getNodeGlobal(exprNode.toString())!!
-                val offset = getStackOffsetValue(exprNode.toString())
+                val type = st.getNodeGlobal(exprNode.toString())!!
+                val offset = getStackOffsetValue(exprNode.toString(), st)
                 loadInstruction.add(Load(dstRegister, Register.sp, offset, sb = type.getTypeSize() == 1))
             }
         }
@@ -1020,20 +1027,20 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return instructions
     }
 
-    private fun getStackOffsetValue(name: String): Int {
+    private fun getStackOffsetValue(name: String, st: SymbolTable = globalSymbolTable): Int {
         var totalOffset = 0
-        if (globalSymbolTable.getNodeGlobal(name)!!.isParameter()) {
-            totalOffset += globalSymbolTable.getStackOffset(name)
-            if (globalSymbolTable.containsNodeLocal(name)) {
-                totalOffset += globalSymbolTable.localStackSize()
+        if (st.getNodeGlobal(name)!!.isParameter()) {
+            totalOffset += st.getStackOffset(name)
+            if (st.containsNodeLocal(name)) {
+                totalOffset += st.localStackSize()
             }
-            if (!inElseStatement && assign && !globalSymbolTable.containsNodeLocal(name)) {
+            if (!inElseStatement && assign && !st.containsNodeLocal(name)) {
                 totalOffset += stackToAdd
             }
         } else {
-            totalOffset += globalSymbolTable.localStackSize()
-            totalOffset -= globalSymbolTable.getStackOffset(name)
-            if (assign && !globalSymbolTable.containsNodeLocal(name)) {
+            totalOffset += st.localStackSize()
+            totalOffset -= st.getStackOffset(name)
+            if (assign && !st.containsNodeLocal(name)) {
                 totalOffset += stackToAdd
             }
         }
