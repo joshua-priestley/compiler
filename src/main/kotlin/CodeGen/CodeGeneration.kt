@@ -666,7 +666,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is ArrayElem -> generateArrayElem(expr, reg)
             is PairLiterNode -> mutableListOf(Load(reg, 0))
             is StructMemberNode -> generateStructMember(expr, reg)
-            else -> throw Error("Expression not implemented yet")
+            else -> emptyList()
         }
     }
 
