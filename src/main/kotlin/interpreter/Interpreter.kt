@@ -76,7 +76,7 @@ class InterpreterBackend (
         visitStat(program.stat)
     }
 
-
+    // Stop traversal of the ast, return to executeProgram
     private fun runtimeErr(error: Error) {
         println(error.msg)
         throw RuntimeError()
@@ -125,7 +125,6 @@ class InterpreterBackend (
     private fun visitIf(stat: IfElseNode) {
         if (visitExpr(stat.expr) as Boolean) {
             varStore = varStore.newScope()
-            //println(stat)
             visitStat(stat.then)
             varStore = varStore.exitScope()
         } else {
@@ -144,20 +143,7 @@ class InterpreterBackend (
         val expr = visitExpr(stat.expr)
         when (expr) {
             is PairObject<*, *> -> print("#pair_addr#")
-            is Array<*> -> {
-                // TODO print char array as string
-                // Print char array as a string
-                /*
-                val type = globalSymbolTable.getNodeGlobal((stat.expr as Ident).toString())!!.getBaseType()
-                println(type)
-                if (type == Type(WACCParser.CHAR)) {
-                    // TODO this doesn't work because we aren't changing st scopes oop - printAllTypes test
-                    // shouldn't use st here
-                    print(expr.joinToString(""))
-                } else {
-                */
-                print("#arr_addr#")
-            }
+            is Array<*> -> print("#arr_addr#")
             else -> print(expr)
         }
     }
@@ -210,7 +196,6 @@ class InterpreterBackend (
         when (stat.lhs) {
             is AssignLHSIdentNode -> {
                 varStore.assignBaseValue(stat.lhs.ident.name, value)
-                //println("${stat.lhs.ident.name} = $value")
             }
             is LHSArrayElemNode -> assignArrayElem(value, stat.lhs)
             is LHSPairElemNode -> assignPairElem(value, stat.lhs)
@@ -284,27 +269,23 @@ class InterpreterBackend (
 
     private fun visitRHSCallNode(expr: RHSCallNode): Any {
         val func = getFuncNode(expr.ident)!!
-        //println("calling ${func.ident.name}")
         if (expr.argList != null) {
             val args = expr.argList.map { visitExpr(it) }
-            //args.forEach { println(it) }
             val params = func.params.map { it.ident.name }
+            // Set the parameters values as variables in the function scope
             varStore = varStore.enterFunction(args, params)
         } else {
             varStore = varStore.newScope()
         }
-        //println("visiting function")
         visitStat(func.stat)
+        // return to the calling scope
         varStore = varStore.exitScope()
         val returnVal = funcReturn!!
-        //println("in call visit: $returnVal")
-        // Clear the return value and s
         funcReturn = null
         isRetruning = false
         return returnVal
     }
 
-    // TODO remove non null assertions with runtime errors
     private fun visitRHSPairElem(expr: RHSPairElemNode): Any {
         val pair = ((visitExpr(expr.pairElem.expr)) as PairObject<*, *>)
         if (pair.isNull()) {
@@ -435,6 +416,8 @@ class InterpreterBackend (
         }
     }
 
+    // characters we want to escape will be parsed as an escaped \ followed by the character
+    // if we find a \\ in a string, add the correct escape character
     private fun formatEscapeChars(string: String): String {
         val sb = StringBuilder()
         var i = 0
