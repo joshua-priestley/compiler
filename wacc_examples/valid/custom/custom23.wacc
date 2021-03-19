@@ -1,17 +1,22 @@
-# a simple function is declared, but not called
+# a simple increment function definition and usage
 
 # Output:
-# #empty#
+# 1
+# 4
 
 # Program:
-struct s {
-    int x;
-    int[] y;
+class thing() {
+  int y = 10;
+
+  int f(int a, int b) is
+    return a
+  end
 };
+
 begin
-  s g = new s(1,[1,2]);
-  g.y = [1,2,3];
-  g.y[2] = 3;
-  int[] z = [0,1];
-  z[0] = 1
+  thing ting = new thing();
+  int x = ting.y;
+  println(x);
+  int y = call ting.f(1, 2);
+  println(y)
 end

@@ -88,12 +88,13 @@ FI: 'fi';
 WHILE: 'while';
 DO: 'do';
 DONE: 'done';
+FOR: 'for';
+
+//higher order functions
 MAP: 'map';
 FOLDL: 'foldl';
 FOLDR: 'foldr';
 
-//for
-FOR: 'for'; //rest follows from WHILE
 //null
 NULL: 'null';
 
@@ -125,8 +126,9 @@ STRING: 'string';
 PAIR: 'pair';
 VOID: 'void';
 
-//structs
+//structs + classes
 STRUCT: 'struct';
+CLASS: 'class';
 NEW: 'new';
 
 //characters
