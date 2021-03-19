@@ -632,7 +632,6 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
     private fun generateFree(stat: FreeNode): List<Instruction> {
         val freeInstruction = mutableListOf<Instruction>()
-
         freeInstruction.addAll(generateLiterNode(stat.expr, Register.r4))
         freeInstruction.add(Move(Register.r0, Register.r4))
 
@@ -700,7 +699,9 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
             is RHSFoldNode -> rhsInstruction.addAll(generateFold(rhs))
             is RHSNewStruct -> rhsInstruction.addAll(generateNewStruct(rhs, ident))
             is RHSNewClass -> rhsInstruction.addAll(generateNewClass(rhs))
-            else -> throw Error("RHS not implemented")
+            else -> {
+                println(rhs)
+            throw Error("RHS not implemented")}
         }
 
         return rhsInstruction

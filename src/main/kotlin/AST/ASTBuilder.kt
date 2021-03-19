@@ -1056,8 +1056,7 @@ class ASTBuilder(
                 } else {
                     rhs.argList.map { x -> getExprType(x, ctx)!! }
                 }
-                //val args = rhs.argList!!.map { x -> getExprType(x,ctx) }
-                val string = rhs.ident.name + args.joinToString(separator = "_")
+                val string = rhs.ident.name + args.joinToString(separator = "_").replace("[]","ARR")
                 if (!globalSymbolTable.containsNodeGlobal(string)) {
                     if (args.contains(TypePair(null, null))) {
                         val funcKeys = globalSymbolTable.filterFuncs(rhs.ident.name)
@@ -1067,6 +1066,7 @@ class ASTBuilder(
                             }
                         }
                     }
+                    println("2")
                     semanticListener.funRefBeforeAss(rhs.ident.name, ctx)
                     null
                 } else {
