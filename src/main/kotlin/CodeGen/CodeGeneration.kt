@@ -364,11 +364,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return assignInstructions
     }
 
-    private fun generateDeclaration(stat: DeclarationNode, offset: Int = 0): List<Instruction> {
+    private fun generateDeclaration(stat: DeclarationNode): List<Instruction> {
         val declareInstructions = mutableListOf<Instruction>()
 
         declareInstructions.addAll(generateRHSNode(stat.value, Register.r5, stat.ident.toString()))
-        declareInstructions.addAll(loadIdentValue(stat.ident, offset))
+        declareInstructions.addAll(loadIdentValue(stat.ident))
 
         return declareInstructions
     }
@@ -674,6 +674,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateStructMember(memberNode: StructMemberNode, reg: Register = Register.r5): List<Instruction> {
         val structMemberInstruction = mutableListOf<Instruction>()
         when (memberNode.memberExpr) {
+            //Structs can hold arrays and variables
             is ArrayElem -> structMemberInstruction.addAll(generateArrayElem(memberNode, reg))
             is Ident -> structMemberInstruction.addAll(generateLiterNode(memberNode, reg))
         }
@@ -701,8 +702,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
     private fun generateNewClass(newClass: RHSNewClass): List<Instruction> {
         val newClassInstruction = mutableListOf<Instruction>()
         val currentST = globalSymbolTable
-        val classT = classLists[newClass.className]
-        val offset = classT!!.getOffset()
+        val classT = classLists[newClass.className]:
         // Enter the class symbol table
         globalSymbolTable = classT.getST()
 
@@ -715,7 +715,7 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
                 (it as InitMember).memb
             }
         }.forEach {
-            newClassInstruction.addAll(generateDeclaration(it, offset))
+            newClassInstruction.addAll(generateDeclaration(it))
         }
 
         globalSymbolTable = currentST
@@ -772,10 +772,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
 
         val currentST = globalSymbolTable
         val structT = globalSymbolTable.getNodeGlobal(ident) as TypeStruct
-        val offset = structT.getOffset()
+        //Use the struct's symbol table to get the offset
         globalSymbolTable = structT.getMemberST()
         val members = structT.getMemberNames()
         val structInstructions = mutableListOf<Instruction>()
+        //For each field in the struct, generate a declaration using the argument passed into the constructor
         for ((argCount, arg) in struct.argList.withIndex()) {
             structInstructions.addAll(generateDeclaration(DeclarationNode(StructType(structT), members.elementAt(argCount), RHSExprNode(arg))))
         }
@@ -828,11 +829,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         return arrayLitInstructions
     }
 
-    private fun loadIdentValue(ident: Ident, structOffset: Int = 0): List<Instruction> {
+    private fun loadIdentValue(ident: Ident): List<Instruction> {
         val loadInstructions = mutableListOf<Instruction>()
         val type = globalSymbolTable.getNodeGlobal(ident.toString())!!
         val byte: Boolean = type == TypeBase(WACCParser.CHAR) || type == TypeBase(WACCParser.BOOL)
-        val offset = getStackOffsetValue(ident.toString()) + structOffset
+        val offset = getStackOffsetValue(ident.toString())
         loadInstructions.add(Store(Register.r4, Register.sp, offset, byte = byte))
         return loadInstructions
     }
