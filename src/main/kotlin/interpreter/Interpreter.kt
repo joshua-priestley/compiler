@@ -275,8 +275,7 @@ class InterpreterBackend (
 
     private fun getFuncNode(id: Ident): FunctionNode? {
         for (func in funcList) {
-            val funcName = func.ident.name.split("(")[1]
-            if (funcName.substring(5, funcName.length - 1) == id.name) {
+            if (func.ident.name.contains(id.name)) {
                 return func
             }
         }
