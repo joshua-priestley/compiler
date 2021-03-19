@@ -702,8 +702,11 @@ class CodeGeneration(private var globalSymbolTable: SymbolTable) {
         val classNode = getClassNode(newClass.className)!!
         var index = 0
         classNode.members.map {
+            println(it)
             if (it is NonInitMember) {
-                DeclarationNode(it.memb.type, it.memb.ident, RHSExprNode(newClass.argList!![index++]))
+                val d = DeclarationNode(it.memb.type, it.memb.ident, RHSExprNode(newClass.argList!![index++]))
+                println(d)
+                d
             } else {
                 (it as InitMember).memb
             }

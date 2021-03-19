@@ -5,8 +5,9 @@
 # 4
 
 # Program:
-class thing(int z) {
-  int x = z;
+class thing(int z, int yy) {
+  int a;
+  int x;
   int y = 10;
 
   int f(int a, int b) is
@@ -18,7 +19,7 @@ begin
   int g(int x) is
     return 4
   end
-  thing ting = new thing(3);
+  thing ting = new thing(3, 2);
   int x = call g(3);
   int y = call ting.f(1, 2)
 end

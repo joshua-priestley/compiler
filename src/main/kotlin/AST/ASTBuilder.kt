@@ -130,7 +130,15 @@ class ASTBuilder(
                 }
                 NonInitMember(MemberNode(type, ident))
             }
-            ctx.declare_var() != null -> InitMember(visit(ctx.declare_var()) as DeclarationNode)
+            ctx.declare_var() != null -> {
+                val d = visit(ctx.declare_var()) as DeclarationNode
+                if (d.value is RHSExprNode && d.value.expr is Ident) {
+                    NonInitMember(MemberNode(d.type, d.ident))
+
+                } else {
+                    InitMember(d)
+                }
+            }
             else -> throw Error("Not implemented")
         }
     }
